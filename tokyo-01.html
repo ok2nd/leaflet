@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>東京タワー(1)：OpenStreetMap＋Leaflet</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: 'c <a href="//osm.org/copyright">OpenStreetMap</a> contributors, <a href="//creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
+});
+tileLayer.addTo(map);
+// ---------------------------
+var place = [
+	{
+		'name': '東京タワー',
+		'lat': '35.6585753263022',
+		'lng': '139.7454324609718'
+	},{
+		'name': '増上寺',
+		'lat': '35.65737629074171',
+		'lng': '139.7482751425744'
+	},{
+		'name': '芝公園',
+		'lat': '35.65548717662271',
+		'lng': '139.74843437145282'
+	},{
+		'name': '赤羽橋駅',
+		'lat': '35.65496610534149',
+		'lng': '139.74394970889855'
+	},{
+		'name': '神谷町駅',
+		'lat': '35.66307981284523',
+		'lng': '139.7451975472575'
+	}
+]
+// ---------------------------
+iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
+for (var i = 0; i < place.length; i++) {
+	iconMarkers.addLayer( L.marker([place[i].lat, place[i].lng]).addTo(map).bindPopup(place[i].name) );
+}
+map.fitBounds(iconMarkers.getBounds());	// 全マーカーを画面内に収める
+</script>
+</body>
+</html>

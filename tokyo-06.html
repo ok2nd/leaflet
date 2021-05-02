@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>東京タワー(6)：Leaflet(Google Map,OpenStreetMap,国土地理院,Esri World Topo Map)</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<!-- Font Awesome アイコン -->
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
+<link rel='stylesheet' href='css/easy-button.css'/>
+<script src='js/easy-button.js'></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.divicon {	/* 文字ラベル */
+	display: table-cell;
+	color: #f00;
+	background-color: #ff4;
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+tileLayer.addTo(map);
+// ---------------------------
+var place = [
+	{
+		'name': '東京タワー',
+		'lat': '35.6585753263022',
+		'lng': '139.7454324609718'
+	},{
+		'name': '増上寺',
+		'lat': '35.65737629074171',
+		'lng': '139.7482751425744'
+	},{
+		'name': '芝公園',
+		'lat': '35.65548717662271',
+		'lng': '139.74843437145282'
+	},{
+		'name': '赤羽橋駅',
+		'lat': '35.65496610534149',
+		'lng': '139.74394970889855'
+	},{
+		'name': '神谷町駅',
+		'lat': '35.66307981284523',
+		'lng': '139.7451975472575'
+	}
+]
+// ---------------------------
+var myIcon = L.icon({	/* アイコン */
+	iconUrl: 'icon/marker-small.png',
+	iconRetinaUrl: 'icon/marker-small.png',
+	iconSize: [16, 27],
+	iconAnchor: [7, 27],
+	popupAnchor: [1, -22],
+});
+iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
+for (var i = 0; i < place.length; i++) {
+	// 文字ラベルを表示
+	var divIcon = L.divIcon({
+		html: '<div class="divicon">' + place[i].name + '</div>',
+		iconSize: [0,0]
+	});
+	iconMarkers.addLayer( L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(place[i].name) );
+	L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
+}
+map.fitBounds(iconMarkers.getBounds());	// 全マーカーを画面内に収める
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	"Google マップ": Basic_Map[ 0 ],
+	"OpenStreetMap": Basic_Map[ 1 ],
+	"国土地理院 標準地図": Basic_Map[ 2 ],
+	"国土地理院 写真": Basic_Map[ 3 ],
+	"Esri World Topo Map": Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+// マーカーすべて表示画面に戻るボタン
+L.easyButton('fa fa-reply-all', function(btn, easyMap) {
+	currentWatchReset();
+	if (currentWatchBtn) {
+		currentWatchBtn.state('current-watch');
+		currentWatchBtn = null;
+	}
+	map.fitBounds(iconMarkers.getBounds());	// 全マーカー画面に戻る
+}).addTo(map);
+// クリックした地点の緯度・経度、標高を表示
+map.on('click', onMapClick);
+var clickMarker = null;
+function onMapClick(e) {
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open("GET", src, false);
+	req.send(null)
+}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
+}
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+			// 東京タワー
+			// var lat = 35.65837719526223;
+			// var lng = 139.7423601150513;
+		map.setView([ lat,lng ]);
+			// 現在地に表示するマーカー：Awesomeアイコン版
+			//	var curIcon = L.divIcon({
+			//		html: '<div class="fa fa-user" style="color: #FF7F50; font-size: 20px;"></div>',
+			//		iconSize: [20, 20],
+			//		className: 'myDivIcon'
+			//	});
+		// 現在地に表示するマーカー
+		if (curMarker == null) {
+			var curIcon = L.icon({	/* アイコン */
+				iconUrl: 'icon/hiking.png',
+				iconRetinaUrl: 'icon/hiking.png',
+				iconAnchor: [15, 34]
+			});
+			curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+		}
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>山梨：甲州ワイナリーマップ</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<!-- Font Awesome アイコン -->
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
+<link rel='stylesheet' href='css/easy-button.css'/>
+<script src='js/easy-button.js'></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.divicon {	/* 文字ラベル */
+	display: table-cell;
+	color: #f00;
+/*	background-color: #ff4;	*/
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+tileLayer.addTo(map);
+// ---------------------------
+var others = Array();
+others[0] = Array();
+others[0]["name"] = '勝沼ぶどうの丘';
+others[0]["lat"] = 35.67452919999999;
+others[0]["lng"] = 138.73672379999994;
+others[1] = Array();
+others[1]["name"] = '勝沼ぶどう郷駅';
+others[1]["lat"] = 35.672824;
+others[1]["lng"] = 138.74321499999996;
+var place = Array();
+place[0] = Array();
+place[0]["name"] = '麻屋葡萄酒';
+place[0]["lat"] = 35.665528;
+place[0]["lng"] = 138.71508199999994;
+place[1] = Array();
+place[1]["name"] = '大泉葡萄酒';
+place[1]["lat"] = 35.659038;
+place[1]["lng"] = 138.71934299999998;
+place[2] = Array();
+place[2]["name"] = '勝沼醸造';
+place[2]["lat"] = 35.656146;
+place[2]["lng"] = 138.71579299999996;
+place[3] = Array();
+place[3]["name"] = 'イケダワイナリー';
+place[3]["lat"] = 35.6563796;
+place[3]["lng"] = 138.71925099999999;
+place[4] = Array();
+place[4]["name"] = '中央葡萄酒';
+place[4]["lat"] = 35.66546700000001;
+place[4]["lng"] = 138.714154;
+place[5] = Array();
+place[5]["name"] = 'シャトー勝沼';
+place[5]["lat"] = 35.663617;
+place[5]["lng"] = 138.73728800000004;
+place[6] = Array();
+place[6]["name"] = 'シャトレーゼベルフォーレワイナリー';
+place[6]["lat"] = 35.66195099999999;
+place[6]["lng"] = 138.723481;
+place[7] = Array();
+place[7]["name"] = '岩崎醸造';
+place[7]["lat"] = 35.65603;
+place[7]["lng"] = 138.72164199999997;
+place[8] = Array();
+place[8]["name"] = 'グランポレール勝沼ワイナリー';
+place[8]["lat"] = 35.676635;
+place[8]["lng"] = 138.70380699999998;
+place[9] = Array();
+place[9]["name"] = '蒼籠葡萄酒';
+place[9]["lat"] = 35.65892640000001;
+place[9]["lng"] = 138.72225170000002;
+place[10] = Array();
+place[10]["name"] = 'ダイヤモンド酒造';
+place[10]["lat"] = 35.6557178;
+place[10]["lng"] = 138.72520140000006;
+place[11] = Array();
+place[11]["name"] = '東夢ワイナリー';
+place[11]["lat"] = 35.6603272;
+place[11]["lng"] = 138.72971269999994;
+place[12] = Array();
+place[12]["name"] = '原茂ワイン';
+place[12]["lat"] = 35.6650914;
+place[12]["lng"] = 138.73163599999998;
+place[13] = Array();
+place[13]["name"] = 'マルサン葡萄酒';
+place[13]["lat"] = 35.662568;
+place[13]["lng"] = 138.728519;
+place[14] = Array();
+place[14]["name"] = 'シャトー・メルシャン';
+place[14]["lat"] = 35.659178;
+place[14]["lng"] = 138.72356089999994;
+place[15] = Array();
+place[15]["name"] = '菱山中央醸造';
+place[15]["lat"] = 35.6753764;
+place[15]["lng"] = 138.7396751;
+place[16] = Array();
+place[16]["name"] = '錦城葡萄酒';
+place[16]["lat"] = 35.676475;
+place[16]["lng"] = 138.73219700000004;
+place[17] = Array();
+place[17]["name"] = '丸藤葡萄酒工業';
+place[17]["lat"] = 35.65004400000001;
+place[17]["lng"] = 138.714968;
+place[18] = Array();
+place[18]["name"] = 'フジッコワイナリー';
+place[18]["lat"] = 35.6481279;
+place[18]["lng"] = 138.72064;
+place[19] = Array();
+place[19]["name"] = '旭洋酒';
+place[19]["lat"] = 35.6980302;
+place[19]["lng"] = 138.6957096;
+place[20] = Array();
+place[20]["name"] = 'シャトージュン';
+place[20]["lat"] = 35.669851;
+place[20]["lng"] = 138.73409400000003;
+place[21] = Array();
+place[21]["name"] = 'まるき葡萄酒';
+place[21]["lat"] = 35.650264;
+place[21]["lng"] = 138.72011999999995;
+place[22] = Array();
+place[22]["name"] = '塩山洋酒醸造';
+place[22]["lat"] = 35.716589;
+place[22]["lng"] = 138.732935;
+place[23] = Array();
+place[23]["name"] = '奥野田葡萄酒醸造';
+place[23]["lat"] = 35.6914762;
+place[23]["lng"] = 138.73845700000004;
+place[24] = Array();
+place[24]["name"] = '甲斐ワイナリー';
+place[24]["lat"] = 35.697283;
+place[24]["lng"] = 138.72701900000004;
+place[25] = Array();
+place[25]["name"] = '金井醸造場';
+place[25]["lat"] = 35.687166;
+place[25]["lng"] = 138.67080399999998;
+place[26] = Array();
+place[26]["name"] = 'マンズワイン勝沼ワイナリー';
+place[26]["lat"] = 35.6841737;
+place[26]["lng"] = 138.72344150000004;
+place[27] = Array();
+place[27]["name"] = '五味葡萄酒';
+place[27]["lat"] = 35.731832;
+place[27]["lng"] = 138.71489099999997;
+place[28] = Array();
+place[28]["name"] = 'サントネージュワイン';
+place[28]["lat"] = 35.683675;
+place[28]["lng"] = 138.68393100000003;
+place[29] = Array();
+place[29]["name"] = '東晨洋酒';
+place[29]["lat"] = 35.662658;
+place[29]["lng"] = 138.688442;
+place[30] = Array();
+place[30]["name"] = '甲府ワインポート ドメーヌ・久';
+place[30]["lat"] = 35.6592032;
+place[30]["lng"] = 138.62180309999997;
+place[31] = Array();
+place[31]["name"] = 'マルス山梨ワイナリー';
+place[31]["lat"] = 35.659317;
+place[31]["lng"] = 138.643374;
+place[32] = Array();
+place[32]["name"] = 'モンデ酒造';
+place[32]["lat"] = 35.652754;
+place[32]["lng"] = 138.637652;
+place[33] = Array();
+place[33]["name"] = '盛田甲州ワイナリー';
+place[33]["lat"] = 35.6620485;
+place[33]["lng"] = 138.72272550000002;
+place[34] = Array();
+place[34]["name"] = '大和葡萄酒';
+place[34]["lat"] = 35.665073;
+place[34]["lng"] = 138.71185300000002;
+place[35] = Array();
+place[35]["name"] = 'くらむぼんワイン';
+place[35]["lat"] = 35.6555771;
+place[35]["lng"] = 138.72317840000005;
+place[36] = Array();
+place[36]["name"] = 'ロリアンワイン白百合醸造';
+place[36]["lat"] = 35.664753;
+place[36]["lng"] = 138.708299;
+place[37] = Array();
+place[37]["name"] = '新巻葡萄酒';
+place[37]["lat"] = 35.631226;
+place[37]["lng"] = 138.69734199999994;
+place[38] = Array();
+place[38]["name"] = 'アルプスワイン';
+place[38]["lat"] = 35.6315149;
+place[38]["lng"] = 138.70060050000006;
+place[39] = Array();
+place[39]["name"] = '北野呂醸造';
+place[39]["lat"] = 35.63177;
+place[39]["lng"] = 138.69638399999997;
+place[40] = Array();
+place[40]["name"] = '日川中央葡萄酒';
+place[40]["lat"] = 35.625021;
+place[40]["lng"] = 138.69375390000005;
+place[41] = Array();
+place[41]["name"] = 'スズラン酒造工業';
+place[41]["lat"] = 35.661384;
+place[41]["lng"] = 138.70378299999993;
+place[42] = Array();
+place[42]["name"] = '笛吹ワイン';
+place[42]["lat"] = 35.627297;
+place[42]["lng"] = 138.65928699999995;
+place[43] = Array();
+place[43]["name"] = '矢作洋酒';
+place[43]["lat"] = 35.658681;
+place[43]["lng"] = 138.70010000000002;
+place[44] = Array();
+place[44]["name"] = 'ルミエールワイナリー';
+place[44]["lat"] = 35.6544351;
+place[44]["lng"] = 138.71132669999997;
+// ---------------------------
+iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
+var iconBlue = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [14, 27],
+	popupAnchor: [1, -22],
+});
+placeMarker(others, iconBlue, '#aff');
+var iconRed = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [14, 27],
+	popupAnchor: [1, -22],
+});
+placeMarker(place, iconRed, '#ff4');
+map.fitBounds(iconMarkers.getBounds());	// 全マーカーを画面内に収める
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	"Google マップ": Basic_Map[ 0 ],
+	"OpenStreetMap": Basic_Map[ 1 ],
+	"国土地理院 標準地図": Basic_Map[ 2 ],
+	"国土地理院 写真": Basic_Map[ 3 ],
+	"Esri World Topo Map": Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+// マーカーすべて表示画面に戻るボタン
+L.easyButton('fa fa-reply-all', function(btn, easyMap) {
+	currentWatchReset();
+	if (currentWatchBtn) {
+		currentWatchBtn.state('current-watch');
+		currentWatchBtn = null;
+	}
+	map.fitBounds(iconMarkers.getBounds());	// 全マーカー画面に戻る
+}).addTo(map);
+// クリックした地点の緯度・経度、標高を表示
+map.on('click', onMapClick);
+var clickMarker = null;
+function onMapClick(e) {
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open("GET", src, false);
+	req.send(null)
+}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
+}
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+			// 東京タワー
+			// var lat = 35.65837719526223;
+			// var lng = 139.7423601150513;
+		map.setView([ lat,lng ]);
+			// 現在地に表示するマーカー：Awesomeアイコン版
+			//	var curIcon = L.divIcon({
+			//		html: '<div class="fa fa-user" style="color: #FF7F50; font-size: 20px;"></div>',
+			//		iconSize: [20, 20],
+			//		className: 'myDivIcon'
+			//	});
+		// 現在地に表示するマーカー
+		if (curMarker == null) {
+			var curIcon = L.icon({	/* アイコン */
+				iconUrl: 'icon/hiking.png',
+				iconRetinaUrl: 'icon/hiking.png',
+				iconAnchor: [15, 34]
+			});
+			curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+		}
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+function placeMarker(place, myIcon, bgcolor) {
+	for (var i = 0; i < place.length; i++) {
+		// 文字ラベルを表示
+		var divIcon = L.divIcon({
+			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i].name + '</div>',
+			iconSize: [0,0]
+		});
+		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i].name) + '" target="_blank">' + place[i].name + '</a>';
+			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i].lat + '%2C' + place[i].lng + '" target="_blank">' + '緯度：' + place[i].lat + '<br>経度：' + place[i].lng + '</a>';
+		iconMarkers.addLayer(L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(popStr));
+		L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
+	}
+}
+</script>
+</body>
+</html>

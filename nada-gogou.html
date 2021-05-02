@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>酒蔵【灘五郷】 西郷・御影郷・魚崎郷・西宮郷・今津郷</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<!-- Font Awesome アイコン -->
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
+<link rel='stylesheet' href='css/easy-button.css'/>
+<script src='js/easy-button.js'></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.divicon {	/* 文字ラベル */
+	display: table-cell;
+	color: #f00;
+/*	background-color: #ff4;	*/
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+tileLayer.addTo(map);
+// ---------------------------
+var others = Array();
+others[0] = Array();
+others[0]["name"] = '沢の鶴資料館';
+others[0]["lat"] = 34.703252;
+others[0]["lng"] = 135.233069;
+others[1] = Array();
+others[1]["name"] = '菊正宗酒造記念館';
+others[1]["lat"] = 34.708585;
+others[1]["lng"] = 135.26786900000002;
+others[2] = Array();
+others[2]["name"] = '櫻宴';
+others[2]["lat"] = 34.709893;
+others[2]["lng"] = 135.271477;
+others[3] = Array();
+others[3]["name"] = '神戸酒心館';
+others[3]["lat"] = 34.7097593;
+others[3]["lng"] = 135.24851220000005;
+others[4] = Array();
+others[4]["name"] = '浜福鶴吟醸工房';
+others[4]["lat"] = 34.7096205;
+others[4]["lng"] = 135.27297410000006;
+others[5] = Array();
+others[5]["name"] = '酒蔵通り煉瓦館';
+others[5]["lat"] = 34.730234395916554;
+others[5]["lng"] = 135.34468531608582;
+others[6] = Array();
+others[6]["name"] = '白鹿クラシックス';
+others[6]["lat"] = 34.728455461393985;
+others[6]["lng"] = 135.33814072608948;
+others[7] = Array();
+others[7]["name"] = '白鹿記念酒造博物館';
+others[7]["lat"] = 34.72805960000001;
+others[7]["lng"] = 135.33800480000002;
+others[8] = Array();
+others[8]["name"] = '白鷹禄水苑';
+others[8]["lat"] = 34.7305358;
+others[8]["lng"] = 135.3387341;
+others[9] = Array();
+others[9]["name"] = '関寿庵';
+others[9]["lat"] = 34.7266349;
+others[9]["lng"] = 135.35154699999998;
+others[10] = Array();
+others[10]["name"] = '白鶴酒造資料館';
+others[10]["lat"] = 34.71007310116628;
+others[10]["lng"] = 135.26166021823883;
+var place = Array();
+place[0] = Array();
+place[0]["name"] = '菊正宗';
+place[0]["lat"] = 34.7099649;
+place[0]["lng"] = 135.25837260000003;
+place[1] = Array();
+place[1]["name"] = '大黒正宗';
+place[1]["lat"] = 34.709301;
+place[1]["lng"] = 135.24815390000003;
+place[2] = Array();
+place[2]["name"] = '剣菱';
+place[2]["lat"] = 34.7101197;
+place[2]["lng"] = 135.25669160000007;
+place[3] = Array();
+place[3]["name"] = '浜福鶴';
+place[3]["lat"] = 34.7098622;
+place[3]["lng"] = 135.27282409999998;
+place[4] = Array();
+place[4]["name"] = '金盃';
+place[4]["lat"] = 34.7072318;
+place[4]["lng"] = 135.2328493;
+place[5] = Array();
+place[5]["name"] = '富久娘';
+place[5]["lat"] = 34.70599869999999;
+place[5]["lng"] = 135.23662690000003;
+place[6] = Array();
+place[6]["name"] = '灘一';
+place[6]["lat"] = 34.7311885;
+place[6]["lng"] = 135.33688430000007;
+place[7] = Array();
+place[7]["name"] = '泉正宗';
+place[7]["lat"] = 34.7097454;
+place[7]["lng"] = 135.2499371;
+place[8] = Array();
+place[8]["name"] = '白鷹';
+place[8]["lat"] = 34.731058;
+place[8]["lng"] = 135.33820079999998;
+place[9] = Array();
+place[9]["name"] = '櫻正宗';
+place[9]["lat"] = 34.70910670000001;
+place[9]["lng"] = 135.271116;
+place[10] = Array();
+place[10]["name"] = '徳若';
+place[10]["lat"] = 34.72499447536466;
+place[10]["lng"] = 135.3422264009714;
+place[11] = Array();
+place[11]["name"] = '大関';
+place[11]["lat"] = 34.7256615;
+place[11]["lng"] = 135.3513832;
+place[12] = Array();
+place[12]["name"] = '日本盛';
+place[12]["lat"] = 34.7307248;
+place[12]["lng"] = 135.3440309;
+place[13] = Array();
+place[13]["name"] = '灘自慢';
+place[13]["lat"] = 34.726864;
+place[13]["lng"] = 135.34341989999996;
+place[14] = Array();
+place[14]["name"] = '寳娘';
+place[14]["lat"] = 34.7250363;
+place[14]["lng"] = 135.34208949999993;
+place[15] = Array();
+place[15]["name"] = '白鹿';
+place[15]["lat"] = 34.7290498;
+place[15]["lng"] = 135.33557329999996;
+place[16] = Array();
+place[16]["name"] = '扇正宗';
+place[16]["lat"] = 34.7249254;
+place[16]["lng"] = 135.3515221;
+place[17] = Array();
+place[17]["name"] = '沢の鶴';
+place[17]["lat"] = 34.7033656;
+place[17]["lng"] = 135.23484929999995;
+place[18] = Array();
+place[18]["name"] = '道灌';
+place[18]["lat"] = 34.720228;
+place[18]["lng"] = 135.2996796;
+place[19] = Array();
+place[19]["name"] = '島美人';
+place[19]["lat"] = 34.7331522;
+place[19]["lng"] = 135.33482330000004;
+place[20] = Array();
+place[20]["name"] = '金鷹';
+place[20]["lat"] = 34.732086034305645;
+place[20]["lng"] = 135.33975273370743;
+place[21] = Array();
+place[21]["name"] = '白鶴';
+place[21]["lat"] = 34.709808513501834;
+place[21]["lng"] = 135.26085287332535;
+place[22] = Array();
+place[22]["name"] = '福寿';
+place[22]["lat"] = 34.709958446615616;
+place[22]["lng"] = 135.24824917316437;
+place[23] = Array();
+place[23]["name"] = '喜一';
+place[23]["lat"] = 34.73168925814304;
+place[23]["lng"] = 135.34146130084991;
+// ---------------------------
+iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
+var iconBlue = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [14, 27],
+	popupAnchor: [1, -22],
+});
+placeMarker(others, iconBlue, '#aff');
+var iconRed = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [14, 27],
+	popupAnchor: [1, -22],
+});
+placeMarker(place, iconRed, '#ff4');
+map.fitBounds(iconMarkers.getBounds());	// 全マーカーを画面内に収める
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	"Google マップ": Basic_Map[ 0 ],
+	"OpenStreetMap": Basic_Map[ 1 ],
+	"国土地理院 標準地図": Basic_Map[ 2 ],
+	"国土地理院 写真": Basic_Map[ 3 ],
+	"Esri World Topo Map": Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+// マーカーすべて表示画面に戻るボタン
+L.easyButton('fa fa-reply-all', function(btn, easyMap) {
+	currentWatchReset();
+	if (currentWatchBtn) {
+		currentWatchBtn.state('current-watch');
+		currentWatchBtn = null;
+	}
+	map.fitBounds(iconMarkers.getBounds());	// 全マーカー画面に戻る
+}).addTo(map);
+// クリックした地点の緯度・経度、標高を表示
+map.on('click', onMapClick);
+var clickMarker = null;
+function onMapClick(e) {
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open("GET", src, false);
+	req.send(null)
+}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
+}
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+			// 東京タワー
+			// var lat = 35.65837719526223;
+			// var lng = 139.7423601150513;
+		map.setView([ lat,lng ]);
+			// 現在地に表示するマーカー：Awesomeアイコン版
+			//	var curIcon = L.divIcon({
+			//		html: '<div class="fa fa-user" style="color: #FF7F50; font-size: 20px;"></div>',
+			//		iconSize: [20, 20],
+			//		className: 'myDivIcon'
+			//	});
+		// 現在地に表示するマーカー
+		if (curMarker == null) {
+			var curIcon = L.icon({	/* アイコン */
+				iconUrl: 'icon/hiking.png',
+				iconRetinaUrl: 'icon/hiking.png',
+				iconAnchor: [15, 34]
+			});
+			curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+		}
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+function placeMarker(place, myIcon, bgcolor) {
+	for (var i = 0; i < place.length; i++) {
+		// 文字ラベルを表示
+		var divIcon = L.divIcon({
+			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i].name + '</div>',
+			iconSize: [0,0]
+		});
+		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i].name) + '" target="_blank">' + place[i].name + '</a>';
+			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i].lat + '%2C' + place[i].lng + '" target="_blank">' + '緯度：' + place[i].lat + '<br>経度：' + place[i].lng + '</a>';
+		iconMarkers.addLayer(L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(popStr));
+		L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
+	}
+}
+</script>
+</body>
+</html>

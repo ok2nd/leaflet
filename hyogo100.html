@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>兵庫県の日本百選マップ（Leaflet版）</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<!-- Font Awesome アイコン -->
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
+<link rel='stylesheet' href='css/easy-button.css'/>
+<script src='js/easy-button.js'></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.divicon {	/* 文字ラベル */
+	display: table-cell;
+	color: #f00;
+	background-color: #ff4;
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+tileLayer.addTo(map);
+// ---------------------------
+var place = Array();
+place[0] = Array();
+place[0]["name"] = '明石海峡大橋';
+place[0]["lat"] = 34.6177777;
+place[0]["lng"] = 135.0222222;
+place[0]["popstr"] = '<br><a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%A9%8B" target="_blank" style="color:#0080E0;">日本百名橋</a><br><a href="http://www.google.com/search?q=%E6%98%8E%E7%9F%B3%E6%B5%B7%E5%B3%A1%E5%A4%A7%E6%A9%8B" target="_blank" style="color:#000080;text-decoration:none;">≪<b>明石海峡大橋</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6177777%2C135.0222222" target="_blank">34.6177777,135.0222222</a><br>兵庫県明石市<br>';
+place[1] = Array();
+place[1]["name"] = '明石公園';
+place[1]["lat"] = 34.6527777;
+place[1]["lng"] = 134.9919444;
+place[1]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E3%81%95%E3%81%8F%E3%82%89%E5%90%8D%E6%89%80100%E9%81%B8" target="_blank" style="color:#0080E0;">日本のさくら名所100選</a><br><a href="http://www.google.com/search?q=%E6%98%8E%E7%9F%B3%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>明石公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6527777%2C134.9919444" target="_blank">34.6527777,134.9919444</a><br>兵庫県明石市<br><br><a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%AD%B4%E5%8F%B2%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の歴史公園100選</a><br><a href="http://www.google.com/search?q=%E6%98%8E%E7%9F%B3%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>明石公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6527777%2C134.9919444" target="_blank">34.6527777,134.9919444</a><br>兵庫県明石市<br>';
+place[2] = Array();
+place[2]["name"] = '明石市立天文科学館';
+place[2]["lat"] = 34.6491666;
+place[2]["lng"] = 135.0013888;
+place[2]["popstr"] = '<a href="http://www.google.com/search?q=%E5%85%AC%E5%85%B1%E5%BB%BA%E7%AF%89%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">公共建築百選</a><br><a href="http://www.google.com/search?q=%E6%98%8E%E7%9F%B3%E5%B8%82%E7%AB%8B%E5%A4%A9%E6%96%87%E7%A7%91%E5%AD%A6%E9%A4%A8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>明石市立天文科学館</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6491666%2C135.0013888" target="_blank">34.6491666,135.0013888</a><br>兵庫県明石市<br>';
+place[3] = Array();
+place[3]["name"] = '明石城';
+place[3]["lat"] = 34.6525;
+place[3]["lng"] = 134.9916666;
+place[3]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E5%9F%8E" target="_blank" style="color:#0080E0;">日本百名城</a><br><a href="http://www.google.com/search?q=%E6%98%8E%E7%9F%B3%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>明石城</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6525%2C134.9916666" target="_blank">34.6525,134.9916666</a><br>兵庫県明石市<br>';
+place[4] = Array();
+place[4]["name"] = '赤穂御崎';
+place[4]["lat"] = 34.7266666;
+place[4]["lng"] = 134.4080555;
+place[4]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E8%B5%A4%E7%A9%82%E5%BE%A1%E5%B4%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>赤穂御崎</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7266666%2C134.4080555" target="_blank">34.7266666,134.4080555</a><br>兵庫県赤穂市<br>';
+place[5] = Array();
+place[5]["name"] = '赤穂城';
+place[5]["lat"] = 34.7458333;
+place[5]["lng"] = 134.3891666;
+place[5]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E5%9F%8E" target="_blank" style="color:#0080E0;">日本百名城</a><br><a href="http://www.google.com/search?q=%E8%B5%A4%E7%A9%82%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>赤穂城</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7458333%2C134.3891666" target="_blank">34.7458333,134.3891666</a><br>兵庫県赤穂市<br>';
+place[6] = Array();
+place[6]["name"] = '赤穂城跡公園';
+place[6]["lat"] = 34.7458333;
+place[6]["lng"] = 134.3883333;
+place[6]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%AD%B4%E5%8F%B2%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の歴史公園100選</a><br><a href="http://www.google.com/search?q=%E8%B5%A4%E7%A9%82%E5%9F%8E%E8%B7%A1%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>赤穂城跡公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7458333%2C134.3883333" target="_blank">34.7458333,134.3883333</a><br>兵庫県赤穂市<br>';
+place[7] = Array();
+place[7]["name"] = '芦有ドライブウエイ';
+place[7]["lat"] = 34.7808333;
+place[7]["lng"] = 135.2883333;
+place[7]["popstr"] = '<a href="http://www.google.com/search?q=%E5%A4%9C%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">夜景100選</a><br><a href="http://www.google.com/search?q=%E8%8A%A6%E6%9C%89%E3%83%89%E3%83%A9%E3%82%A4%E3%83%96%E3%82%A6%E3%82%A8%E3%82%A4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>芦有ドライブウエイ</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7808333%2C135.2883333" target="_blank">34.7808333,135.2883333</a><br>兵庫県芦屋市<br>';
+place[8] = Array();
+place[8]["name"] = '東遊園地';
+place[8]["lat"] = 34.6880555;
+place[8]["lng"] = 135.1961111;
+place[8]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%AD%B4%E5%8F%B2%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の歴史公園100選</a><br><a href="http://www.google.com/search?q=%E6%9D%B1%E9%81%8A%E5%9C%92%E5%9C%B0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>東遊園地</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6880555%2C135.1961111" target="_blank">34.6880555,135.1961111</a><br>兵庫県神戸市<br>';
+place[9] = Array();
+place[9]["name"] = 'あまがさきホタルの里';
+place[9]["lat"] = 34.7783333;
+place[9]["lng"] = 135.3763888;
+place[9]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%B5%E3%82%8B%E3%81%95%E3%81%A8%E3%81%84%E3%81%8D%E3%82%82%E3%81%AE%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">ふるさといきものの里100選</a><br><a href="http://www.google.com/search?q=%E3%81%82%E3%81%BE%E3%81%8C%E3%81%95%E3%81%8D%E3%83%9B%E3%82%BF%E3%83%AB%E3%81%AE%E9%87%8C" target="_blank" style="color:#000080;text-decoration:none;">≪<b>あまがさきホタルの里</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7783333%2C135.3763888" target="_blank">34.7783333,135.3763888</a><br>兵庫県尼崎市<br>';
+place[10] = Array();
+place[10]["name"] = '余部鉄橋';
+place[10]["lat"] = 35.64944444;
+place[10]["lng"] = 134.5597222;
+place[10]["popstr"] = '<a href="http://www.google.com/search?q=%E3%83%98%E3%83%AA%E3%83%86%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0100%E9%81%B8" target="_blank" style="color:#0080E0;">ヘリテージング100選</a><br><a href="http://www.google.com/search?q=%E4%BD%99%E9%83%A8%E9%89%84%E6%A9%8B" target="_blank" style="color:#000080;text-decoration:none;">≪<b>余部鉄橋</b>≫</a><br><a href="http://maps.google.com/maps?q=35.64944444%2C134.5597222" target="_blank">35.64944444,134.5597222</a><br>兵庫県香美町<br>';
+place[11] = Array();
+place[11]["name"] = '有馬温泉';
+place[11]["lat"] = 34.7966666;
+place[11]["lng"] = 135.2502777;
+place[11]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%B9%AF" target="_blank" style="color:#0080E0;">日本百名湯</a><br><a href="http://www.google.com/search?q=%E6%9C%89%E9%A6%AC%E6%B8%A9%E6%B3%89" target="_blank" style="color:#000080;text-decoration:none;">≪<b>有馬温泉</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7966666%2C135.2502777" target="_blank">34.7966666,135.2502777</a><br>兵庫県神戸市<br>';
+place[12] = Array();
+place[12]["name"] = '淡路SA';
+place[12]["lat"] = 34.5825;
+place[12]["lng"] = 135.0183333;
+place[12]["popstr"] = '<a href="http://www.google.com/search?q=%E5%A4%9C%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">夜景100選</a><br><a href="http://www.google.com/search?q=%E6%B7%A1%E8%B7%AFSA" target="_blank" style="color:#000080;text-decoration:none;">≪<b>淡路SA</b>≫</a><br><a href="http://maps.google.com/maps?q=34.5825%2C135.0183333" target="_blank">34.5825,135.0183333</a><br>兵庫県淡路市<br>';
+place[13] = Array();
+place[13]["name"] = '淡山疏水';
+place[13]["lat"] = 34.7911111;
+place[13]["lng"] = 135.0538888;
+place[13]["popstr"] = '<a href="http://www.google.com/search?q=%E7%96%8E%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">疎水百選</a><br><a href="http://www.google.com/search?q=%E6%B7%A1%E5%B1%B1%E7%96%8F%E6%B0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>淡山疏水</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7911111%2C135.0538888" target="_blank">34.7911111,135.0538888</a><br>兵庫県神戸市<br>';
+place[14] = Array();
+place[14]["name"] = '家島';
+place[14]["lat"] = 34.6769444;
+place[14]["lng"] = 134.5266666;
+place[14]["popstr"] = '<a href="http://www.google.com/search?q=%E5%B3%B6%E3%81%AE%E5%AE%9D100%E6%99%AF" target="_blank" style="color:#0080E0;">島の宝100景</a><br><a href="http://www.google.com/search?q=%E5%AE%B6%E5%B3%B6" target="_blank" style="color:#000080;text-decoration:none;">≪<b>家島</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6769444%2C134.5266666" target="_blank">34.6769444,134.5266666</a><br>兵庫県姫路市<br>';
+place[15] = Array();
+place[15]["name"] = '生野鉱山';
+place[15]["lat"] = 35.1711111;
+place[15]["lng"] = 134.8244444;
+place[15]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%9C%B0%E8%B3%AA%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の地質百選</a><br><a href="http://www.google.com/search?q=%E7%94%9F%E9%87%8E%E9%89%B1%E5%B1%B1" target="_blank" style="color:#000080;text-decoration:none;">≪<b>生野鉱山</b>≫</a><br><a href="http://maps.google.com/maps?q=35.1711111%2C134.8244444" target="_blank">35.1711111,134.8244444</a><br>兵庫県<br>';
+place[16] = Array();
+place[16]["name"] = '岩座神';
+place[16]["lat"] = 35.1283333;
+place[16]["lng"] = 134.8888888;
+place[16]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%A3%9A%E7%94%B0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の棚田百選</a><br><a href="http://www.google.com/search?q=%E5%B2%A9%E5%BA%A7%E7%A5%9E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>岩座神</b>≫</a><br><a href="http://maps.google.com/maps?q=35.1283333%2C134.8888888" target="_blank">35.1283333,134.8888888</a><br>兵庫県多可町<br>';
+place[17] = Array();
+place[17]["name"] = '一宮町の線香づくり';
+place[17]["lat"] = 34.4641666;
+place[17]["lng"] = 134.8286111;
+place[17]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%8B%E3%81%8A%E3%82%8A%E9%A2%A8%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">かおり風景100選</a><br><a href="http://www.google.com/search?q=%E4%B8%80%E5%AE%AE%E7%94%BA%E3%81%AE%E7%B7%9A%E9%A6%99%E3%81%A5%E3%81%8F%E3%82%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>一宮町の線香づくり</b>≫</a><br><a href="http://maps.google.com/maps?q=34.4641666%2C134.8286111" target="_blank">34.4641666,134.8286111</a><br>兵庫県淡路市<br>';
+place[18] = Array();
+place[18]["name"] = 'いなみ野ため池ミュージアム';
+place[18]["lat"] = 34.76583333;
+place[18]["lng"] = 134.9247222;
+place[18]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%9F%E3%82%81%E6%B1%A0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ため池百選</a><br><a href="http://www.google.com/search?q=%E3%81%84%E3%81%AA%E3%81%BF%E9%87%8E%E3%81%9F%E3%82%81%E6%B1%A0%E3%83%9F%E3%83%A5%E3%83%BC%E3%82%B8%E3%82%A2%E3%83%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>いなみ野ため池ミュージアム</b>≫</a><br><a href="http://maps.google.com/maps?q=34.76583333%2C134.9247222" target="_blank">34.76583333,134.9247222</a><br>兵庫県明石市、加古川市、高砂市、稲美町、播磨町<br>';
+place[19] = Array();
+place[19]["name"] = '植村直己冒険館';
+place[19]["lat"] = 35.4613888;
+place[19]["lng"] = 134.7319444;
+place[19]["popstr"] = '<a href="http://www.google.com/search?q=%E5%85%AC%E5%85%B1%E5%BB%BA%E7%AF%89%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">公共建築百選</a><br><a href="http://www.google.com/search?q=%E6%A4%8D%E6%9D%91%E7%9B%B4%E5%B7%B1%E5%86%92%E9%99%BA%E9%A4%A8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>植村直己冒険館</b>≫</a><br><a href="http://maps.google.com/maps?q=35.4613888%2C134.7319444" target="_blank">35.4613888,134.7319444</a><br>兵庫県豊岡市<br>';
+place[20] = Array();
+place[20]["name"] = 'うへ山';
+place[20]["lat"] = 35.4369444;
+place[20]["lng"] = 134.5302777;
+place[20]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%A3%9A%E7%94%B0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の棚田百選</a><br><a href="http://www.google.com/search?q=%E3%81%86%E3%81%B8%E5%B1%B1" target="_blank" style="color:#000080;text-decoration:none;">≪<b>うへ山</b>≫</a><br><a href="http://maps.google.com/maps?q=35.4369444%2C134.5302777" target="_blank">35.4369444,134.5302777</a><br>兵庫県香美町<br>';
+place[21] = Array();
+place[21]["name"] = '浦県民サンビーチ';
+place[21]["lat"] = 34.5566666;
+place[21]["lng"] = 134.9408333;
+place[21]["popstr"] = '<a href="http://www.google.com/search?q=%E5%BF%AB%E6%B0%B4%E6%B5%B4%E5%A0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">快水浴場百選</a><br><a href="http://www.google.com/search?q=%E6%B5%A6%E7%9C%8C%E6%B0%91%E3%82%B5%E3%83%B3%E3%83%93%E3%83%BC%E3%83%81" target="_blank" style="color:#000080;text-decoration:none;">≪<b>浦県民サンビーチ</b>≫</a><br><a href="http://maps.google.com/maps?q=34.5566666%2C134.9408333" target="_blank">34.5566666,134.9408333</a><br>兵庫県淡路市<br>';
+place[22] = Array();
+place[22]["name"] = '大浜公園';
+place[22]["lat"] = 34.3419444;
+place[22]["lng"] = 134.9030555;
+place[22]["popstr"] = '<a href="http://www.google.com/search?q=%E5%BF%AB%E6%B0%B4%E6%B5%B4%E5%A0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">快水浴場百選</a><br><a href="http://www.google.com/search?q=%E5%A4%A7%E6%B5%9C%E6%B5%B7%E6%B0%B4%E6%B5%B4%E5%A0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>大浜海水浴場</b>≫</a><br><a href="http://maps.google.com/maps?q=34.3419444%2C134.9030555" target="_blank">34.3419444,134.9030555</a><br>兵庫県洲本市<br><br><a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E5%A4%A7%E6%B5%9C%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>大浜公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.3419444%2C134.9030555" target="_blank">34.3419444,134.9030555</a><br>兵庫県洲本市<br>';
+place[23] = Array();
+place[23]["name"] = '乙大木谷';
+place[23]["lat"] = 35.0352777;
+place[23]["lng"] = 134.3272222;
+place[23]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%A3%9A%E7%94%B0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の棚田百選</a><br><a href="http://www.google.com/search?q=%E4%B9%99%E5%A4%A7%E6%9C%A8%E8%B0%B7" target="_blank" style="color:#000080;text-decoration:none;">≪<b>乙大木谷</b>≫</a><br><a href="http://maps.google.com/maps?q=35.0352777%2C134.3272222" target="_blank">35.0352777,134.3272222</a><br>兵庫県佐用町<br>';
+place[24] = Array();
+place[24]["name"] = '音水渓谷';
+place[24]["lat"] = 35.2477777;
+place[24]["lng"] = 134.5255555;
+place[24]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%B4%85%E8%91%89%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の紅葉百選</a><br><a href="http://www.google.com/search?q=%E9%9F%B3%E6%B0%B4%E6%B8%93%E8%B0%B7" target="_blank" style="color:#000080;text-decoration:none;">≪<b>音水渓谷</b>≫</a><br><a href="http://maps.google.com/maps?q=35.2477777%2C134.5255555" target="_blank">35.2477777,134.5255555</a><br>兵庫県宍粟市<br>';
+place[25] = Array();
+place[25]["name"] = '音水水源の森';
+place[25]["lat"] = 35.2302777;
+place[25]["lng"] = 134.5258333;
+place[25]["popstr"] = '<a href="http://www.google.com/search?q=%E6%B0%B4%E6%BA%90%E3%81%AE%E6%A3%AE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">水源の森百選</a><br><a href="http://www.google.com/search?q=%E9%9F%B3%E6%B0%B4%E6%B0%B4%E6%BA%90%E3%81%AE%E6%A3%AE" target="_blank" style="color:#000080;text-decoration:none;">≪<b>音水水源の森</b>≫</a><br><a href="http://maps.google.com/maps?q=35.2302777%2C134.5258333" target="_blank">35.2302777,134.5258333</a><br>兵庫県宍粟市<br>';
+place[26] = Array();
+place[26]["name"] = 'かつらの千年水';
+place[26]["lat"] = 35.42;
+place[26]["lng"] = 134.5708333;
+place[26]["popstr"] = '<a href="http://www.google.com/search?q=%E5%B9%B3%E6%88%90%E3%81%AE%E5%90%8D%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">平成の名水百選</a><br><a href="http://www.google.com/search?q=%E3%81%8B%E3%81%A4%E3%82%89%E3%81%AE%E5%8D%83%E5%B9%B4%E6%B0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>かつらの千年水</b>≫</a><br><a href="http://maps.google.com/maps?q=35.42%2C134.5708333" target="_blank">35.42,134.5708333</a><br>兵庫県香美町<br>';
+place[27] = Array();
+place[27]["name"] = '神子畑橋';
+place[27]["lat"] = 35.2425;
+place[27]["lng"] = 134.7172222;
+place[27]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%A9%8B" target="_blank" style="color:#0080E0;">日本百名橋</a><br><a href="http://www.google.com/search?q=%E7%A5%9E%E5%AD%90%E7%95%91%E6%A9%8B" target="_blank" style="color:#000080;text-decoration:none;">≪<b>神子畑橋</b>≫</a><br><a href="http://maps.google.com/maps?q=35.2425%2C134.7172222" target="_blank">35.2425,134.7172222</a><br>兵庫県朝来市<br>';
+place[28] = Array();
+place[28]["name"] = '城崎温泉';
+place[28]["lat"] = 35.6263888;
+place[28]["lng"] = 134.8097222;
+place[28]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%B9%AF" target="_blank" style="color:#0080E0;">日本百名湯</a><br><a href="http://www.google.com/search?q=%E5%9F%8E%E5%B4%8E%E6%B8%A9%E6%B3%89" target="_blank" style="color:#000080;text-decoration:none;">≪<b>城崎温泉</b>≫</a><br><a href="http://maps.google.com/maps?q=35.6263888%2C134.8097222" target="_blank">35.6263888,134.8097222</a><br>兵庫県豊岡市<br>';
+place[29] = Array();
+place[29]["name"] = '旧居留地と花の回廊';
+place[29]["lat"] = 34.6883333;
+place[29]["lng"] = 135.1930555;
+place[29]["popstr"] = '<a href="http://www.google.com/search?q=%E9%81%8A%E6%AD%A9%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">遊歩百選</a><br><a href="http://www.google.com/search?q=%E6%97%A7%E5%B1%85%E7%95%99%E5%9C%B0%E3%81%A8%E8%8A%B1%E3%81%AE%E5%9B%9E%E5%BB%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>旧居留地と花の回廊</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6883333%2C135.1930555" target="_blank">34.6883333,135.1930555</a><br>兵庫県神戸市<br>';
+place[30] = Array();
+place[30]["name"] = '黒川';
+place[30]["lat"] = 34.9269444;
+place[30]["lng"] = 135.4397222;
+place[30]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%AB%E3%81%BB%E3%82%93%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">にほんの里100選</a><br><a href="http://www.google.com/search?q=%E9%BB%92%E5%B7%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>黒川</b>≫</a><br><a href="http://maps.google.com/maps?q=34.9269444%2C135.4397222" target="_blank">34.9269444,135.4397222</a><br>兵庫県川西市<br>';
+place[31] = Array();
+place[31]["name"] = '慶野松原海水浴場';
+place[31]["lat"] = 34.3419444;
+place[31]["lng"] = 134.7383333;
+place[31]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E6%85%B6%E9%87%8E%E6%9D%BE%E5%8E%9F" target="_blank" style="color:#000080;text-decoration:none;">≪<b>慶野松原</b>≫</a><br><a href="http://maps.google.com/maps?q=34.3419444%2C134.7383333" target="_blank">34.3419444,134.7383333</a><br>兵庫県南あわじ市<br><br><a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E6%85%B6%E9%87%8E%E6%9D%BE%E5%8E%9F" target="_blank" style="color:#000080;text-decoration:none;">≪<b>慶野松原</b>≫</a><br><a href="http://maps.google.com/maps?q=34.3419444%2C134.7383333" target="_blank">34.3419444,134.7383333</a><br>兵庫県南あわじ市<br><br><a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%B8%9A%E3%83%BB%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の渚・百選</a><br><a href="http://www.google.com/search?q=%E6%85%B6%E9%87%8E%E6%9D%BE%E5%8E%9F%E6%B5%B7%E5%B2%B8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>慶野松原海岸</b>≫</a><br><a href="http://maps.google.com/maps?q=34.3419444%2C134.7383333" target="_blank">34.3419444,134.7383333</a><br>兵庫県南あわじ市<br><br><a href="http://www.google.com/search?q=%E5%BF%AB%E6%B0%B4%E6%B5%B4%E5%A0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">快水浴場百選</a><br><a href="http://www.google.com/search?q=%E6%85%B6%E9%87%8E%E6%9D%BE%E5%8E%9F%E6%B5%B7%E6%B0%B4%E6%B5%B4%E5%A0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>慶野松原海水浴場</b>≫</a><br><a href="http://maps.google.com/maps?q=34.3419444%2C134.7383333" target="_blank">34.3419444,134.7383333</a><br>兵庫県南あわじ市<br>';
+place[32] = Array();
+place[32]["name"] = '県立高砂海浜公園';
+place[32]["lat"] = 34.7361111;
+place[32]["lng"] = 134.8041666;
+place[32]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E7%9C%8C%E7%AB%8B%E9%AB%98%E7%A0%82%E6%B5%B7%E6%B5%9C%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>県立高砂海浜公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7361111%2C134.8041666" target="_blank">34.7361111,134.8041666</a><br>兵庫県高砂市<br>';
+place[33] = Array();
+place[33]["name"] = '原不動滝';
+place[33]["lat"] = 35.1983333;
+place[33]["lng"] = 134.5011111;
+place[33]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%BB%9D%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の滝百選</a><br><a href="http://www.google.com/search?q=%E5%8E%9F%E4%B8%8D%E5%8B%95%E6%BB%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>原不動滝</b>≫</a><br><a href="http://maps.google.com/maps?q=35.1983333%2C134.5011111" target="_blank">35.1983333,134.5011111</a><br>兵庫県宍粟市<br>';
+place[34] = Array();
+place[34]["name"] = '玄武洞';
+place[34]["lat"] = 35.5880555;
+place[34]["lng"] = 134.8052777;
+place[34]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%9C%B0%E8%B3%AA%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の地質百選</a><br><a href="http://www.google.com/search?q=%E7%8E%84%E6%AD%A6%E6%B4%9E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>玄武洞</b>≫</a><br><a href="http://maps.google.com/maps?q=35.5880555%2C134.8052777" target="_blank">35.5880555,134.8052777</a><br>兵庫県<br>';
+place[35] = Array();
+place[35]["name"] = '高源寺';
+place[35]["lat"] = 35.2452777;
+place[35]["lng"] = 134.9725;
+place[35]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%B4%85%E8%91%89%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の紅葉百選</a><br><a href="http://www.google.com/search?q=%E9%AB%98%E6%BA%90%E5%AF%BA" target="_blank" style="color:#000080;text-decoration:none;">≪<b>高源寺</b>≫</a><br><a href="http://maps.google.com/maps?q=35.2452777%2C134.9725" target="_blank">35.2452777,134.9725</a><br>兵庫県丹波市<br>';
+place[36] = Array();
+place[36]["name"] = '神戸旧居留地(旧居留地十五番館、旧居留地38番館、神戸市立博物館、商船三井ビル、チャータードビル、神港ビル、海岸ビルなど)';
+place[36]["lat"] = 34.68722222;
+place[36]["lng"] = 135.1922222;
+place[36]["popstr"] = '<a href="http://www.google.com/search?q=%E3%83%98%E3%83%AA%E3%83%86%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0100%E9%81%B8" target="_blank" style="color:#0080E0;">ヘリテージング100選</a><br><a href="http://www.google.com/search?q=%E7%A5%9E%E6%88%B8%E6%97%A7%E5%B1%85%E7%95%99%E5%9C%B0%28%E6%97%A7%E5%B1%85%E7%95%99%E5%9C%B0%E5%8D%81%E4%BA%94%E7%95%AA%E9%A4%A8%E3%80%81%E6%97%A7%E5%B1%85%E7%95%99%E5%9C%B038%E7%95%AA%E9%A4%A8%E3%80%81%E7%A5%9E%E6%88%B8%E5%B8%82%E7%AB%8B%E5%8D%9A%E7%89%A9%E9%A4%A8%E3%80%81%E5%95%86%E8%88%B9%E4%B8%89%E4%BA%95%E3%83%93%E3%83%AB%E3%80%81%E3%83%81%E3%83%A3%E3%83%BC%E3%82%BF%E3%83%BC%E3%83%89%E3%83%93%E3%83%AB%E3%80%81%E7%A5%9E%E6%B8%AF%E3%83%93%E3%83%AB%E3%80%81%E6%B5%B7%E5%B2%B8%E3%83%93%E3%83%AB%E3%81%AA%E3%81%A9%29" target="_blank" style="color:#000080;text-decoration:none;">≪<b>神戸旧居留地(旧居留地十五番館、旧居留地38番館、神戸市立博物館、商船三井ビル、チャータードビル、神港ビル、海岸ビルなど)</b>≫</a><br><a href="http://maps.google.com/maps?q=34.68722222%2C135.1922222" target="_blank">34.68722222,135.1922222</a><br>兵庫県神戸市中央区<br>';
+place[37] = Array();
+place[37]["name"] = '神戸市立須磨離宮公園';
+place[37]["lat"] = 34.6530555;
+place[37]["lng"] = 135.1169444;
+place[37]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E9%83%BD%E5%B8%82%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の都市公園100選</a><br><a href="http://www.google.com/search?q=%E7%A5%9E%E6%88%B8%E5%B8%82%E7%AB%8B%E9%A0%88%E7%A3%A8%E9%9B%A2%E5%AE%AE%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>神戸市立須磨離宮公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6530555%2C135.1169444" target="_blank">34.6530555,135.1169444</a><br>兵庫県神戸市<br>';
+place[38] = Array();
+place[38]["name"] = '昆陽池';
+place[38]["lat"] = 34.78861111;
+place[38]["lng"] = 135.3936111;
+place[38]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%9F%E3%82%81%E6%B1%A0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ため池百選</a><br><a href="http://www.google.com/search?q=%E6%98%86%E9%99%BD%E6%B1%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>昆陽池</b>≫</a><br><a href="http://maps.google.com/maps?q=34.78861111%2C135.3936111" target="_blank">34.78861111,135.3936111</a><br>兵庫県伊丹市<br>';
+place[39] = Array();
+place[39]["name"] = '西光寺野台地のため池群';
+place[39]["lat"] = 34.93583333;
+place[39]["lng"] = 134.7697222;
+place[39]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%9F%E3%82%81%E6%B1%A0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ため池百選</a><br><a href="http://www.google.com/search?q=%E8%A5%BF%E5%85%89%E5%AF%BA%E9%87%8E%E5%8F%B0%E5%9C%B0%E3%81%AE%E3%81%9F%E3%82%81%E6%B1%A0%E7%BE%A4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>西光寺野台地のため池群</b>≫</a><br><a href="http://maps.google.com/maps?q=34.93583333%2C134.7697222" target="_blank">34.93583333,134.7697222</a><br>兵庫県姫路市、福崎町<br>';
+place[40] = Array();
+place[40]["name"] = '再度公園';
+place[40]["lat"] = 34.7222222;
+place[40]["lng"] = 135.1755555;
+place[40]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%AD%B4%E5%8F%B2%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の歴史公園100選</a><br><a href="http://www.google.com/search?q=%E5%86%8D%E5%BA%A6%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>再度公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7222222%2C135.1755555" target="_blank">34.7222222,135.1755555</a><br>兵庫県神戸市<br>';
+place[41] = Array();
+place[41]["name"] = '相楽園';
+place[41]["lat"] = 34.6925;
+place[41]["lng"] = 135.1816666;
+place[41]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%AD%B4%E5%8F%B2%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の歴史公園100選</a><br><a href="http://www.google.com/search?q=%E7%9B%B8%E6%A5%BD%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>相楽園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6925%2C135.1816666" target="_blank">34.6925,135.1816666</a><br>兵庫県神戸市<br>';
+place[42] = Array();
+place[42]["name"] = '猿尾滝';
+place[42]["lat"] = 35.4341666;
+place[42]["lng"] = 134.6147222;
+place[42]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%BB%9D%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の滝百選</a><br><a href="http://www.google.com/search?q=%E7%8C%BF%E5%B0%BE%E6%BB%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>猿尾滝</b>≫</a><br><a href="http://maps.google.com/maps?q=35.4341666%2C134.6147222" target="_blank">35.4341666,134.6147222</a><br>兵庫県香美町<br>';
+place[43] = Array();
+place[43]["name"] = '山陰海岸';
+place[43]["lat"] = 35.5863888;
+place[43]["lng"] = 134.2925;
+place[43]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%9C%B0%E8%B3%AA%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の地質百選</a><br><a href="http://www.google.com/search?q=%E5%B1%B1%E9%99%B0%E6%B5%B7%E5%B2%B8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>山陰海岸</b>≫</a><br><a href="http://maps.google.com/maps?q=35.5863888%2C134.2925" target="_blank">35.5863888,134.2925</a><br>兵庫県・鳥取県<br>';
+place[44] = Array();
+place[44]["name"] = '山陰道-蒲生峠越';
+place[44]["lat"] = 35.5186111;
+place[44]["lng"] = 134.4138888;
+place[44]["popstr"] = '<a href="http://www.google.com/search?q=%E6%AD%B4%E5%8F%B2%E3%81%AE%E9%81%93%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">歴史の道百選</a><br><a href="http://www.google.com/search?q=%E5%B1%B1%E9%99%B0%E9%81%93-%E8%92%B2%E7%94%9F%E5%B3%A0%E8%B6%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>山陰道-蒲生峠越</b>≫</a><br><a href="http://maps.google.com/maps?q=35.5186111%2C134.4138888" target="_blank">35.5186111,134.4138888</a><br>兵庫県-鳥取県<br>';
+place[45] = Array();
+place[45]["name"] = '篠山城';
+place[45]["lat"] = 35.0730555;
+place[45]["lng"] = 135.2175;
+place[45]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E5%9F%8E" target="_blank" style="color:#0080E0;">日本百名城</a><br><a href="http://www.google.com/search?q=%E7%AF%A0%E5%B1%B1%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>篠山城</b>≫</a><br><a href="http://maps.google.com/maps?q=35.0730555%2C135.2175" target="_blank">35.0730555,135.2175</a><br>兵庫県篠山市<br>';
+place[46] = Array();
+place[46]["name"] = '夙川公園・夙川河川敷緑地';
+place[46]["lat"] = 34.745;
+place[46]["lng"] = 135.3288888;
+place[46]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E3%81%95%E3%81%8F%E3%82%89%E5%90%8D%E6%89%80100%E9%81%B8" target="_blank" style="color:#0080E0;">日本のさくら名所100選</a><br><a href="http://www.google.com/search?q=%E5%A4%99%E5%B7%9D%E5%85%AC%E5%9C%92%E3%83%BB%E5%A4%99%E5%B7%9D%E6%B2%B3%E5%B7%9D%E6%95%B7%E7%B7%91%E5%9C%B0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>夙川公園・夙川河川敷緑地</b>≫</a><br><a href="http://maps.google.com/maps?q=34.745%2C135.3288888" target="_blank">34.745,135.3288888</a><br>兵庫県西宮市<br>';
+place[47] = Array();
+place[47]["name"] = '白鷺城と言われる姫路城';
+place[47]["lat"] = 34.8394444;
+place[47]["lng"] = 134.6938888;
+place[47]["popstr"] = '<a href="http://www.google.com/search?q=%E4%BA%BA%E3%81%A8%E8%87%AA%E7%84%B6%E3%81%8C%E7%B9%94%E3%82%8A%E3%81%AA%E3%81%99%E6%97%A5%E6%9C%AC%E3%81%AE%E9%A2%A8%E6%99%AF%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">人と自然が織りなす日本の風景百選</a><br><a href="http://www.google.com/search?q=%E7%99%BD%E9%B7%BA%E5%9F%8E%E3%81%A8%E8%A8%80%E3%82%8F%E3%82%8C%E3%82%8B%E5%A7%AB%E8%B7%AF%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>白鷺城と言われる姫路城</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8394444%2C134.6938888" target="_blank">34.8394444,134.6938888</a><br>兵庫県姫路市<br>';
+place[48] = Array();
+place[48]["name"] = '須磨―朝霧';
+place[48]["lat"] = 34.6422222;
+place[48]["lng"] = 135.1125;
+place[48]["popstr"] = '<a href="http://www.google.com/search?q=%E8%BB%8A%E7%AA%93%E7%B5%B6%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">車窓絶景100選</a><br><a href="http://www.google.com/search?q=%E9%A0%88%E7%A3%A8%E2%80%95%E6%9C%9D%E9%9C%A7" target="_blank" style="color:#000080;text-decoration:none;">≪<b>須磨―朝霧</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6422222%2C135.1125" target="_blank">34.6422222,135.1125</a><br>兵庫県神戸市<br>';
+place[49] = Array();
+place[49]["name"] = '須磨浦公園';
+place[49]["lat"] = 34.6383333;
+place[49]["lng"] = 135.1022222;
+place[49]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E9%A0%88%E7%A3%A8%E6%B5%A6%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>須磨浦公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6383333%2C135.1022222" target="_blank">34.6383333,135.1022222</a><br>兵庫県神戸市須磨区<br>';
+place[50] = Array();
+place[50]["name"] = '須磨海岸';
+place[50]["lat"] = 34.6427777;
+place[50]["lng"] = 135.1222222;
+place[50]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%B8%9A%E3%83%BB%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の渚・百選</a><br><a href="http://www.google.com/search?q=%E9%A0%88%E7%A3%A8%E6%B5%B7%E5%B2%B8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>須磨海岸</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6427777%2C135.1222222" target="_blank">34.6427777,135.1222222</a><br>兵庫県神戸市<br>';
+place[51] = Array();
+place[51]["name"] = '須磨海浜公園';
+place[51]["lat"] = 34.6416666;
+place[51]["lng"] = 135.1222222;
+place[51]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E9%A0%88%E7%A3%A8%E6%B5%B7%E6%B5%9C%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>須磨海浜公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6416666%2C135.1222222" target="_blank">34.6416666,135.1222222</a><br>兵庫県神戸市須磨区<br>';
+place[52] = Array();
+place[52]["name"] = '住吉川上流';
+place[52]["lat"] = 34.73;
+place[52]["lng"] = 135.2594444;
+place[52]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%B5%E3%82%8B%E3%81%95%E3%81%A8%E3%81%84%E3%81%8D%E3%82%82%E3%81%AE%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">ふるさといきものの里100選</a><br><a href="http://www.google.com/search?q=%E4%BD%8F%E5%90%89%E5%B7%9D%E4%B8%8A%E6%B5%81" target="_blank" style="color:#000080;text-decoration:none;">≪<b>住吉川上流</b>≫</a><br><a href="http://maps.google.com/maps?q=34.73%2C135.2594444" target="_blank">34.73,135.2594444</a><br>兵庫県神戸市東灘区<br>';
+place[53] = Array();
+place[53]["name"] = '竹田城';
+place[53]["lat"] = 35.3;
+place[53]["lng"] = 134.8288888;
+place[53]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E5%9F%8E" target="_blank" style="color:#0080E0;">日本百名城</a><br><a href="http://www.google.com/search?q=%E7%AB%B9%E7%94%B0%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>竹田城</b>≫</a><br><a href="http://maps.google.com/maps?q=35.3%2C134.8288888" target="_blank">35.3,134.8288888</a><br>兵庫県朝来市<br>';
+place[54] = Array();
+place[54]["name"] = '竹野―餘部';
+place[54]["lat"] = 35.6497222;
+place[54]["lng"] = 134.7563888;
+place[54]["popstr"] = '<a href="http://www.google.com/search?q=%E8%BB%8A%E7%AA%93%E7%B5%B6%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">車窓絶景100選</a><br><a href="http://www.google.com/search?q=%E7%AB%B9%E9%87%8E%E2%80%95%E9%A4%98%E9%83%A8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>竹野―餘部</b>≫</a><br><a href="http://maps.google.com/maps?q=35.6497222%2C134.7563888" target="_blank">35.6497222,134.7563888</a><br>兵庫県豊岡市<br>';
+place[55] = Array();
+place[55]["name"] = '竹野浜海水浴場';
+place[55]["lat"] = 35.6611111;
+place[55]["lng"] = 134.7641666;
+place[55]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%B8%9A%E3%83%BB%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の渚・百選</a><br><a href="http://www.google.com/search?q=%E7%AB%B9%E9%87%8E%E6%B5%9C%E6%B5%B7%E5%B2%B8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>竹野浜海岸</b>≫</a><br><a href="http://maps.google.com/maps?q=35.6611111%2C134.7641666" target="_blank">35.6611111,134.7641666</a><br>兵庫県豊岡市<br><br><a href="http://www.google.com/search?q=%E5%BF%AB%E6%B0%B4%E6%B5%B4%E5%A0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">快水浴場百選</a><br><a href="http://www.google.com/search?q=%E7%AB%B9%E9%87%8E%E6%B5%9C%E6%B5%B7%E6%B0%B4%E6%B5%B4%E5%A0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>竹野浜海水浴場</b>≫</a><br><a href="http://maps.google.com/maps?q=35.6611111%2C134.7641666" target="_blank">35.6611111,134.7641666</a><br>兵庫県豊岡市<br>';
+place[56] = Array();
+place[56]["name"] = '但馬の小京都';
+place[56]["lat"] = 35.4613888;
+place[56]["lng"] = 134.8744444;
+place[56]["popstr"] = '<a href="http://www.google.com/search?q=%E9%81%8A%E6%AD%A9%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">遊歩百選</a><br><a href="http://www.google.com/search?q=%E4%BD%86%E9%A6%AC%E3%81%AE%E5%B0%8F%E4%BA%AC%E9%83%BD" target="_blank" style="color:#000080;text-decoration:none;">≪<b>但馬の小京都</b>≫</a><br><a href="http://maps.google.com/maps?q=35.4613888%2C134.8744444" target="_blank">35.4613888,134.8744444</a><br>兵庫県豊岡市<br>';
+place[57] = Array();
+place[57]["name"] = '橘通り';
+place[57]["lat"] = 34.7325;
+place[57]["lng"] = 135.4058333;
+place[57]["popstr"] = '<a href="http://www.google.com/search?q=%E6%96%B0%E3%83%BB%E6%97%A5%E6%9C%AC%E8%A1%97%E8%B7%AF%E6%A8%B9%E7%99%BE%E6%99%AF" target="_blank" style="color:#0080E0;">新・日本街路樹百景</a><br><a href="http://www.google.com/search?q=%E6%A9%98%E9%80%9A%E3%82%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>橘通り</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7325%2C135.4058333" target="_blank">34.7325,135.4058333</a><br>兵庫県尼崎市<br>';
+place[58] = Array();
+place[58]["name"] = '垂水漁港のイカナゴ漁';
+place[58]["lat"] = 34.6255555;
+place[58]["lng"] = 135.0533333;
+place[58]["popstr"] = '<a href="http://www.google.com/search?q=%E6%AE%8B%E3%81%97%E3%81%9F%E3%81%84%E6%97%A5%E6%9C%AC%E3%81%AE%E9%9F%B3%E9%A2%A8%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">残したい日本の音風景100選</a><br><a href="http://www.google.com/search?q=%E5%9E%82%E6%B0%B4%E6%BC%81%E6%B8%AF%E3%81%AE%E3%82%A4%E3%82%AB%E3%83%8A%E3%82%B4%E6%BC%81" target="_blank" style="color:#000080;text-decoration:none;">≪<b>垂水漁港のイカナゴ漁</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6255555%2C135.0533333" target="_blank">34.6255555,135.0533333</a><br>兵庫県神戸市<br>';
+place[59] = Array();
+place[59]["name"] = '大手前通り';
+place[59]["lat"] = 34.8319444;
+place[59]["lng"] = 134.6916666;
+place[59]["popstr"] = '<a href="http://www.google.com/search?q=%E6%96%B0%E3%83%BB%E6%97%A5%E6%9C%AC%E8%A1%97%E8%B7%AF%E6%A8%B9%E7%99%BE%E6%99%AF" target="_blank" style="color:#0080E0;">新・日本街路樹百景</a><br><a href="http://www.google.com/search?q=%E5%A4%A7%E6%89%8B%E5%89%8D%E9%80%9A%E3%82%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>大手前通り</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8319444%2C134.6916666" target="_blank">34.8319444,134.6916666</a><br>兵庫県姫路市<br>';
+place[60] = Array();
+place[60]["name"] = '千種川';
+place[60]["lat"] = 35.1311111;
+place[60]["lng"] = 134.4352777;
+place[60]["popstr"] = '<a href="http://www.google.com/search?q=%E5%90%8D%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">名水百選</a><br><a href="http://www.google.com/search?q=%E5%8D%83%E7%A8%AE%E5%B7%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>千種川</b>≫</a><br><a href="http://maps.google.com/maps?q=35.1311111%2C134.4352777" target="_blank">35.1311111,134.4352777</a><br>兵庫県西南部(宍粟市、佐用町、上郡町、赤穂市坂越)<br>';
+place[61] = Array();
+place[61]["name"] = 'テクノ中央交差点';
+place[61]["lat"] = 34.9313888;
+place[61]["lng"] = 134.4425;
+place[61]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E3%83%86%E3%82%AF%E3%83%8E%E4%B8%AD%E5%A4%AE%E4%BA%A4%E5%B7%AE%E7%82%B9" target="_blank" style="color:#000080;text-decoration:none;">≪<b>テクノ中央交差点</b>≫</a><br><a href="http://maps.google.com/maps?q=34.9313888%2C134.4425" target="_blank">34.9313888,134.4425</a><br>兵庫県たつの市<br>';
+place[62] = Array();
+place[62]["name"] = '寺田池';
+place[62]["lat"] = 34.74972222;
+place[62]["lng"] = 134.8805556;
+place[62]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%9F%E3%82%81%E6%B1%A0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ため池百選</a><br><a href="http://www.google.com/search?q=%E5%AF%BA%E7%94%B0%E6%B1%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>寺田池</b>≫</a><br><a href="http://maps.google.com/maps?q=34.74972222%2C134.8805556" target="_blank">34.74972222,134.8805556</a><br>兵庫県加古川市<br>';
+place[63] = Array();
+place[63]["name"] = '天滝';
+place[63]["lat"] = 35.3352777;
+place[63]["lng"] = 134.6077777;
+place[63]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%BB%9D%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の滝百選</a><br><a href="http://www.google.com/search?q=%E5%A4%A9%E6%BB%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>天滝</b>≫</a><br><a href="http://maps.google.com/maps?q=35.3352777%2C134.6077777" target="_blank">35.3352777,134.6077777</a><br>兵庫県養父市<br>';
+place[64] = Array();
+place[64]["name"] = '天滝渓谷';
+place[64]["lat"] = 35.3319444;
+place[64]["lng"] = 134.6205555;
+place[64]["popstr"] = '<a href="http://www.google.com/search?q=%E5%85%A8%E5%9B%BD%E6%A3%AE%E6%9E%97%E6%B5%B4%E3%81%AE%E6%A3%AE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">全国森林浴の森百選</a><br><a href="http://www.google.com/search?q=%E5%A4%A9%E6%BB%9D%E6%B8%93%E8%B0%B7" target="_blank" style="color:#000080;text-decoration:none;">≪<b>天滝渓谷</b>≫</a><br><a href="http://maps.google.com/maps?q=35.3319444%2C134.6205555" target="_blank">35.3319444,134.6205555</a><br>兵庫県養父市<br>';
+place[65] = Array();
+place[65]["name"] = '天満大池';
+place[65]["lat"] = 34.73388889;
+place[65]["lng"] = 134.9083333;
+place[65]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%9F%E3%82%81%E6%B1%A0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ため池百選</a><br><a href="http://www.google.com/search?q=%E5%A4%A9%E6%BA%80%E5%A4%A7%E6%B1%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>天満大池</b>≫</a><br><a href="http://maps.google.com/maps?q=34.73388889%2C134.9083333" target="_blank">34.73388889,134.9083333</a><br>兵庫県稲美町<br>';
+place[66] = Array();
+place[66]["name"] = '東条川用水';
+place[66]["lat"] = 34.8805555;
+place[66]["lng"] = 134.9688888;
+place[66]["popstr"] = '<a href="http://www.google.com/search?q=%E7%96%8E%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">疎水百選</a><br><a href="http://www.google.com/search?q=%E6%9D%B1%E6%9D%A1%E5%B7%9D%E7%94%A8%E6%B0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>東条川用水</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8805555%2C134.9688888" target="_blank">34.8805555,134.9688888</a><br>兵庫県小野市、加東市<br>';
+place[67] = Array();
+place[67]["name"] = '富島';
+place[67]["lat"] = 34.5477777;
+place[67]["lng"] = 134.9322222;
+place[67]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E5%AF%8C%E5%B3%B6" target="_blank" style="color:#000080;text-decoration:none;">≪<b>富島</b>≫</a><br><a href="http://maps.google.com/maps?q=34.5477777%2C134.9322222" target="_blank">34.5477777,134.9322222</a><br>兵庫県淡路市<br>';
+place[68] = Array();
+place[68]["name"] = '知明湖';
+place[68]["lat"] = 34.905;
+place[68]["lng"] = 135.4116666;
+place[68]["popstr"] = '<a href="http://www.google.com/search?q=%E3%83%80%E3%83%A0%E6%B9%96%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ダム湖百選</a><br><a href="http://www.google.com/search?q=%E7%9F%A5%E6%98%8E%E6%B9%96" target="_blank" style="color:#000080;text-decoration:none;">≪<b>知明湖</b>≫</a><br><a href="http://maps.google.com/maps?q=34.905%2C135.4116666" target="_blank">34.905,135.4116666</a><br>兵庫県川西市<br>';
+place[69] = Array();
+place[69]["name"] = '長倉池';
+place[69]["lat"] = 34.91805556;
+place[69]["lng"] = 134.8516667;
+place[69]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%9F%E3%82%81%E6%B1%A0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ため池百選</a><br><a href="http://www.google.com/search?q=%E9%95%B7%E5%80%89%E6%B1%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>長倉池</b>≫</a><br><a href="http://maps.google.com/maps?q=34.91805556%2C134.8516667" target="_blank">34.91805556,134.8516667</a><br>兵庫県加西市<br>';
+place[70] = Array();
+place[70]["name"] = '灘五郷の酒づくり';
+place[70]["lat"] = 34.7094444;
+place[70]["lng"] = 135.2647222;
+place[70]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%8B%E3%81%8A%E3%82%8A%E9%A2%A8%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">かおり風景100選</a><br><a href="http://www.google.com/search?q=%E7%81%98%E4%BA%94%E9%83%B7%E3%81%AE%E9%85%92%E3%81%A5%E3%81%8F%E3%82%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>灘五郷の酒づくり</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7094444%2C135.2647222" target="_blank">34.7094444,135.2647222</a><br>兵庫県神戸市<br>';
+place[71] = Array();
+place[71]["name"] = '灘のけんか祭りのだんじり太鼓';
+place[71]["lat"] = 34.7855555;
+place[71]["lng"] = 134.7061111;
+place[71]["popstr"] = '<a href="http://www.google.com/search?q=%E6%AE%8B%E3%81%97%E3%81%9F%E3%81%84%E6%97%A5%E6%9C%AC%E3%81%AE%E9%9F%B3%E9%A2%A8%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">残したい日本の音風景100選</a><br><a href="http://www.google.com/search?q=%E7%81%98%E3%81%AE%E3%81%91%E3%82%93%E3%81%8B%E7%A5%AD%E3%82%8A%E3%81%AE%E3%81%A0%E3%82%93%E3%81%98%E3%82%8A%E5%A4%AA%E9%BC%93" target="_blank" style="color:#000080;text-decoration:none;">≪<b>灘のけんか祭りのだんじり太鼓</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7855555%2C134.7061111" target="_blank">34.7855555,134.7061111</a><br>兵庫県姫路市<br>';
+place[72] = Array();
+place[72]["name"] = '西ヶ岡';
+place[72]["lat"] = 35.505;
+place[72]["lng"] = 134.5802777;
+place[72]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%A3%9A%E7%94%B0%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の棚田百選</a><br><a href="http://www.google.com/search?q=%E8%A5%BF%E3%83%B6%E5%B2%A1" target="_blank" style="color:#000080;text-decoration:none;">≪<b>西ヶ岡</b>≫</a><br><a href="http://maps.google.com/maps?q=35.505%2C134.5802777" target="_blank">35.505,134.5802777</a><br>兵庫県香美町<br>';
+place[73] = Array();
+place[73]["name"] = '沼島';
+place[73]["lat"] = 34.1680555;
+place[73]["lng"] = 134.8197222;
+place[73]["popstr"] = '<a href="http://www.google.com/search?q=%E5%B3%B6%E3%81%AE%E5%AE%9D100%E6%99%AF" target="_blank" style="color:#0080E0;">島の宝100景</a><br><a href="http://www.google.com/search?q=%E6%B2%BC%E5%B3%B6" target="_blank" style="color:#000080;text-decoration:none;">≪<b>沼島</b>≫</a><br><a href="http://maps.google.com/maps?q=34.1680555%2C134.8197222" target="_blank">34.1680555,134.8197222</a><br>兵庫県南あわじ市<br>';
+place[74] = Array();
+place[74]["name"] = '布引渓流';
+place[74]["lat"] = 34.7088888;
+place[74]["lng"] = 135.1936111;
+place[74]["popstr"] = '<a href="http://www.google.com/search?q=%E5%90%8D%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">名水百選</a><br><a href="http://www.google.com/search?q=%E5%B8%83%E5%BC%95%E6%B8%93%E6%B5%81" target="_blank" style="color:#000080;text-decoration:none;">≪<b>布引渓流</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7088888%2C135.1936111" target="_blank">34.7088888,135.1936111</a><br>兵庫県神戸市中央区<br>';
+place[75] = Array();
+place[75]["name"] = '布引貯水池';
+place[75]["lat"] = 34.7111111;
+place[75]["lng"] = 135.19;
+place[75]["popstr"] = '<a href="http://www.google.com/search?q=%E3%83%80%E3%83%A0%E6%B9%96%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">ダム湖百選</a><br><a href="http://www.google.com/search?q=%E5%B8%83%E5%BC%95%E8%B2%AF%E6%B0%B4%E6%B1%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>布引貯水池</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7111111%2C135.19" target="_blank">34.7111111,135.19</a><br>兵庫県神戸市<br>';
+place[76] = Array();
+place[76]["name"] = '布引と再度山';
+place[76]["lat"] = 34.7186111;
+place[76]["lng"] = 135.1775;
+place[76]["popstr"] = '<a href="http://www.google.com/search?q=%E5%85%A8%E5%9B%BD%E6%A3%AE%E6%9E%97%E6%B5%B4%E3%81%AE%E6%A3%AE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">全国森林浴の森百選</a><br><a href="http://www.google.com/search?q=%E5%B8%83%E5%BC%95%E3%81%A8%E5%86%8D%E5%BA%A6%E5%B1%B1" target="_blank" style="color:#000080;text-decoration:none;">≪<b>布引と再度山</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7186111%2C135.1775" target="_blank">34.7186111,135.1775</a><br>兵庫県神戸市<br>';
+place[77] = Array();
+place[77]["name"] = '布引の滝';
+place[77]["lat"] = 34.71;
+place[77]["lng"] = 135.1936111;
+place[77]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%BB%9D%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の滝百選</a><br><a href="http://www.google.com/search?q=%E5%B8%83%E5%BC%95%E3%81%AE%E6%BB%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>布引の滝</b>≫</a><br><a href="http://maps.google.com/maps?q=34.71%2C135.1936111" target="_blank">34.71,135.1936111</a><br>兵庫県神戸市<br>';
+place[78] = Array();
+place[78]["name"] = '浜坂県民サンビーチ';
+place[78]["lat"] = 35.6286111;
+place[78]["lng"] = 134.4488888;
+place[78]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E6%B5%9C%E5%9D%82%E7%9C%8C%E6%B0%91%E3%82%B5%E3%83%B3%E3%83%93%E3%83%BC%E3%83%81" target="_blank" style="color:#000080;text-decoration:none;">≪<b>浜坂県民サンビーチ</b>≫</a><br><a href="http://maps.google.com/maps?q=35.6286111%2C134.4488888" target="_blank">35.6286111,134.4488888</a><br>兵庫県新温泉町<br>';
+place[79] = Array();
+place[79]["name"] = '播磨高原東小学校';
+place[79]["lat"] = 34.9383333;
+place[79]["lng"] = 134.4447222;
+place[79]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E6%92%AD%E7%A3%A8%E9%AB%98%E5%8E%9F%E6%9D%B1%E5%B0%8F%E5%AD%A6%E6%A0%A1" target="_blank" style="color:#000080;text-decoration:none;">≪<b>播磨高原東小学校</b>≫</a><br><a href="http://maps.google.com/maps?q=34.9383333%2C134.4447222" target="_blank">34.9383333,134.4447222</a><br>兵庫県たつの市<br>';
+place[80] = Array();
+place[80]["name"] = '東播用水';
+place[80]["lat"] = 34.7777777;
+place[80]["lng"] = 135.07;
+place[80]["popstr"] = '<a href="http://www.google.com/search?q=%E7%96%8E%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">疎水百選</a><br><a href="http://www.google.com/search?q=%E6%9D%B1%E6%92%AD%E7%94%A8%E6%B0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>東播用水</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7777777%2C135.07" target="_blank">34.7777777,135.07</a><br>兵庫県神戸市ほか<br>';
+place[81] = Array();
+place[81]["name"] = '姫路公園';
+place[81]["lat"] = 34.8413888;
+place[81]["lng"] = 134.6947222;
+place[81]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E6%AD%B4%E5%8F%B2%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の歴史公園100選</a><br><a href="http://www.google.com/search?q=%E5%A7%AB%E8%B7%AF%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>姫路公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8413888%2C134.6947222" target="_blank">34.8413888,134.6947222</a><br>兵庫県姫路市<br>';
+place[82] = Array();
+place[82]["name"] = '姫路市立美術館';
+place[82]["lat"] = 34.8394444;
+place[82]["lng"] = 134.6963888;
+place[82]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E5%A7%AB%E8%B7%AF%E5%B8%82%E7%AB%8B%E7%BE%8E%E8%A1%93%E9%A4%A8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>姫路市立美術館</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8394444%2C134.6963888" target="_blank">34.8394444,134.6963888</a><br>兵庫県姫路市<br>';
+place[83] = Array();
+place[83]["name"] = '姫路城';
+place[83]["lat"] = 34.8413888;
+place[83]["lng"] = 134.6947222;
+place[83]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E3%81%95%E3%81%8F%E3%82%89%E5%90%8D%E6%89%80100%E9%81%B8" target="_blank" style="color:#0080E0;">日本のさくら名所100選</a><br><a href="http://www.google.com/search?q=%E5%A7%AB%E8%B7%AF%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>姫路城</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8413888%2C134.6947222" target="_blank">34.8413888,134.6947222</a><br>兵庫県姫路市<br>';
+place[84] = Array();
+place[84]["name"] = '姫路城';
+place[84]["lat"] = 34.8394444;
+place[84]["lng"] = 134.6938888;
+place[84]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E5%9F%8E" target="_blank" style="color:#0080E0;">日本百名城</a><br><a href="http://www.google.com/search?q=%E5%A7%AB%E8%B7%AF%E5%9F%8E" target="_blank" style="color:#000080;text-decoration:none;">≪<b>姫路城</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8394444%2C134.6938888" target="_blank">34.8394444,134.6938888</a><br>兵庫県姫路市<br>';
+place[85] = Array();
+place[85]["name"] = '兵庫県赤穂郡上郡町';
+place[85]["lat"] = 34.8736111;
+place[85]["lng"] = 134.3561111;
+place[85]["popstr"] = '<a href="http://www.google.com/search?q=%E6%B0%B4%E3%81%AE%E9%83%B7%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">水の郷百選</a><br><a href="http://www.google.com/search?q=%E5%85%B5%E5%BA%AB%E7%9C%8C%E8%B5%A4%E7%A9%82%E9%83%A1%E4%B8%8A%E9%83%A1%E7%94%BA" target="_blank" style="color:#000080;text-decoration:none;">≪<b>兵庫県赤穂郡上郡町</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8736111%2C134.3561111" target="_blank">34.8736111,134.3561111</a><br>兵庫県上郡町<br>';
+place[86] = Array();
+place[86]["name"] = '兵庫県豊岡市';
+place[86]["lat"] = 35.5444444;
+place[86]["lng"] = 134.82;
+place[86]["popstr"] = '<a href="http://www.google.com/search?q=%E6%B0%B4%E3%81%AE%E9%83%B7%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">水の郷百選</a><br><a href="http://www.google.com/search?q=%E5%85%B5%E5%BA%AB%E7%9C%8C%E8%B1%8A%E5%B2%A1%E5%B8%82" target="_blank" style="color:#000080;text-decoration:none;">≪<b>兵庫県豊岡市</b>≫</a><br><a href="http://maps.google.com/maps?q=35.5444444%2C134.82" target="_blank">35.5444444,134.82</a><br>兵庫県豊岡市<br>';
+place[87] = Array();
+place[87]["name"] = '兵庫県立明石公園';
+place[87]["lat"] = 34.6527777;
+place[87]["lng"] = 134.9919444;
+place[87]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E9%83%BD%E5%B8%82%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の都市公園100選</a><br><a href="http://www.google.com/search?q=%E5%85%B5%E5%BA%AB%E7%9C%8C%E7%AB%8B%E6%98%8E%E7%9F%B3%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>兵庫県立明石公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6527777%2C134.9919444" target="_blank">34.6527777,134.9919444</a><br>兵庫県明石市<br>';
+place[88] = Array();
+place[88]["name"] = '兵庫県立甲山森林公園';
+place[88]["lat"] = 34.7738888;
+place[88]["lng"] = 135.3344444;
+place[88]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E9%83%BD%E5%B8%82%E5%85%AC%E5%9C%92100%E9%81%B8" target="_blank" style="color:#0080E0;">日本の都市公園100選</a><br><a href="http://www.google.com/search?q=%E5%85%B5%E5%BA%AB%E7%9C%8C%E7%AB%8B%E7%94%B2%E5%B1%B1%E6%A3%AE%E6%9E%97%E5%85%AC%E5%9C%92" target="_blank" style="color:#000080;text-decoration:none;">≪<b>兵庫県立甲山森林公園</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7738888%2C135.3344444" target="_blank">34.7738888,135.3344444</a><br>兵庫県西宮市<br>';
+place[89] = Array();
+place[89]["name"] = '兵庫県宍栗郡千種町';
+place[89]["lat"] = 35.1527777;
+place[89]["lng"] = 134.445;
+place[89]["popstr"] = '<a href="http://www.google.com/search?q=%E6%B0%B4%E3%81%AE%E9%83%B7%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">水の郷百選</a><br><a href="http://www.google.com/search?q=%E5%85%B5%E5%BA%AB%E7%9C%8C%E5%AE%8D%E6%A0%97%E9%83%A1%E5%8D%83%E7%A8%AE%E7%94%BA" target="_blank" style="color:#000080;text-decoration:none;">≪<b>兵庫県宍栗郡千種町</b>≫</a><br><a href="http://maps.google.com/maps?q=35.1527777%2C134.445" target="_blank">35.1527777,134.445</a><br>兵庫県宍粟市<br>';
+place[90] = Array();
+place[90]["name"] = '鵯越―鈴蘭台';
+place[90]["lat"] = 34.6927777;
+place[90]["lng"] = 135.1425;
+place[90]["popstr"] = '<a href="http://www.google.com/search?q=%E8%BB%8A%E7%AA%93%E7%B5%B6%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">車窓絶景100選</a><br><a href="http://www.google.com/search?q=%E9%B5%AF%E8%B6%8A%E2%80%95%E9%88%B4%E8%98%AD%E5%8F%B0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>鵯越―鈴蘭台</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6927777%2C135.1425" target="_blank">34.6927777,135.1425</a><br>兵庫県神戸市<br>';
+place[91] = Array();
+place[91]["name"] = 'ビーナスブリッジ';
+place[91]["lat"] = 34.6980555;
+place[91]["lng"] = 135.1797222;
+place[91]["popstr"] = '<a href="http://www.google.com/search?q=%E5%A4%9C%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">夜景100選</a><br><a href="http://www.google.com/search?q=%E3%83%93%E3%83%BC%E3%83%8A%E3%82%B9%E3%83%96%E3%83%AA%E3%83%83%E3%82%B8" target="_blank" style="color:#000080;text-decoration:none;">≪<b>ビーナスブリッジ</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6980555%2C135.1797222" target="_blank">34.6980555,135.1797222</a><br>兵庫県神戸市<br>';
+place[92] = Array();
+place[92]["name"] = '吹上の浜';
+place[92]["lat"] = 34.2166666;
+place[92]["lng"] = 134.7127777;
+place[92]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%99%BD%E7%A0%82%E9%9D%92%E6%9D%BE%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の白砂青松百選</a><br><a href="http://www.google.com/search?q=%E5%90%B9%E4%B8%8A%E3%81%AE%E6%B5%9C" target="_blank" style="color:#000080;text-decoration:none;">≪<b>吹上の浜</b>≫</a><br><a href="http://maps.google.com/maps?q=34.2166666%2C134.7127777" target="_blank">34.2166666,134.7127777</a><br>兵庫県南あわじ市<br>';
+place[93] = Array();
+place[93]["name"] = '船坂峠';
+place[93]["lat"] = 34.82;
+place[93]["lng"] = 134.2922222;
+place[93]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E5%B3%A0" target="_blank" style="color:#0080E0;">日本百名峠</a><br><a href="http://www.google.com/search?q=%E8%88%B9%E5%9D%82%E5%B3%A0" target="_blank" style="color:#000080;text-decoration:none;">≪<b>船坂峠</b>≫</a><br><a href="http://maps.google.com/maps?q=34.82%2C134.2922222" target="_blank">34.82,134.2922222</a><br>兵庫県赤穂市、上郡町、岡山県備前市<br>';
+place[94] = Array();
+place[94]["name"] = 'ホタルの森';
+place[94]["lat"] = 35.0986111;
+place[94]["lng"] = 135.1925;
+place[94]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%B5%E3%82%8B%E3%81%95%E3%81%A8%E3%81%84%E3%81%8D%E3%82%82%E3%81%AE%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">ふるさといきものの里100選</a><br><a href="http://www.google.com/search?q=%E3%83%9B%E3%82%BF%E3%83%AB%E3%81%AE%E6%A3%AE" target="_blank" style="color:#000080;text-decoration:none;">≪<b>ホタルの森</b>≫</a><br><a href="http://maps.google.com/maps?q=35.0986111%2C135.1925" target="_blank">35.0986111,135.1925</a><br>兵庫県篠山市<br>';
+place[95] = Array();
+place[95]["name"] = 'ポートピア大通り';
+place[95]["lat"] = 34.6563888;
+place[95]["lng"] = 135.2175;
+place[95]["popstr"] = '<a href="http://www.google.com/search?q=%E6%96%B0%E3%83%BB%E6%97%A5%E6%9C%AC%E8%A1%97%E8%B7%AF%E6%A8%B9%E7%99%BE%E6%99%AF" target="_blank" style="color:#0080E0;">新・日本街路樹百景</a><br><a href="http://www.google.com/search?q=%E3%83%9D%E3%83%BC%E3%83%88%E3%83%94%E3%82%A2%E5%A4%A7%E9%80%9A%E3%82%8A" target="_blank" style="color:#000080;text-decoration:none;">≪<b>ポートピア大通り</b>≫</a><br><a href="http://maps.google.com/maps?q=34.6563888%2C135.2175" target="_blank">34.6563888,135.2175</a><br>兵庫県神戸市<br>';
+place[96] = Array();
+place[96]["name"] = '松か井の水';
+place[96]["lat"] = 35.0983333;
+place[96]["lng"] = 134.8575;
+place[96]["popstr"] = '<a href="http://www.google.com/search?q=%E5%B9%B3%E6%88%90%E3%81%AE%E5%90%8D%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">平成の名水百選</a><br><a href="http://www.google.com/search?q=%E6%9D%BE%E3%81%8B%E4%BA%95%E3%81%AE%E6%B0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>松か井の水</b>≫</a><br><a href="http://maps.google.com/maps?q=35.0983333%2C134.8575" target="_blank">35.0983333,134.8575</a><br>兵庫県多可町<br>';
+place[97] = Array();
+place[97]["name"] = '摩耶山';
+place[97]["lat"] = 34.7338888;
+place[97]["lng"] = 135.2055555;
+place[97]["popstr"] = '<a href="http://www.google.com/search?q=%E5%A4%9C%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">夜景100選</a><br><a href="http://www.google.com/search?q=%E6%91%A9%E8%80%B6%E5%B1%B1" target="_blank" style="color:#000080;text-decoration:none;">≪<b>摩耶山</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7338888%2C135.2055555" target="_blank">34.7338888,135.2055555</a><br>兵庫県神戸市<br>';
+place[98] = Array();
+place[98]["name"] = '円山川流域';
+place[98]["lat"] = 35.5466666;
+place[98]["lng"] = 134.8613888;
+place[98]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%AB%E3%81%BB%E3%82%93%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">にほんの里100選</a><br><a href="http://www.google.com/search?q=%E5%86%86%E5%B1%B1%E5%B7%9D%E6%B5%81%E5%9F%9F" target="_blank" style="color:#000080;text-decoration:none;">≪<b>円山川流域</b>≫</a><br><a href="http://maps.google.com/maps?q=35.5466666%2C134.8613888" target="_blank">35.5466666,134.8613888</a><br>兵庫県豊岡市<br>';
+place[99] = Array();
+place[99]["name"] = '南あわじの鞘形褶曲';
+place[99]["lat"] = 34.1622222;
+place[99]["lng"] = 134.8277777;
+place[99]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%9C%B0%E8%B3%AA%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の地質百選</a><br><a href="http://www.google.com/search?q=%E5%8D%97%E3%81%82%E3%82%8F%E3%81%98%E3%81%AE%E9%9E%98%E5%BD%A2%E8%A4%B6%E6%9B%B2" target="_blank" style="color:#000080;text-decoration:none;">≪<b>南あわじの鞘形褶曲</b>≫</a><br><a href="http://maps.google.com/maps?q=34.1622222%2C134.8277777" target="_blank">34.1622222,134.8277777</a><br>兵庫県<br>';
+place[100] = Array();
+place[100]["name"] = '宮水';
+place[100]["lat"] = 34.7316666;
+place[100]["lng"] = 135.3413888;
+place[100]["popstr"] = '<a href="http://www.google.com/search?q=%E5%90%8D%E6%B0%B4%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">名水百選</a><br><a href="http://www.google.com/search?q=%E5%AE%AE%E6%B0%B4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>宮水</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7316666%2C135.3413888" target="_blank">34.7316666,135.3413888</a><br>兵庫県西宮市<br>';
+place[101] = Array();
+place[101]["name"] = '武庫大橋';
+place[101]["lat"] = 34.7319444;
+place[101]["lng"] = 135.38;
+place[101]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%A9%8B" target="_blank" style="color:#0080E0;">日本百名橋</a><br><a href="http://www.google.com/search?q=%E6%AD%A6%E5%BA%AB%E5%A4%A7%E6%A9%8B" target="_blank" style="color:#000080;text-decoration:none;">≪<b>武庫大橋</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7319444%2C135.38" target="_blank">34.7319444,135.38</a><br>兵庫県西宮市<br>';
+place[102] = Array();
+place[102]["name"] = '室津';
+place[102]["lat"] = 34.5169444;
+place[102]["lng"] = 134.8752777;
+place[102]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%A4%95%E9%99%BD%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の夕陽百選</a><br><a href="http://www.google.com/search?q=%E5%AE%A4%E6%B4%A5" target="_blank" style="color:#000080;text-decoration:none;">≪<b>室津</b>≫</a><br><a href="http://maps.google.com/maps?q=34.5169444%2C134.8752777" target="_blank">34.5169444,134.8752777</a><br>兵庫県淡路市<br>';
+place[103] = Array();
+place[103]["name"] = '米地川';
+place[103]["lat"] = 35.3911111;
+place[103]["lng"] = 134.8408333;
+place[103]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%B5%E3%82%8B%E3%81%95%E3%81%A8%E3%81%84%E3%81%8D%E3%82%82%E3%81%AE%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">ふるさといきものの里100選</a><br><a href="http://www.google.com/search?q=%E7%B1%B3%E5%9C%B0%E5%B7%9D" target="_blank" style="color:#000080;text-decoration:none;">≪<b>米地川</b>≫</a><br><a href="http://maps.google.com/maps?q=35.3911111%2C134.8408333" target="_blank">35.3911111,134.8408333</a><br>兵庫県養父市<br>';
+place[104] = Array();
+place[104]["name"] = '山口町のモリアオガエル';
+place[104]["lat"] = 34.8097222;
+place[104]["lng"] = 135.2491666;
+place[104]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%B5%E3%82%8B%E3%81%95%E3%81%A8%E3%81%84%E3%81%8D%E3%82%82%E3%81%AE%E3%81%AE%E9%87%8C100%E9%81%B8" target="_blank" style="color:#0080E0;">ふるさといきものの里100選</a><br><a href="http://www.google.com/search?q=%E5%B1%B1%E5%8F%A3%E7%94%BA%E3%81%AE%E3%83%A2%E3%83%AA%E3%82%A2%E3%82%AA%E3%82%AC%E3%82%A8%E3%83%AB" target="_blank" style="color:#000080;text-decoration:none;">≪<b>山口町のモリアオガエル</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8097222%2C135.2491666" target="_blank">34.8097222,135.2491666</a><br>兵庫県西宮市<br>';
+place[105] = Array();
+place[105]["name"] = '山崎大歳神社の千年藤';
+place[105]["lat"] = 35.0091666;
+place[105]["lng"] = 134.5425;
+place[105]["popstr"] = '<a href="http://www.google.com/search?q=%E3%81%8B%E3%81%8A%E3%82%8A%E9%A2%A8%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">かおり風景100選</a><br><a href="http://www.google.com/search?q=%E5%B1%B1%E5%B4%8E%E5%A4%A7%E6%AD%B3%E7%A5%9E%E7%A4%BE%E3%81%AE%E5%8D%83%E5%B9%B4%E8%97%A4" target="_blank" style="color:#000080;text-decoration:none;">≪<b>山崎大歳神社の千年藤</b>≫</a><br><a href="http://maps.google.com/maps?q=35.0091666%2C134.5425" target="_blank">35.0091666,134.5425</a><br>兵庫県宍粟市<br>';
+place[106] = Array();
+place[106]["name"] = '湯村温泉';
+place[106]["lat"] = 35.5547222;
+place[106]["lng"] = 134.4880555;
+place[106]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%B9%AF" target="_blank" style="color:#0080E0;">日本百名湯</a><br><a href="http://www.google.com/search?q=%E6%B9%AF%E6%9D%91%E6%B8%A9%E6%B3%89" target="_blank" style="color:#000080;text-decoration:none;">≪<b>湯村温泉</b>≫</a><br><a href="http://maps.google.com/maps?q=35.5547222%2C134.4880555" target="_blank">35.5547222,134.4880555</a><br>兵庫県新温泉町<br>';
+place[107] = Array();
+place[107]["name"] = '羅漢渓谷';
+place[107]["lat"] = 34.8827777;
+place[107]["lng"] = 134.4436111;
+place[107]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E7%B4%85%E8%91%89%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の紅葉百選</a><br><a href="http://www.google.com/search?q=%E7%BE%85%E6%BC%A2%E6%B8%93%E8%B0%B7" target="_blank" style="color:#000080;text-decoration:none;">≪<b>羅漢渓谷</b>≫</a><br><a href="http://maps.google.com/maps?q=34.8827777%2C134.4436111" target="_blank">34.8827777,134.4436111</a><br>兵庫県相生市<br>';
+place[108] = Array();
+place[108]["name"] = '六甲ガーデンテラス';
+place[108]["lat"] = 34.7644444;
+place[108]["lng"] = 135.2463888;
+place[108]["popstr"] = '<a href="http://www.google.com/search?q=%E5%A4%9C%E6%99%AF100%E9%81%B8" target="_blank" style="color:#0080E0;">夜景100選</a><br><a href="http://www.google.com/search?q=%E5%85%AD%E7%94%B2%E3%82%AC%E3%83%BC%E3%83%87%E3%83%B3%E3%83%86%E3%83%A9%E3%82%B9" target="_blank" style="color:#000080;text-decoration:none;">≪<b>六甲ガーデンテラス</b>≫</a><br><a href="http://maps.google.com/maps?q=34.7644444%2C135.2463888" target="_blank">34.7644444,135.2463888</a><br>兵庫県神戸市<br>';
+place[109] = Array();
+place[109]["name"] = '六甲-淡路断層系';
+place[109]["lat"] = 34.55;
+place[109]["lng"] = 134.9375;
+place[109]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E3%81%AE%E5%9C%B0%E8%B3%AA%E7%99%BE%E9%81%B8" target="_blank" style="color:#0080E0;">日本の地質百選</a><br><a href="http://www.google.com/search?q=%E5%85%AD%E7%94%B2-%E6%B7%A1%E8%B7%AF%E6%96%AD%E5%B1%A4%E7%B3%BB" target="_blank" style="color:#000080;text-decoration:none;">≪<b>六甲-淡路断層系</b>≫</a><br><a href="http://maps.google.com/maps?q=34.55%2C134.9375" target="_blank">34.55,134.9375</a><br>兵庫県<br>';
+place[110] = Array();
+place[110]["name"] = '餘部橋梁(余部鉄橋)';
+place[110]["lat"] = 35.6494444;
+place[110]["lng"] = 134.5597222;
+place[110]["popstr"] = '<a href="http://www.google.com/search?q=%E6%97%A5%E6%9C%AC%E7%99%BE%E5%90%8D%E6%A9%8B" target="_blank" style="color:#0080E0;">日本百名橋</a><br><a href="http://www.google.com/search?q=%E9%A4%98%E9%83%A8%E6%A9%8B%E6%A2%81%28%E4%BD%99%E9%83%A8%E9%89%84%E6%A9%8B%29" target="_blank" style="color:#000080;text-decoration:none;">≪<b>餘部橋梁(余部鉄橋)</b>≫</a><br><a href="http://maps.google.com/maps?q=35.6494444%2C134.5597222" target="_blank">35.6494444,134.5597222</a><br>兵庫県香美町<br>';
+// ---------------------------
+var myIcon = L.icon({	/* アイコン */
+	iconUrl: 'icon/marker-small.png',
+	iconRetinaUrl: 'icon/marker-small.png',
+	iconSize: [16, 27],
+	iconAnchor: [7, 27],
+	popupAnchor: [1, -22],
+});
+iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
+for (var i = 0; i < place.length; i++) {
+	// 文字ラベルを表示
+	var divIcon = L.divIcon({
+		html: '<div class="divicon">' + place[i].name + '</div>',
+		iconSize: [0,0]
+	});
+	iconMarkers.addLayer( L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(place[i].popstr) );
+	L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
+}
+map.fitBounds(iconMarkers.getBounds());	// 全マーカーを画面内に収める
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	"Google マップ": Basic_Map[ 0 ],
+	"OpenStreetMap": Basic_Map[ 1 ],
+	"国土地理院 標準地図": Basic_Map[ 2 ],
+	"国土地理院 写真": Basic_Map[ 3 ],
+	"Esri World Topo Map": Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+// マーカーすべて表示画面に戻るボタン
+L.easyButton('fa fa-reply-all', function(btn, easyMap) {
+	currentWatchReset();
+	if (currentWatchBtn) {
+		currentWatchBtn.state('current-watch');
+		currentWatchBtn = null;
+	}
+	map.fitBounds(iconMarkers.getBounds());	// 全マーカー画面に戻る
+}).addTo(map);
+// クリックした地点の緯度・経度、標高を表示
+map.on('click', onMapClick);
+var clickMarker = null;
+function onMapClick(e) {
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+		//	var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open("GET", src, false);
+	req.send(null)
+}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
+}
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+			// 東京タワー
+			// var lat = 35.65837719526223;
+			// var lng = 139.7423601150513;
+		map.setView([ lat,lng ]);
+			// 現在地に表示するマーカー：Awesomeアイコン版
+			//	var curIcon = L.divIcon({
+			//		html: '<div class="fa fa-user" style="color: #FF7F50; font-size: 20px;"></div>',
+			//		iconSize: [20, 20],
+			//		className: 'myDivIcon'
+			//	});
+		// 現在地に表示するマーカー
+		if (curMarker == null) {
+			var curIcon = L.icon({	/* アイコン */
+				iconUrl: 'icon/hiking.png',
+				iconRetinaUrl: 'icon/hiking.png',
+				iconAnchor: [15, 34]
+			});
+			curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+		}
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+</script>
+</body>
+</html>
