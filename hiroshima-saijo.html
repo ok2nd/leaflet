@@ -35,36 +35,15 @@ var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
 });
 tileLayer.addTo(map);
 // ---------------------------
-var others = Array();
 var place = Array();
-place[0] = Array();
-place[0]["name"] = '福美人';
-place[0]["lat"] = 34.4307133;
-place[0]["lng"] = 132.74780090000002;
-place[1] = Array();
-place[1]["name"] = '白牡丹';
-place[1]["lat"] = 34.4294412;
-place[1]["lng"] = 132.74517330000003;
-place[2] = Array();
-place[2]["name"] = '西條鶴';
-place[2]["lat"] = 34.4299551;
-place[2]["lng"] = 132.74550939999995;
-place[3] = Array();
-place[3]["name"] = '亀齢';
-place[3]["lat"] = 34.4301578;
-place[3]["lng"] = 132.74632599999995;
-place[4] = Array();
-place[4]["name"] = '賀茂泉';
-place[4]["lat"] = 34.4290884;
-place[4]["lng"] = 132.74867040000004;
-place[5] = Array();
-place[5]["name"] = '山陽鶴';
-place[5]["lat"] = 34.4296995;
-place[5]["lng"] = 132.74084300000004;
-place[6] = Array();
-place[6]["name"] = '賀茂鶴';
-place[6]["lat"] = 34.4307038;
-place[6]["lng"] = 132.74648249999996;
+place[0] = ['福美人', 34.4307133, 132.74780090000002];
+place[1] = ['白牡丹', 34.4294412, 132.74517330000003];
+place[2] = ['西條鶴', 34.4299551, 132.74550939999995];
+place[3] = ['亀齢', 34.4301578, 132.74632599999995];
+place[4] = ['賀茂泉', 34.4290884, 132.74867040000004];
+place[5] = ['山陽鶴', 34.4296995, 132.74084300000004];
+place[6] = ['賀茂鶴', 34.4307038, 132.74648249999996];
+var others = Array();
 // ---------------------------
 iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
 var iconBlue = L.icon({
@@ -220,13 +199,13 @@ function placeMarker(place, myIcon, bgcolor) {
 	for (var i = 0; i < place.length; i++) {
 		// 文字ラベルを表示
 		var divIcon = L.divIcon({
-			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i].name + '</div>',
+			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i][0] + '</div>',
 			iconSize: [0,0]
 		});
-		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i].name) + '" target="_blank">' + place[i].name + '</a>';
-			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i].lat + '%2C' + place[i].lng + '" target="_blank">' + '緯度：' + place[i].lat + '<br>経度：' + place[i].lng + '</a>';
-		iconMarkers.addLayer(L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(popStr));
-		L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
+		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i][0]) + '" target="_blank">' + place[i][0] + '</a>';
+			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i][1] + '%2C' + place[i][2] + '" target="_blank">' + '緯度：' + place[i][1] + '<br>経度：' + place[i][2] + '</a>';
+		iconMarkers.addLayer(L.marker([place[i][1], place[i][2]], {icon: myIcon}).addTo(map).bindPopup(popStr));
+		L.marker([place[i][1], place[i][2]], {icon: divIcon}).addTo(map);
 	}
 }
 </script>

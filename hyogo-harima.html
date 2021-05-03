@@ -35,100 +35,31 @@ var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
 });
 tileLayer.addTo(map);
 // ---------------------------
-var others = Array();
 var place = Array();
-place[0] = Array();
-place[0]["name"] = '龍力';
-place[0]["lat"] = 34.814546;
-place[0]["lng"] = 134.581724;
-place[1] = Array();
-place[1]["name"] = '八重垣';
-place[1]["lat"] = 34.9132178;
-place[1]["lng"] = 134.58359559999997;
-place[2] = Array();
-place[2]["name"] = '忠臣蔵';
-place[2]["lat"] = 34.7666961;
-place[2]["lng"] = 134.43057669999996;
-place[3] = Array();
-place[3]["name"] = '奥播磨';
-place[3]["lat"] = 34.987145;
-place[3]["lng"] = 134.59223499999996;
-place[4] = Array();
-place[4]["name"] = '播州一献';
-place[4]["lat"] = 35.005403;
-place[4]["lng"] = 134.53838599999995;
-place[5] = Array();
-place[5]["name"] = '老松';
-place[5]["lat"] = 35.0057863;
-place[5]["lng"] = 134.53743639999993;
-place[6] = Array();
-place[6]["name"] = '雪彦山';
-place[6]["lat"] = 34.9707495;
-place[6]["lng"] = 134.68631870000002;
-place[7] = Array();
-place[7]["name"] = '龍王の舞';
-place[7]["lat"] = 34.9326259;
-place[7]["lng"] = 134.76444489999994;
-place[8] = Array();
-place[8]["name"] = '官兵衛';
-place[8]["lat"] = 34.89293;
-place[8]["lng"] = 134.73227900000006;
-place[9] = Array();
-place[9]["name"] = '名刀正宗';
-place[9]["lat"] = 34.80250894529141;
-place[9]["lng"] = 134.63357403874397;
-place[10] = Array();
-place[10]["name"] = '灘菊';
-place[10]["lat"] = 34.816907;
-place[10]["lng"] = 134.68085599999995;
-place[11] = Array();
-place[11]["name"] = '倭小槌';
-place[11]["lat"] = 34.7473601;
-place[11]["lng"] = 134.94541789999994;
-place[12] = Array();
-place[12]["name"] = '盛典';
-place[12]["lat"] = 34.75327;
-place[12]["lng"] = 134.84286350000002;
-place[13] = Array();
-place[13]["name"] = '金露';
-place[13]["lat"] = 34.7535677;
-place[13]["lng"] = 134.93306600000005;
-place[14] = Array();
-place[14]["name"] = '葵鶴';
-place[14]["lat"] = 34.8010960764054;
-place[14]["lng"] = 134.99175488948822;
-place[15] = Array();
-place[15]["name"] = '神結';
-place[15]["lat"] = 34.9357405;
-place[15]["lng"] = 134.95336399999997;
-place[16] = Array();
-place[16]["name"] = '菊日本';
-place[16]["lat"] = 34.8824366;
-place[16]["lng"] = 134.87586020000003;
-place[17] = Array();
-place[17]["name"] = '富久錦';
-place[17]["lat"] = 34.8693371;
-place[17]["lng"] = 134.83686669999997;
-place[18] = Array();
-place[18]["name"] = '明石鯛';
-place[18]["lat"] = 34.64476706104531;
-place[18]["lng"] = 135.01213163137436;
-place[19] = Array();
-place[19]["name"] = '神鷹';
-place[19]["lat"] = 34.68112850015501;
-place[19]["lng"] = 134.90561842918396;
-place[20] = Array();
-place[20]["name"] = '来楽';
-place[20]["lat"] = 34.689812;
-place[20]["lng"] = 134.89693999999997;
-place[21] = Array();
-place[21]["name"] = '空の鶴';
-place[21]["lat"] = 34.6939292;
-place[21]["lng"] = 134.9236982;
-place[22] = Array();
-place[22]["name"] = '赤石';
-place[22]["lat"] = 34.677444;
-place[22]["lng"] = 134.91696000000002;
+place[0] = ['龍力', 34.814546, 134.581724];
+place[1] = ['八重垣', 34.9132178, 134.58359559999997];
+place[2] = ['忠臣蔵', 34.7666961, 134.43057669999996];
+place[3] = ['奥播磨', 34.987145, 134.59223499999996];
+place[4] = ['播州一献', 35.005403, 134.53838599999995];
+place[5] = ['老松', 35.0057863, 134.53743639999993];
+place[6] = ['雪彦山', 34.9707495, 134.68631870000002];
+place[7] = ['龍王の舞', 34.9326259, 134.76444489999994];
+place[8] = ['官兵衛', 34.89293, 134.73227900000006];
+place[9] = ['名刀正宗', 34.80250894529141, 134.63357403874397];
+place[10] = ['灘菊', 34.816907, 134.68085599999995];
+place[11] = ['倭小槌', 34.7473601, 134.94541789999994];
+place[12] = ['盛典', 34.75327, 134.84286350000002];
+place[13] = ['金露', 34.7535677, 134.93306600000005];
+place[14] = ['葵鶴', 34.8010960764054, 134.99175488948822];
+place[15] = ['神結', 34.9357405, 134.95336399999997];
+place[16] = ['菊日本', 34.8824366, 134.87586020000003];
+place[17] = ['富久錦', 34.8693371, 134.83686669999997];
+place[18] = ['明石鯛', 34.64476706104531, 135.01213163137436];
+place[19] = ['神鷹', 34.68112850015501, 134.90561842918396];
+place[20] = ['来楽', 34.689812, 134.89693999999997];
+place[21] = ['空の鶴', 34.6939292, 134.9236982];
+place[22] = ['赤石', 34.677444, 134.91696000000002];
+var others = Array();
 // ---------------------------
 iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
 var iconBlue = L.icon({
@@ -284,13 +215,13 @@ function placeMarker(place, myIcon, bgcolor) {
 	for (var i = 0; i < place.length; i++) {
 		// 文字ラベルを表示
 		var divIcon = L.divIcon({
-			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i].name + '</div>',
+			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i][0] + '</div>',
 			iconSize: [0,0]
 		});
-		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i].name) + '" target="_blank">' + place[i].name + '</a>';
-			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i].lat + '%2C' + place[i].lng + '" target="_blank">' + '緯度：' + place[i].lat + '<br>経度：' + place[i].lng + '</a>';
-		iconMarkers.addLayer(L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(popStr));
-		L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
+		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i][0]) + '" target="_blank">' + place[i][0] + '</a>';
+			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i][1] + '%2C' + place[i][2] + '" target="_blank">' + '緯度：' + place[i][1] + '<br>経度：' + place[i][2] + '</a>';
+		iconMarkers.addLayer(L.marker([place[i][1], place[i][2]], {icon: myIcon}).addTo(map).bindPopup(popStr));
+		L.marker([place[i][1], place[i][2]], {icon: divIcon}).addTo(map);
 	}
 }
 </script>
