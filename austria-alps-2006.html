@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="author" content="ok.2nd">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>東京タワー(6)：Leaflet(Google Map,OpenStreetMap,国土地理院,Esri World Topo Map)</title>
+<meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
+<title>2006年 オーストリア・アルプス</title>
+<link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
+<link rel="icon" href="favicon/earth.ico" type="image/ico">
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <!-- Font Awesome アイコン -->
@@ -18,7 +21,7 @@ body { margin:0; padding:0; }
 .divicon {	/* 文字ラベル */
 	display: table-cell;
 	color: #f00;
-	background-color: #ff4;
+/*	background-color: #ff4;	*/
 	opacity: 0.7;
 	white-space: nowrap;
 	font-size: 12px;
@@ -35,47 +38,48 @@ var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
 });
 tileLayer.addTo(map);
 // ---------------------------
-var place = [
-	{
-		'name': '東京タワー',
-		'lat': '35.6585753263022',
-		'lng': '139.7454324609718'
-	},{
-		'name': '増上寺',
-		'lat': '35.65737629074171',
-		'lng': '139.7482751425744'
-	},{
-		'name': '芝公園',
-		'lat': '35.65548717662271',
-		'lng': '139.74843437145282'
-	},{
-		'name': '赤羽橋駅',
-		'lat': '35.65496610534149',
-		'lng': '139.74394970889855'
-	},{
-		'name': '神谷町駅',
-		'lat': '35.66307981284523',
-		'lng': '139.7451975472575'
-	}
-]
+var place = Array();
+place[0] = ['7/15 インスブルック', 47.2633412, 11.400490200000036];
+place[1] = ['7/8 ザルツブルグ', 47.8130523, 13.045070600000031];
+place[2] = ['7/10 St. Gilgen', 47.7722129, 13.35784620000004];
+place[3] = ['7/9 Hallstat', 47.5624178, 13.64970489999996];
+place[4] = ['7/11-12 Solden', 46.9654937, 11.007623200000012];
+place[5] = ['7/13-14 Axamer Lizum', 47.19569, 11.302649999999971];
+var others = Array();
+others[0] = ['Hoadl', 47.1832725, 11.281843799999933];
+others[1] = ['Gosausee', 47.533196, 13.496714999999995];
+others[2] = ['Schafberg', 47.77628088421932, 13.43376874923706];
+others[3] = ['Edelweishutte', 46.981181955714334, 11.000350713729858];
+others[4] = ['Hohe Mut', 46.84710902508094, 11.03076696395874];
+others[5] = ['Frau Hitt', 47.29986175840479, 11.350096559524559];
+others[6] = ['Schonwieshutte', 46.84746534521193, 11.016610040687738];
+others[7] = ['Obergurgl', 46.8702519, 11.026926099999969];
+others[8] = ['St. Wolfgang', 47.7418278, 13.439711299999999];
+others[9] = ['Hungerburg', 47.2868508, 11.398136000000022];
+others[10] = ['Gaislachkogl', 46.942222, 10.966944000000012];
+others[11] = ['Birgitzer Alm', 47.20344698315106, 11.307957172393799];
+others[12] = ['Nockspitze', 47.19423270914945, 11.326088905334473];
+others[13] = ['Otztal', 47.23834189999999, 10.859265100000016];
+others[14] = ['Bad Ischl Station', 47.712137, 13.627617999999984];
+others[15] = ['インスブルック空港', 47.2576489, 11.351307499999962];
 // ---------------------------
-var myIcon = L.icon({	/* アイコン */
-	iconUrl: 'icon/marker-small.png',
-	iconRetinaUrl: 'icon/marker-small.png',
-	iconSize: [16, 27],
-	iconAnchor: [7, 27],
+iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
+var iconBlue = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [14, 27],
 	popupAnchor: [1, -22],
 });
-iconMarkers = L.featureGroup();		// 全マーカーを画面内に収めるため
-for (var i = 0; i < place.length; i++) {
-	// 文字ラベルを表示
-	var divIcon = L.divIcon({
-		html: '<div class="divicon">' + place[i].name + '</div>',
-		iconSize: [0,0]
-	});
-	iconMarkers.addLayer( L.marker([place[i].lat, place[i].lng], {icon: myIcon}).addTo(map).bindPopup(place[i].name) );
-	L.marker([place[i].lat, place[i].lng], {icon: divIcon}).addTo(map);
-}
+placeMarker(others, iconBlue, '#aff');
+var iconRed = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [14, 27],
+	popupAnchor: [1, -22],
+});
+placeMarker(place, iconRed, '#ff4');
 map.fitBounds(iconMarkers.getBounds());	// 全マーカーを画面内に収める
 var Basic_Map = new Array();
 Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
@@ -152,7 +156,7 @@ function onMapClick(e) {
 		if(req.readyState == 4 && req.status == 200) {
 			var json = req.responseText;
 			var results = JSON.parse(json);
-			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
 			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
 		}
 	};
@@ -208,6 +212,19 @@ function currentWatchReset() {
 	if (curMarker) {
 		map.removeLayer(curMarker);
 		curMarker = null;
+	}
+}
+function placeMarker(place, myIcon, bgcolor) {
+	for (var i = 0; i < place.length; i++) {
+		// 文字ラベルを表示
+		var divIcon = L.divIcon({
+			html: '<div class="divicon" style="background-color:' + bgcolor + '">' + place[i][0] + '</div>',
+			iconSize: [0,0]
+		});
+		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i][0]) + '" target="_blank">' + place[i][0] + '</a>';
+			//popStr += '<br><a href="http://maps.google.com/maps?q=' + place[i][1] + '%2C' + place[i][2] + '" target="_blank">' + '緯度：' + place[i][1] + '<br>経度：' + place[i][2] + '</a>';
+		iconMarkers.addLayer(L.marker([place[i][1], place[i][2]], {icon: myIcon}).addTo(map).bindPopup(popStr));
+		L.marker([place[i][1], place[i][2]], {icon: divIcon}).addTo(map);
 	}
 }
 </script>

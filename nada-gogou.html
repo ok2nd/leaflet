@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="author" content="ok.2nd">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
 <title>酒蔵【灘五郷】 西郷・御影郷・魚崎郷・西宮郷・今津郷</title>
+<link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
+<link rel="icon" href="favicon/earth.ico" type="image/ico">
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <!-- Font Awesome アイコン -->
@@ -191,14 +194,15 @@ function currentWatch() {
 			//		className: 'myDivIcon'
 			//	});
 		// 現在地に表示するマーカー
-		if (curMarker == null) {
-			var curIcon = L.icon({	/* アイコン */
-				iconUrl: 'icon/hiking.png',
-				iconRetinaUrl: 'icon/hiking.png',
-				iconAnchor: [15, 34]
-			});
-			curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+		if (curMarker) {
+			map.removeLayer(curMarker);
 		}
+		var curIcon = L.icon({	/* アイコン */
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
 	}
 	function error(err) {
 		alert('位置情報を取得できませんでした。');
