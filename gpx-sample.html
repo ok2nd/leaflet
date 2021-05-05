@@ -47,7 +47,7 @@ var baseMap = {
 };
 L.control.layers(baseMap).addTo(map);
 // ---------------------------------------------------
-var gpx = 'gpx/2021_05_04_10_34_23.gpx';	// GPX
+var gpx = 'gpx/2021_05_04_10_34_23.gpx';
 new L.GPX(gpx, {
 	async: true,
 	marker_options: {
@@ -62,9 +62,8 @@ new L.GPX(gpx, {
 		opacity: 0.8,
 		weight: 5,
 		lineCap: 'round'
-    	}
+	}
 }).on('loaded', function(e) {
-	iconMarkers = e.target;
 	map.fitBounds(e.target.getBounds());
 }).addTo(map);
 // ---------------------------------------------------
