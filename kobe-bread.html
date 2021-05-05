@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
+<title>神戸（三宮・元町）パン屋／ケーキ屋 マップ</title>
+<link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
+<link rel="icon" href="favicon/earth.ico" type="image/ico">
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css">
+<link rel="stylesheet" href="css/easy-button.css">
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/my-leaflet.css">
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var place = Array();
+place[0] = ['ブランジェリーコム・シノワ：三宮ビル南館地下', 34.6927605, 135.1965222];
+place[1] = ['サ・マーシュ', 34.6967793, 135.18833940000002];
+place[2] = ['イスズベーカリー 北野坂店', 34.695149, 135.19257800000003];
+place[3] = ['ビゴの店：神戸国際会館B2F', 34.6920189, 135.1958806];
+place[4] = ['フロインドリーブ', 34.7007707, 135.19516929999998];
+place[5] = ['RIKI', 34.6873499, 135.18694260000007];
+place[6] = ['ぱんのき', 34.6942796, 135.18668409999998];
+place[7] = ['ブリエ', 34.6931241, 135.1803013];
+place[8] = ['ル・ディマンシュ', 34.69190498745809, 135.1894176006317];
+place[9] = ['ポールボキューズ：大丸神戸店', 34.688801962635935, 135.19001305103302];
+place[10] = ['PAUL：大丸神戸店', 34.68829249968282, 135.1904261112213];
+place[11] = ['フロインドリーブ：大丸神戸店', 34.688618909208486, 135.190908908844];
+place[12] = ['イスズベーカリー 生田ロード店', 34.69240450403781, 135.19139170646667];
+place[13] = ['トミーズ三宮店：高架下', 34.692466, 135.19192850000002];
+place[14] = ['トミーズ三宮東店', 34.6959919, 135.19590960000005];
+place[15] = ['ケルン：サンパル1F', 34.695538, 135.197183];
+place[16] = ['ルビアンルミレーヌ：そごうB1F', 34.6929996, 135.19487049999998];
+place[17] = ['ローゲンマイヤー：ミント神戸', 34.6946464, 135.19595319999996];
+place[18] = ['聖庵：そごうB1F', 34.6928264, 135.19520999999997];
+place[19] = ['イスズベーカリー 元町店', 34.68955, 135.189078];
+place[20] = ['THE BAKE パン', 34.6997816, 135.19342289999997];
+var others = Array();
+others[0] = ['パティスリー モンプリュ', 34.6862111, 135.18682319999994];
+others[1] = ['パティスリーグレゴリー・コレ', 34.6876696, 135.18568200000004];
+others[2] = ['元町ケーキ', 34.6850889, 135.18176530000005];
+others[3] = ['ショウタニ 大丸神戸店', 34.68825721208945, 135.19091427326202];
+others[4] = ['エスト・ローヤル', 34.6879998, 135.18853409999997];
+others[5] = ['L’AVENUE', 34.6959263, 135.1867975];
+others[6] = ['AKITO', 34.6877831, 135.18409280000003];
+others[7] = ['TOOTH TOOTH', 34.690594, 135.19228929999997];
+others[8] = ['ボックサン', 34.6902163, 135.1915255];
+others[9] = ['神戸クレフィ', 34.690902637148135, 135.1931056380272];
+others[10] = ['ショコラリパブリック', 34.69636, 135.19240020000007];
+others[11] = ['ルシオル', 34.699149, 135.19493899999998];
+others[12] = ['ケーニヒス クローネ そごう神戸店', 34.6926654, 135.19509010000002];
+</script>
+<script src="js/my-leaflet-2icon.js"></script>
+</script>
+</body>
+</html>

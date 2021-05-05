@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
+<title>京都 ギャラリー マップ</title>
+<link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
+<link rel="icon" href="favicon/earth.ico" type="image/ico">
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css">
+<link rel="stylesheet" href="css/easy-button.css">
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/my-leaflet.css">
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var place = Array();
+place[0] = ['画箋堂', 34.99731721587087, 135.76740145683289];
+place[1] = ['あじき路地', 34.9973905, 135.77091819999998];
+place[2] = ['ギャラリーモーニング', 35.00933286977055, 135.78486263751984];
+place[3] = ['ギャラリーヒルゲート', 35.0093366, 135.76697949999993];
+place[4] = ['京都・アートゾーン神楽岡', 35.024388, 135.7882194];
+place[5] = ['同時代ギャラリー', 35.00851782086625, 135.76652705669403];
+place[6] = ['ギャラリー中井', 35.009393284123455, 135.7707166671753];
+place[7] = ['宮脇ギャルリー', 35.0145887515434, 135.7673491537571];
+place[8] = ['アートスペースメイセイ', 35.01626594930761, 135.76739072799683];
+place[9] = ['ギャラリーＫ', 35.012941176045565, 135.7671044021845];
+place[10] = ['ギャリエ・ヤマシタ1号館', 35.00949763608247, 135.76705679297447];
+place[11] = ['芸艸堂画廊', 35.01258145098081, 135.76710507273674];
+place[12] = ['アートスペース虹', 35.0093134, 135.78677930000003];
+place[13] = ['ギャラリー美楽堂', 35.00958221599367, 135.78294284641743];
+place[14] = ['ギャラリー唯', 35.01107058843174, 135.78297436237335];
+place[15] = ['GALLERY はねうさぎ', 35.009452599990176, 135.782954916358];
+place[16] = ['ギャラリー16', 35.010076512426906, 135.78070655465126];
+place[17] = ['ギャルリー百音（もね）', 35.011382539074226, 135.7830011844635];
+place[18] = ['星野画廊', 35.00964922079627, 135.78291401267052];
+place[19] = ['画廊たづアートプラザ', 35.009102196376325, 135.7822260260582];
+place[20] = ['ヤマモトギャラリー', 35.00964922079627, 135.7679781317711];
+place[21] = ['松本松栄堂', 35.015541035044684, 135.76737463474274];
+place[22] = ['MATSUO MEGUMI +VOICE GALLERY', 35.00055130000001, 135.76489370000002];
+place[23] = ['ギャラリーみすや', 35.008880309926155, 135.76830133795738];
+place[24] = ['GALLERY FUKUMI SHIMURA', 35.010844313629676, 135.7826203107834];
+place[25] = ['まるごのギャラリー', 35.00966240206247, 135.7683764398098];
+place[26] = ['京都文化博物館', 35.0088215, 135.7622798];
+place[27] = ['博宝堂', 35.010769620839135, 135.78295558691025];
+place[28] = ['kara-s (3F)', 35.003104459806394, 135.75937628746033];
+place[29] = ['ギャラリーなかむら', 35.00991614102257, 135.77026203274727];
+place[30] = ['画廊おかざき', 35.01103763582959, 135.7826042175293];
+place[31] = ['ギャリエ・ヤマシタ2号館', 35.00922851760137, 135.76710104942322];
+place[32] = ['galleryMain', 34.9971571, 135.76522699999998];
+place[33] = ['芦屋画廊Kyoto', 35.0124779, 135.77601759999993];
+place[34] = ['arton art gallery', 35.00872762533612, 135.76226770877838];
+place[35] = ['ぎゃらりーあーとぺーじ唯心', 35.0094976, 135.78295320000007];
+place[36] = ['ギャラリーカト', 35.01012923720349, 135.76705813407898];
+place[37] = ['ギャラリー 祇園小舎', 35.0039787, 135.77422619999993];
+place[38] = ['ギャラリー・マロニエ', 35.00554809622019, 135.76943390071392];
+place[39] = ['JARFO京都画廊', 35.026746, 135.76953500000002];
+place[40] = ['京都府立文化芸術会館', 35.022894, 135.768871];
+place[41] = ['Gallery I', 35.0158637, 135.7670657];
+var others = Array();
+others[0] = ['京都市美術館', 35.0127966, 135.78364899999997];
+others[1] = ['京都国立近代美術館', 35.0123776, 135.78197079999995];
+others[2] = ['京都国立博物館', 34.9899887, 135.77311599999996];
+</script>
+<script src="js/my-leaflet-2icon.js"></script>
+</script>
+</body>
+</html>
