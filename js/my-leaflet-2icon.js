@@ -115,7 +115,7 @@ function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-		map.setView([ lat,lng ]);
+		map.setView([lat,lng]);
 		if (curMarker) {
 			map.removeLayer(curMarker);
 		}
