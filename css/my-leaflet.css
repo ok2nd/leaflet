@@ -1,0 +1,11 @@
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.divicon {
+	display: table-cell;
+	color: #f00;
+/*	background-color: #ff4;	*/
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+}
