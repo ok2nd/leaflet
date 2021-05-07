@@ -156,7 +156,7 @@ function gpxLng(trkpt) {
 function gpxTimeStr(trkpt) {
 	var timeTxt = trkpt.getElementsByTagName('time')[0].textContent;
 	var time = new Date(timeTxt);
-	return latLngTime = time.toLocaleDateString() + ' ' + time.toLocaleTimeString();
+	return time.toLocaleDateString() + ' ' + time.toLocaleTimeString();
 }
 </script>
 </body>
