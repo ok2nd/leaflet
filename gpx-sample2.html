@@ -1,20 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
 <meta charset="utf-8">
 <meta name="author" content="ok.2nd">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GPX地図表示：神戸）再度公園、学習の森</title>
+<title>GPX表示地図：神戸）再度公園、学習の森</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
-<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
-<link rel="stylesheet" href="css/easy-button.css"/>
-<script src="js/easy-button.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
-<link rel="stylesheet" href="css/my-leaflet.css">
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.panel {
+	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+	font-size: 12px;
+	margin : 2px 6px;
+	padding: 0;
+	background: #fff;
+}
+</style>
 </head>
 <body>
 <div class="container"><div id="map"></div></div>
 <script>
-var gpx = 'gpx/2021_05_04_10_34_23.gpx';
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+tileLayer.addTo(map);
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	'Google マップ': Basic_Map[ 0 ],
+	'OpenStreetMap': Basic_Map[ 1 ],
+	'国土地理院 標準地図': Basic_Map[ 2 ],
+	'国土地理院 写真': Basic_Map[ 3 ],
+	'Esri World Topo Map': Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// ---------------------------------------------------
+var gpxFile = 'gpx/2021_05_04_10_34_23.gpx';
+new L.GPX(gpxFile, {
+	async: true,
+/*
+	marker_options: {
+		startIconUrl: 'icon/red-dot.png',
+		endIconUrl: 'icon/ltblue-dot.png',
+		shadowUrl: false,
+		iconSize: [32, 32],
+		iconAnchor: [16, 30]
+	},
+*/
+	marker_options: {
+		startIconUrl: false,
+		endIconUrl: false,
+		shadowUrl: false
+	},
+	polyline_options: {
+		color: '#3B83CC',
+		opacity: 0.8,
+		weight: 5,
+		lineCap: 'round'
+	}
+}).on('loaded', function(e) {
+	map.fitBounds(e.target.getBounds());
+}).addTo(map);
+// ---------------------------------------------------
+/*	GPX sample
+	<trkpt lat="34.724837" lon="135.158676">
+		<ele>326.27</ele>
+		<time>2021-05-04T01:34:20.000Z</time>
+		<extensions>
+			<geotracker:meta c="2.91" s="0" />
+		</extensions>
+	</trkpt>
+*/
+// ---------------------------------------------------
+var iconRed = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var iconBlue = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var request = new XMLHttpRequest();
+request.open('get', gpxFile, false);
+request.send(null);
+var gpxStr = request.responseText;
+var parser = new DOMParser();
+var gpx = parser.parseFromString(gpxStr, 'text/xml');
+var elements = gpx.getElementsByTagName('trkpt');
+var startPoint = elements.item(0);
+var endPoint = elements.item(elements.length-1);
+var lat, lon, posStr;
+lat = gpxLat(startPoint);
+lon = gpxLng(startPoint);
+posStr = '<span class="panel"><strong>【 開始地点 】</strong><br>' + gpxTimeStr(startPoint) + '<br>'
+	+ '緯度：' + lat + '<br>'
+	+ '経度：' + lon + '</span>';
+var panelText = posStr;
+L.marker([lat, lon], {icon: iconRed}).addTo(map).bindPopup(posStr);
+timeStr = gpxTimeStr(endPoint);
+lat = gpxLat(endPoint);
+lon = gpxLng(endPoint);
+posStr = '<span class="panel"><strong>【 終了地点 】</strong><br>' + gpxTimeStr(endPoint) + '<br>'
+	+ '緯度：' + lat + '<br>'
+	+ '経度：' + lon + '</span>';
+L.marker([lat, lon], {icon: iconBlue}).addTo(map).bindPopup(posStr);
+panelText += '<br>' + posStr;
+// ---------------------------------------------------
+L.CustomControl = L.Control.extend({
+	onAdd: function(map) {
+		this._div = L.DomUtil.create('div', 'panel leaflet-bar');
+		return this._div;
+	},
+	setContent: function(latlng) {
+		latlng = latlng.wrap()
+		this._div.innerHTML = '<pre class="panel">' + panelText + '</pre>';
+		return this;
+	}
+});
+L.customControl = function(opts) {
+	return new L.CustomControl(opts);
+}
+const dmy = L.latLng(34.69464402144777, 135.19480347633365);
+L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
+function gpxLat(trkpt) {
+	return parseFloat(trkpt.getAttribute('lat'));
+}
+function gpxLng(trkpt) {
+	return parseFloat(trkpt.getAttribute('lon'));
+}
+function gpxTimeStr(trkpt) {
+	var timeTxt = trkpt.getElementsByTagName('time')[0].textContent;
+	var time = new Date(timeTxt);
+	return latLngTime = time.toLocaleDateString() + ' ' + time.toLocaleTimeString();
+}
 </script>
-<script src="js/my-leaflet-gpx.js"></script>
 </body>
 </html>
