@@ -18,6 +18,10 @@ body { margin:0; padding:0; }
 	padding: 0;
 	background: #fff;
 }
+.panelDate {
+	font-size: 18px;
+	font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -114,22 +118,49 @@ var gpx = parser.parseFromString(gpxStr, 'text/xml');
 var elements = gpx.getElementsByTagName('trkpt');
 var startPoint = elements.item(0);
 var endPoint = elements.item(elements.length-1);
-var lat, lon, posStr;
-lat = gpxLat(startPoint);
-lon = gpxLng(startPoint);
-posStr = '<span class="panel"><strong>【 開始地点 】</strong><br>' + gpxTimeStr(startPoint) + '<br>'
-	+ '緯度：' + lat + '<br>'
-	+ '経度：' + lon + '</span>';
-var panelText = posStr;
-L.marker([lat, lon], {icon: iconRed}).addTo(map).bindPopup(posStr);
-timeStr = gpxTimeStr(endPoint);
-lat = gpxLat(endPoint);
-lon = gpxLng(endPoint);
-posStr = '<span class="panel"><strong>【 終了地点 】</strong><br>' + gpxTimeStr(endPoint) + '<br>'
-	+ '緯度：' + lat + '<br>'
-	+ '経度：' + lon + '</span>';
-L.marker([lat, lon], {icon: iconBlue}).addTo(map).bindPopup(posStr);
-panelText += '<br>' + posStr;
+// ---------------------------------------------------
+var start = gpxParse(startPoint);
+posStr1 = '<span class="panel"><strong>【 開始地点 】</strong><br>'
+	+ start['dateStr'] + ' ' + start['timeStr'] + '<br>'
+	+ '緯度：' + start['lat'] + '<br>'
+	+ '経度：' + start['lon'] + '<br>'
+	+ '標高：' + start['ele'] + ' m</span>';
+L.marker([start['lat'] , start['lon'] ], {icon: iconRed}).addTo(map).bindPopup(posStr1);
+// ---------------------------------------------------
+var end = gpxParse(endPoint);
+posStr2 = '<span class="panel"><strong>【 終了地点 】</strong><br>'
+	+ end['dateStr'] + ' ' + end['timeStr'] + '<br>'
+	+ '緯度：' + end['lat'] + '<br>'
+	+ '経度：' + end['lon']  + '<br>'
+	+ '標高：' + end['ele'] + ' m</span>';
+L.marker([end['lat'] , end['lon'] ], {icon: iconBlue}).addTo(map).bindPopup(posStr2);
+// ---------------------------------------------------
+var distTotal = 0;
+var before = {};
+var height_max = -10000;
+var height_min = 10000;
+for (var i=0; i<(elements.length-1); i++) {
+	let pos = gpxParse(elements.item(i));
+	if (i > 0) {
+		let before = gpxParse(elements.item(i-1));
+		distTotal += distance(before['lat'], before['lon'], pos['lat'], pos['lon'], false);
+	}
+	height = parseFloat(pos['ele']);
+	if (height_max < height) height_max = height;
+	if (height_min > height) height_min = height;
+}
+var diffTime = time2str(end['time'].getTime()  - start['time'].getTime());
+var distTotalKm = Math.round(distTotal/1000 * 1000) / 1000;	// 小数第三位で四捨五入
+var dist = distance(start['lat'], start['lon'], end['lat'], end['lon'], false);
+var distKm = Math.round(dist/1000 * 1000) / 1000;	// 小数第三位で四捨五入
+panelText = '<span class="panelDate">' + start['dateStr'] + '</span><br>'
+		 + '出発時間：' + start['timeStr'] + '<br>'
+		 + '到着時間：' + end['timeStr'] + '<br>'
+		 + '所要時間：' + diffTime + '<br>'
+		 + '直線距離：' + distKm + ' km<br>'
+		 + '移動距離：' + distTotalKm + ' km<br>'
+		 + '最高地点：' + Math.round(height_max) + ' m<br>'
+		 + '最低地点：' + Math.round(height_min) + ' m<br>';
 // ---------------------------------------------------
 L.CustomControl = L.Control.extend({
 	onAdd: function(map) {
@@ -145,18 +176,64 @@ L.CustomControl = L.Control.extend({
 L.customControl = function(opts) {
 	return new L.CustomControl(opts);
 }
-const dmy = L.latLng(34.69464402144777, 135.19480347633365);
+const dmy = L.latLng(34.69464402144777, 135.19480347633365);	// 何故か必要 ???
 L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
-function gpxLat(trkpt) {
-	return parseFloat(trkpt.getAttribute('lat'));
-}
-function gpxLng(trkpt) {
-	return parseFloat(trkpt.getAttribute('lon'));
-}
-function gpxTimeStr(trkpt) {
+function gpxParse(trkpt) {
 	var timeTxt = trkpt.getElementsByTagName('time')[0].textContent;
 	var time = new Date(timeTxt);
-	return time.toLocaleDateString() + ' ' + time.toLocaleTimeString();
+	return {
+		lat: parseFloat(trkpt.getAttribute('lat')),
+		lon: parseFloat(trkpt.getAttribute('lon')),
+		time: time,
+		dateStr: time.toLocaleDateString(),
+		timeStr: time.toLocaleTimeString(),
+		ele: trkpt.getElementsByTagName('ele')[0].textContent
+	};
+}
+function distance(lat1, lon1, lat2, lon2, mode=true) {
+/**
+ * ２地点間の距離(m)を求める
+ * ヒュベニの公式から求めるバージョン
+ * https://qiita.com/chiyoyo/items/b10bd3864f3ce5c56291
+ * @param float $lat1 緯度１
+ * @param float $lon1 経度１
+ * @param float $lat2 緯度２
+ * @param float $lon2 経度２
+ * @param boolean $mode 測地系 true:世界(default) false:日本
+ * @return float 距離(m)
+ */
+	// 緯度経度をラジアンに変換
+	radLat1 = lat1 * (Math.PI / 180);
+	radLon1 = lon1 * (Math.PI / 180);
+	radLat2 = lat2 * (Math.PI / 180);
+	radLon2 = lon2 * (Math.PI / 180);
+	// 緯度差
+	radLatDiff = radLat1 - radLat2;
+	// 経度差算
+	radLonDiff = radLon1 - radLon2;
+	// 平均緯度
+	radLatAve = (radLat1 + radLat2) / 2.0;
+	// 測地系による値の違い
+	a = mode ? 6378137.0 : 6377397.155; // 赤道半径
+	b = mode ? 6356752.314140356 : 6356078.963; // 極半径
+	//e2 = (a*a - b*b) / (a*a);
+	e2 = mode ? 0.00669438002301188 : 0.00667436061028297; // 第一離心率^2
+	//a1e2 = a * (1 - e2);
+	a1e2 = mode ? 6335439.32708317 : 6334832.10663254; // 赤道上の子午線曲率半径
+	sinLat = Math.sin(radLatAve);
+	W2 = 1.0 - e2 * (sinLat*sinLat);
+	M = a1e2 / (Math.sqrt(W2)*W2); // 子午線曲率半径M
+	N = a / Math.sqrt(W2); // 卯酉線曲率半径
+	t1 = M * radLatDiff;
+	t2 = N * Math.cos(radLatAve) * radLonDiff;
+	dist = Math.sqrt((t1*t1) + (t2*t2));
+	return dist;
+}
+function time2str(time) {
+	var timeHour = time / (1000 * 60 * 60);
+	var timeMinute = (timeHour - Math.floor(timeHour)) * 60;
+	var timeSecond = (timeMinute - Math.floor(timeMinute)) * 60;
+	return ('00' + Math.floor(timeHour)).slice(-2) + ':' + ('00' + Math.floor(timeMinute)).slice(-2) + ':' + ('00' + Math.round(timeSecond)).slice(-2);
 }
 </script>
 </body>
