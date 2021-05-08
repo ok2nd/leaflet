@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPX表示地図：神戸）再度公園、学習の森</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
+<!-- Font Awesome アイコン -->
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.panel {
+	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+	font-size: 12px;
+	margin : 2px 6px;
+	padding: 0;
+	background: #fff;
+}
+.panelDate {
+	font-size: 18px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+tileLayer.addTo(map);
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	'Google マップ': Basic_Map[ 0 ],
+	'OpenStreetMap': Basic_Map[ 1 ],
+	'国土地理院 標準地図': Basic_Map[ 2 ],
+	'国土地理院 写真': Basic_Map[ 3 ],
+	'Esri World Topo Map': Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// ---------------------------------------------------
+//var gpxFile = 'gpx/2021_05_04_10_34_23.gpx';
+var gpxFile = 'gpx/2013_09_22_kurikoma.gpx';
+var bounds;
+new L.GPX(gpxFile, {
+	async: true,
+/*
+	marker_options: {
+		startIconUrl: 'icon/red-dot.png',
+		endIconUrl: 'icon/ltblue-dot.png',
+		shadowUrl: false,
+		iconSize: [32, 32],
+		iconAnchor: [16, 30]
+	},
+*/
+	marker_options: {
+		startIconUrl: false,
+		endIconUrl: false,
+		shadowUrl: false
+	},
+	polyline_options: {
+		color: '#3B83CC',
+		opacity: 0.8,
+		weight: 5,
+		lineCap: 'round'
+	}
+}).on('loaded', function(e) {
+	bounds = e.target.getBounds();
+	map.fitBounds(bounds);
+}).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+// マーカーすべて表示画面に戻るボタン
+L.easyButton('fa fa-reply-all', function(btn, easyMap) {
+	currentWatchReset();
+	if (currentWatchBtn) {
+		currentWatchBtn.state('current-watch');
+		currentWatchBtn = null;
+	}
+	map.fitBounds(bounds);
+}).addTo(map);
+// クリックした地点の緯度・経度、標高を表示
+map.on('click', onMapClick);
+var clickMarker = null;
+function onMapClick(e) {
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open("GET", src, false);
+	req.send(null)
+}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
+}
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+			// 東京タワー
+			// var lat = 35.65837719526223;
+			// var lng = 139.7423601150513;
+		map.setView([ lat,lng ]);
+			// 現在地に表示するマーカー：Awesomeアイコン版
+			//	var curIcon = L.divIcon({
+			//		html: '<div class="fa fa-user" style="color: #FF7F50; font-size: 20px;"></div>',
+			//		iconSize: [20, 20],
+			//		className: 'myDivIcon'
+			//	});
+		// 現在地に表示するマーカー
+		if (curMarker) {
+			map.removeLayer(curMarker);
+		}
+		var curIcon = L.icon({	/* アイコン */
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+// ---------------------------------------------------
+/*	GPX sample
+	<trkpt lat="34.724837" lon="135.158676">
+		<ele>326.27</ele>
+		<time>2021-05-04T01:34:20.000Z</time>
+		<extensions>
+			<geotracker:meta c="2.91" s="0" />
+		</extensions>
+	</trkpt>
+*/
+// ---------------------------------------------------
+var iconRed = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var iconBlue = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var request = new XMLHttpRequest();
+request.open('get', gpxFile, false);
+request.send(null);
+var gpxStr = request.responseText;
+var parser = new DOMParser();
+var gpx = parser.parseFromString(gpxStr, 'text/xml');
+var elements = gpx.getElementsByTagName('trkpt');
+var startPoint = elements.item(0);
+var endPoint = elements.item(elements.length-1);
+// ---------------------------------------------------
+var start = gpxParse(startPoint);
+posStr1 = '<span class="panel"><strong>【 開始地点 】</strong><br>'
+	+ start['dateStr'] + ' ' + start['timeStr'] + '<br>'
+	+ '緯度：' + start['lat'] + '<br>'
+	+ '経度：' + start['lon'] + '<br>'
+	+ '標高：' + start['ele'] + ' m</span>';
+L.marker([start['lat'] , start['lon'] ], {icon: iconRed}).addTo(map).bindPopup(posStr1);
+// ---------------------------------------------------
+var end = gpxParse(endPoint);
+posStr2 = '<span class="panel"><strong>【 終了地点 】</strong><br>'
+	+ end['dateStr'] + ' ' + end['timeStr'] + '<br>'
+	+ '緯度：' + end['lat'] + '<br>'
+	+ '経度：' + end['lon'] + '<br>'
+	+ '標高：' + end['ele'] + ' m</span>';
+L.marker([end['lat'] , end['lon'] ], {icon: iconBlue}).addTo(map).bindPopup(posStr2);
+// ---------------------------------------------------
+var distTotal = 0;
+var before = {};
+var height_max = -10000;
+var height_min = 10000;
+for (var i=0; i<(elements.length-1); i++) {
+	let pos = gpxParse(elements.item(i));
+	if (i > 0) {
+		let before = gpxParse(elements.item(i-1));
+		distTotal += distance(before['lat'], before['lon'], pos['lat'], pos['lon'], false);
+	}
+	height = parseFloat(pos['ele']);
+	if (height_max < height) height_max = height;
+	if (height_min > height) height_min = height;
+}
+var diffTime = time2str(end['time'].getTime() - start['time'].getTime());
+var distTotalKm = Math.round(distTotal/1000 * 1000) / 1000;	// 小数第三位で四捨五入
+var dist = distance(start['lat'], start['lon'], end['lat'], end['lon'], false);
+var distKm = Math.round(dist/1000 * 1000) / 1000;	// 小数第三位で四捨五入
+panelText = '<span class="panelDate">' + start['dateStr'] + '</span><br>'
+		 + '出発時間：' + start['timeStr'] + '<br>'
+		 + '到着時間：' + end['timeStr'] + '<br>'
+		 + '所要時間：' + diffTime + '<br>'
+		 + '直線距離：' + distKm + ' km<br>'
+		 + '移動距離：' + distTotalKm + ' km<br>'
+		 + '最高地点：' + Math.round(height_max) + ' m<br>'
+		 + '最低地点：' + Math.round(height_min) + ' m<br>';
+// ---------------------------------------------------
+L.CustomControl = L.Control.extend({
+	onAdd: function(map) {
+		this._div = L.DomUtil.create('div', 'panel leaflet-bar');
+		return this._div;
+	},
+	setContent: function(latlng) {
+		latlng = latlng.wrap()
+		this._div.innerHTML = '<pre class="panel">' + panelText + '</pre>';
+		return this;
+	}
+});
+L.customControl = function(opts) {
+	return new L.CustomControl(opts);
+}
+const dmy = L.latLng(34.69464402144777, 135.19480347633365);	// 何故か必要 ???
+L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
+function gpxParse(trkpt) {
+	var timeTxt = trkpt.getElementsByTagName('time')[0].textContent;
+	var time = new Date(timeTxt);
+	return {
+		lat: parseFloat(trkpt.getAttribute('lat')),
+		lon: parseFloat(trkpt.getAttribute('lon')),
+		time: time,
+		dateStr: time.toLocaleDateString(),
+		timeStr: time.toLocaleTimeString(),
+		ele: trkpt.getElementsByTagName('ele')[0].textContent
+	};
+}
+function distance(lat1, lon1, lat2, lon2, mode=true) {
+/**
+ * ２地点間の距離(m)を求める
+ * ヒュベニの公式から求めるバージョン
+ * https://qiita.com/chiyoyo/items/b10bd3864f3ce5c56291
+ * @param float $lat1 緯度１
+ * @param float $lon1 経度１
+ * @param float $lat2 緯度２
+ * @param float $lon2 経度２
+ * @param boolean $mode 測地系 true:世界(default) false:日本
+ * @return float 距離(m)
+ */
+	// 緯度経度をラジアンに変換
+	radLat1 = lat1 * (Math.PI / 180);
+	radLon1 = lon1 * (Math.PI / 180);
+	radLat2 = lat2 * (Math.PI / 180);
+	radLon2 = lon2 * (Math.PI / 180);
+	// 緯度差
+	radLatDiff = radLat1 - radLat2;
+	// 経度差算
+	radLonDiff = radLon1 - radLon2;
+	// 平均緯度
+	radLatAve = (radLat1 + radLat2) / 2.0;
+	// 測地系による値の違い
+	a = mode ? 6378137.0 : 6377397.155; // 赤道半径
+	b = mode ? 6356752.314140356 : 6356078.963; // 極半径
+	//e2 = (a*a - b*b) / (a*a);
+	e2 = mode ? 0.00669438002301188 : 0.00667436061028297; // 第一離心率^2
+	//a1e2 = a * (1 - e2);
+	a1e2 = mode ? 6335439.32708317 : 6334832.10663254; // 赤道上の子午線曲率半径
+	sinLat = Math.sin(radLatAve);
+	W2 = 1.0 - e2 * (sinLat*sinLat);
+	M = a1e2 / (Math.sqrt(W2)*W2); // 子午線曲率半径M
+	N = a / Math.sqrt(W2); // 卯酉線曲率半径
+	t1 = M * radLatDiff;
+	t2 = N * Math.cos(radLatAve) * radLonDiff;
+	dist = Math.sqrt((t1*t1) + (t2*t2));
+	return dist;
+}
+function time2str(time) {
+	var timeHour = time / (1000 * 60 * 60);
+	var timeMinute = (timeHour - Math.floor(timeHour)) * 60;
+	var timeSecond = (timeMinute - Math.floor(timeMinute)) * 60;
+	return ('00' + Math.floor(timeHour)).slice(-2) + ':' + ('00' + Math.floor(timeMinute)).slice(-2) + ':' + ('00' + Math.round(timeSecond)).slice(-2);
+}
+</script>
+</body>
+</html>
