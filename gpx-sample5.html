@@ -8,14 +8,22 @@
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
-<!-- Font Awesome アイコン -->
 <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
-<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
 <link rel="stylesheet" href="css/easy-button.css"/>
 <script src="js/easy-button.js"></script>
+<script src="//code.highcharts.com/highcharts.js"></script>
 <style>
 body { margin:0; padding:0; }
-#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+#map {
+	width: 100%;
+	height: 500px;
+}
+#chart {
+	width: 100%;
+	margin: 5px 0 0 0;
+	height: 230px;
+	display: none;
+}
 .panel {
 	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
 	font-size: 12px;
@@ -30,8 +38,17 @@ body { margin:0; padding:0; }
 </style>
 </head>
 <body>
-<div class="container"><div id="map"></div></div>
+<div class="container">
+<div id="map"></div>
+<div id="chart"></div>
 <script>
+var chartFlag = false;
+winResize();
+window.addEventListener('DOMContentLoaded', function(){
+	window.addEventListener('resize', function(){
+		winResize();
+	});
+});
 var map = L.map('map');
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
@@ -100,7 +117,7 @@ L.easyButton({		// 現在地表示ボタン
 	states: [{
 		stateName: 'current-watch',
 		icon:	'fas fa-map-marker-alt',
-		title:	 '現在地',
+		title:	'現在地',
 		onClick: function(btn, map) {
 			currentWatch();
 			btn.state('current-watch-reset');
@@ -109,7 +126,7 @@ L.easyButton({		// 現在地表示ボタン
 	}, {
 		stateName: 'current-watch-reset',
 		icon:	'fa fa-user',
-		title:	 '現在地オフ',
+		title:	'現在地オフ',
 		onClick: function(btn, map) {
 			currentWatchReset();
 			btn.state('current-watch');
@@ -125,6 +142,25 @@ L.easyButton('fa fa-reply-all', function(btn, easyMap) {
 	}
 	map.fitBounds(bounds);
 }).addTo(map);
+L.easyButton({		// グラフ表示/非表示切り替え
+	states: [{
+		stateName: 'chart-on',
+		icon:	'<i class="fas fa-chart-area" style="color:#888;"></i>',
+		title:	'グラフ表示',
+		onClick: function(btn, map) {
+			chartOn();
+			btn.state('chart-off');
+		}
+	}, {
+		stateName: 'chart-off',
+		icon:	'<i class="fas fa-chart-area" style="color:#FF8C00;"></i>',
+		title:	'グラフ非表示',
+		onClick: function(btn, map) {
+			chartOff();
+			btn.state('chart-on');
+		}
+	}]
+}).addTo( map );
 // クリックした地点の緯度・経度、標高を表示
 map.on('click', onMapClick);
 var clickMarker = null;
@@ -255,6 +291,7 @@ var distTotal = 0;
 var before = {};
 var height_max = -10000;
 var height_min = 10000;
+var chartEle = [];
 for (var i=0; i<(elements.length-1); i++) {
 	let pos = gpxParse(elements.item(i));
 	if (i > 0) {
@@ -264,6 +301,7 @@ for (var i=0; i<(elements.length-1); i++) {
 	height = parseFloat(pos['ele']);
 	if (height_max < height) height_max = height;
 	if (height_min > height) height_min = height;
+	chartEle[i] = [pos['time'].getTime() + 60*60*9*1000, parseInt(height)];	// 日本時間
 }
 var diffTime = time2str(end['time'].getTime() - start['time'].getTime());
 var distTotalKm = Math.round(distTotal/1000 * 1000) / 1000;	// 小数第三位で四捨五入
@@ -294,6 +332,10 @@ L.customControl = function(opts) {
 }
 const dmy = L.latLng(34.69464402144777, 135.19480347633365);	// 何故か必要 ???
 L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
+var subtitle = start['timeStr'] + '～' + end['timeStr'] + '　所要時間:' + diffTime
+	+ '　距離:' + distTotalKm + 'km　最高地点:' + Math.round(height_max) + 'm　最低地点:' + Math.round(height_min) + 'm';
+chartView(chartEle, subtitle);
+// ---------------------------------------------------
 function gpxParse(trkpt) {
 	var timeTxt = trkpt.getElementsByTagName('time')[0].textContent;
 	var time = new Date(timeTxt);
@@ -350,6 +392,115 @@ function time2str(time) {
 	var timeMinute = (timeHour - Math.floor(timeHour)) * 60;
 	var timeSecond = (timeMinute - Math.floor(timeMinute)) * 60;
 	return ('00' + Math.floor(timeHour)).slice(-2) + ':' + ('00' + Math.floor(timeMinute)).slice(-2) + ':' + ('00' + Math.round(timeSecond)).slice(-2);
+}
+function chartView(chartEle, subtitle) {
+chart = new Highcharts.Chart({
+	chart: {
+		renderTo: 'chart',
+		zoomType: 'xy'
+	},
+	title: {
+		text: '<strong>標高 グラフ</strong>'
+	},
+	subtitle: {
+		text: subtitle
+	},
+	xAxis: {
+		type: 'datetime'
+	},
+	yAxis: [{ // Primary yAxis
+		title: {
+			text: '標高',
+			style: {
+				color: '#89A54E'
+			}
+		},
+		labels: {
+			formatter: function() {
+				return this.value +' m';
+			},
+			style: {
+				color: '#89A54E'
+			}
+		}
+	}],
+	tooltip: {
+		formatter: function() {
+			var dt = Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x);
+			var unit = {
+				'標高': 'm'
+			}[this.series.name];
+			return '<b>' + dt +'</b><br><b>'+ this.y + '</b> ' + unit;
+		}
+	},
+	legend: {
+		layout: 'vertical',
+		align: 'left',
+		verticalAlign: 'top',
+		floating: true,
+		backgroundColor: '#FFFFFF'
+	},
+	plotOptions: {
+		area: {
+			fillColor: {
+				linearGradient: {x1:0, y1:0, x2:0, y2:1},
+				stops: [
+					[0, '#89A54E'],
+					[1, 'rgba(0,30,0,0)']
+				]
+			},
+			lineWidth: 1,
+			marker: {
+				enabled: false,
+				states: {
+					hover: {
+						enabled: true,
+						radius: 5
+					}
+				}
+			},
+			shadow: false,
+			states: {
+				hover: {
+					lineWidth: 1
+				}
+			},
+			threshold: null
+		},
+		spline: {
+			lineWidth: 1,
+			marker: {
+				enabled: false,
+			}
+		}
+	},
+	series: [{
+		name: '標高',
+		color: '#89A54E',
+		type: 'area',
+		data: chartEle
+	}]
+});
+}
+function winResize() {
+	let h = document.documentElement.clientHeight;
+	if (chartFlag) {
+		document.getElementById('map').style.height = parseInt(h) - 240 + 'px';
+	} else {
+		document.getElementById('map').style.height = parseInt(h) - 2 + 'px';
+	}
+}
+function chartOff() {
+	let h = document.documentElement.clientHeight;
+	document.getElementById('map').style.height = parseInt(h) - 2 + 'px';
+	document.getElementById('chart').style.display = 'none';
+	chartFlag = false;
+}
+function chartOn() {
+	let h = document.documentElement.clientHeight;
+	document.getElementById('map').style.height = parseInt(h) - 240 + 'px';
+	document.getElementById('chart').style.display = 'block';
+	chartFlag = true;
 }
 </script>
 </body>
