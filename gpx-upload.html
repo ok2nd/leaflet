@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPX地図</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<script src="//code.highcharts.com/highcharts.js"></script>
+<link rel="stylesheet" href="css/my-gps.css"/>
+<script src="js/my-gpx-text.js"></script>
+<style>
+.msg {
+	margin: 20px 30px;
+	padding 0;
+}
+.emp {
+	color: #f00;
+}
+#gpx-input {
+	margin: 20px 30px;
+	padding 0;
+}
+</style>
+</head>
+<body>
+<div id="container">
+	<div id="gpx-input">GPXファイル：<input id="file" name="file" type="file" /></div>
+	<div id="map"></div>
+	<div id="chart"></div>
+</div>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+	document.querySelector("#file").addEventListener('change', function(e) {
+		if (window.File) {
+			var input = document.querySelector('#file').files[0];
+			var reader = new FileReader();
+			reader.addEventListener('load', function(e) {
+				document.getElementById('gpx-input').style.display = 'none';
+				gps_map_text(reader.result); // 入力GPXテキスト
+			}, true);
+			reader.readAsText(input);
+		}
+	}, true);
+});
+</script>
+</body>
+</html>
