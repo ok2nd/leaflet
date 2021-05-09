@@ -14,11 +14,11 @@ var curMarker = null;	// 現在地マーカー
 var currentWatchBtn = null;
 var chartFlag = false;
 function gps_map(gpxFile) {
-	var chk = new XMLHttpRequest();
-	chk.open('get', gpxFile, false);
-	chk.send(null);
-	if (chk.status == 404) {
-		return chk.status;
+	var xhr = new XMLHttpRequest();
+	xhr.open('get', gpxFile, false);
+	xhr.send(null);
+	if (xhr.status == 404) {
+		return xhr.status;
 	}
 	winResize();
 	window.addEventListener('DOMContentLoaded', function(){
