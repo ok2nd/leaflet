@@ -18,7 +18,7 @@ function gps_map(gpxFile) {
 	request.open('get', gpxFile, false);
 	request.send(null);
 	if (request.status == 404) {
-		return xhr.status;
+		return request.status;
 	}
 	// ---------------------------------------------------
 	winResize();
