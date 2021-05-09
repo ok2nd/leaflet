@@ -39,7 +39,7 @@ for (var i=0; pair[i]; i++) {
 }
 if (typeof arg.gpx === 'undefined' || arg.gpx == '') {
 	let div = document.getElementById('container');
-	div.innerHTML = '<div class="msg"><p>GPSファイルを指定してください。</p><p>例：gpx.html<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
+	div.innerHTML = '<div class="msg"><p>GPSファイルを指定してください。</p><p>例：gpx-leaflet-gpx.html<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
 } else {
 	if (gps_map(arg.gpx) != 0) {
 		let div = document.getElementById('container');
