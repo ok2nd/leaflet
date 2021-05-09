@@ -1,3 +1,6 @@
+//
+//	//cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js	使用版
+//
 /*	GPX サンプル
 	<trkpt lat="34.724837" lon="135.158676">
 		<ele>326.27</ele>
@@ -14,48 +17,19 @@ var curMarker = null;	// 現在地マーカー
 var currentWatchBtn = null;
 var chartFlag = false;
 function gps_map(gpxFile) {
-	var request = new XMLHttpRequest();
-	request.open('get', gpxFile, false);
-	request.send(null);
-	if (request.status == 404) {
+	var xhr = new XMLHttpRequest();
+	xhr.open('get', gpxFile, false);
+	xhr.send(null);
+	if (xhr.status == 404) {
 		return xhr.status;
 	}
-	// ---------------------------------------------------
 	winResize();
 	window.addEventListener('DOMContentLoaded', function(){
 		window.addEventListener('resize', function(){
 			winResize();
 		});
 	});
-	// ---------------------------------------------------
-	var gpxStr = request.responseText;
-	var parser = new DOMParser();
-	var gpx = parser.parseFromString(gpxStr, 'text/xml');
-	var elements = gpx.getElementsByTagName('trkpt');
-	// ---------------------------------------------------
-	var distTotal = 0;
-	var before = {};
-	var height_max = -10000;
-	var height_min = 10000;
-	var routeLatLng = [];
-	var chartEle = [];
-	for (var i=0; i<(elements.length-1); i++) {
-		let pos = gpxParse(elements.item(i));
-		if (i > 0) {
-			let before = gpxParse(elements.item(i-1));
-			distTotal += distance(before['lat'], before['lon'], pos['lat'], pos['lon'], false);
-		}
-		height = parseFloat(pos['ele']);
-		if (height_max < height) height_max = height;
-		if (height_min > height) height_min = height;
-		chartEle[i] = [pos['time'].getTime() + 60*60*9*1000, parseInt(height)];	// 日本時間
-		routeLatLng[i] = [pos['lat'], pos['lon']];
-	}
-	// ---------------------------------------------------
 	map = L.map('map');
-	L.polyline(routeLatLng, {color: '#3B83CC', weight: 5}).addTo(map);
-	map.fitBounds(routeLatLng);
-	// ---------------------------------------------------
 	var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
 	});
@@ -86,6 +60,33 @@ function gps_map(gpxFile) {
 	};
 	L.control.layers(baseMap).addTo(map);
 	// ---------------------------------------------------
+	var bounds;
+	new L.GPX(gpxFile, {
+		async: true,
+	/*
+		marker_options: {
+			startIconUrl: 'icon/red-dot.png',
+			endIconUrl: 'icon/ltblue-dot.png',
+			shadowUrl: false,
+			iconSize: [32, 32],
+			iconAnchor: [16, 30]
+		},
+	*/
+		marker_options: {
+			startIconUrl: false,
+			endIconUrl: false,
+			shadowUrl: false
+		},
+		polyline_options: {
+			color: '#3B83CC',
+			opacity: 0.8,
+			weight: 5,
+			lineCap: 'round'
+		}
+	}).on('loaded', function(e) {
+		bounds = e.target.getBounds();
+		map.fitBounds(bounds);
+	}).addTo(map);
 	L.easyButton({			// 現在地表示ボタン
 		states: [{
 			stateName: 'current-watch',
@@ -112,7 +113,7 @@ function gps_map(gpxFile) {
 			currentWatchBtn.state('current-watch');
 			currentWatchBtn = null;
 		}
-		map.fitBounds(routeLatLng);
+		map.fitBounds(bounds);
 	}).addTo(map);
 	L.easyButton({			// グラフ表示/非表示切り替えボタン
 		states: [{
@@ -148,7 +149,13 @@ function gps_map(gpxFile) {
 		iconAnchor: [16, 30],
 		popupAnchor: [1, -22],
 	});
-	// ---------------------------------------------------
+	var request = new XMLHttpRequest();
+	request.open('get', gpxFile, false);
+	request.send(null);
+	var gpxStr = request.responseText;
+	var parser = new DOMParser();
+	var gpx = parser.parseFromString(gpxStr, 'text/xml');
+	var elements = gpx.getElementsByTagName('trkpt');
 	var startPoint = elements.item(0);
 	var endPoint = elements.item(elements.length-1);
 	// ---------------------------------------------------
@@ -168,6 +175,22 @@ function gps_map(gpxFile) {
 		+ '標高：' + end['ele'] + ' m</span>';
 	L.marker([end['lat'] , end['lon'] ], {icon: iconBlue}).addTo(map).bindPopup(posStr2);
 	// ---------------------------------------------------
+	var distTotal = 0;
+	var before = {};
+	var height_max = -10000;
+	var height_min = 10000;
+	var chartEle = [];
+	for (var i=0; i<(elements.length-1); i++) {
+		let pos = gpxParse(elements.item(i));
+		if (i > 0) {
+			let before = gpxParse(elements.item(i-1));
+			distTotal += distance(before['lat'], before['lon'], pos['lat'], pos['lon'], false);
+		}
+		height = parseFloat(pos['ele']);
+		if (height_max < height) height_max = height;
+		if (height_min > height) height_min = height;
+		chartEle[i] = [pos['time'].getTime() + 60*60*9*1000, parseInt(height)];	// 日本時間
+	}
 	var diffTime = time2str(end['time'].getTime() - start['time'].getTime());
 	var distTotalKm = Math.round(distTotal/1000 * 1000) / 1000;	// 小数第三位で四捨五入
 	var dist = distance(start['lat'], start['lon'], end['lat'], end['lon'], false);
