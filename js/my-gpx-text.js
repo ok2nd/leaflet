@@ -126,6 +126,9 @@ function gps_map_text(gpxStr) {
 			}
 		}]
 	}).addTo( map );
+	L.easyButton('<i class="fas fa-window-close"></i>', function(btn, easyMap) {	// 初期状態に戻るボタン
+		location.reload();
+	}).addTo(map);
 	map.on('click', onMapClick);	// クリックした地点の緯度・経度、標高を表示
 	var iconRed = L.icon({
 		iconUrl: 'icon/red-dot.png',
