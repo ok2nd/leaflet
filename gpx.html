@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPX地図</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<script src="//code.highcharts.com/highcharts.js"></script>
+<link rel="stylesheet" href="css/my-gps.css"/>
+<script src="js/my-gps.js"></script>
+<style>
+.msg {
+	margin: 20px 30px;
+	padding 0;
+}
+.emp {
+	color: #f00;
+}
+</style>
+</head>
+<body>
+<div id="container">
+<div id="map"></div>
+<div id="chart"></div>
+<script>
+//	https://........./gpx.html?gpx=xxx/xxx.gpx
+let arg = new Object;
+let pair = location.search.substring(1).split('&');
+for (var i=0; pair[i]; i++) {
+	let kv = pair[i].split('=');
+	arg[kv[0]]=kv[1];
+}
+if (typeof arg.gpx === 'undefined' || arg.gpx == '') {
+	let div = document.getElementById('container');
+	div.innerHTML = '<div class="msg"><p>GPSファイルを指定してください。</p><p>例：gpx.html<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
+} else {
+	if (gps_map(arg.gpx) != 0) {
+		let div = document.getElementById('container');
+		div.innerHTML = '<div class="msg"><p>GPSファイル（<span class="emp">' + arg.gpx + '</span>）が見つかりません。</span></p></div>';
+	};
+}
+</script>
+</body>
+</html>
