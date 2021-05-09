@@ -46,6 +46,9 @@ window.addEventListener('DOMContentLoaded', function() {
 			reader.readAsText(input);
 		}
 	}, true);
+	window.addEventListener('resize', function() {
+		winResize();
+	});
 });
 </script>
 </body>

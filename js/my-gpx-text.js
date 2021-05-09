@@ -16,11 +16,13 @@ var chartFlag = false;
 function gps_map_text(gpxStr) {
 	// ---------------------------------------------------
 	winResize();
-	window.addEventListener('DOMContentLoaded', function(){
-		window.addEventListener('resize', function(){
+/*
+	window.addEventListener('DOMContentLoaded', function() {
+		window.addEventListener('resize', function() {
 			winResize();
 		});
 	});
+*/
 	// ---------------------------------------------------
 	var parser = new DOMParser();
 	var gpx = parser.parseFromString(gpxStr, 'text/xml');
