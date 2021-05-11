@@ -38,14 +38,15 @@ for (var i=0; pair[i]; i++) {
 }
 if (typeof arg.gpx === 'undefined' || arg.gpx == '') {		// arg.gpx: gpxファイル名（'xxx/xxx.gpx'）
 	let div = document.getElementById('container');
-	div.innerHTML = '<div class="msg"><p>GPSファイルを指定してください。</p><p>例：gpx.html<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
+	let href = location.href.split('?');
+	div.innerHTML = '<div class="msg"><p>GPXファイルを指定してください。</p><p>例：' + href[0] + '<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
 } else {
 	var request = new XMLHttpRequest();
 	request.open('get', arg.gpx, false);
 	request.send(null);
 	if (request.status == 404) {
 		let div = document.getElementById('container');
-		div.innerHTML = '<div class="msg"><p>GPSファイル（<span class="emp">' + arg.gpx + '</span>）が見つかりません。</span></p></div>';
+		div.innerHTML = '<div class="msg"><p>GPXファイル（<span class="emp">' + arg.gpx + '</span>）が見つかりません。</span></p></div>';
 	} else {
 		window.addEventListener('DOMContentLoaded', function(){
 			window.addEventListener('resize', function(){
