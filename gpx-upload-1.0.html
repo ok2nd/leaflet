@@ -12,7 +12,7 @@
 <script src="js/easy-button.js"></script>
 <script src="//code.highcharts.com/highcharts.js"></script>
 <link rel="stylesheet" href="css/my-gps.css"/>
-<script src="js/my-gpx-1.2.js"></script>
+<script src="js/my-gpx-text-1.0.js"></script>
 <style>
 .msg {
 	margin: 20px 30px;
@@ -35,13 +35,13 @@
 </div>
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-	document.querySelector('#file').addEventListener('change', function(e) {
+	document.querySelector("#file").addEventListener('change', function(e) {
 		if (window.File) {
 			var input = document.querySelector('#file').files[0];
 			var reader = new FileReader();
 			reader.addEventListener('load', function(e) {
 				document.getElementById('gpx-input').style.display = 'none';
-				gpx2map(reader.result, true);		// reader.result: gpxデータ
+				gps_map_text(reader.result); // 入力GPXテキスト
 			}, true);
 			reader.readAsText(input);
 		}

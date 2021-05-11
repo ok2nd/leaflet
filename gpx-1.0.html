@@ -12,7 +12,7 @@
 <script src="js/easy-button.js"></script>
 <script src="//code.highcharts.com/highcharts.js"></script>
 <link rel="stylesheet" href="css/my-gps.css"/>
-<script src="js/my-gpx-1.2.js"></script>
+<script src="js/my-gpx-1.0.js"></script>
 <style>
 .msg {
 	margin: 20px 30px;
@@ -34,26 +34,16 @@ let arg = new Object;
 let pair = location.search.substring(1).split('&');
 for (var i=0; pair[i]; i++) {
 	let kv = pair[i].split('=');
-	arg[kv[0]] = kv[1];
+	arg[kv[0]]=kv[1];
 }
-if (typeof arg.gpx === 'undefined' || arg.gpx == '') {		// arg.gpx: gpxファイル名（'xxx/xxx.gpx'）
+if (typeof arg.gpx === 'undefined' || arg.gpx == '') {
 	let div = document.getElementById('container');
 	div.innerHTML = '<div class="msg"><p>GPSファイルを指定してください。</p><p>例：gpx.html<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
 } else {
-	var request = new XMLHttpRequest();
-	request.open('get', arg.gpx, false);
-	request.send(null);
-	if (request.status == 404) {
+	if (gps_map(arg.gpx) != 0) {
 		let div = document.getElementById('container');
 		div.innerHTML = '<div class="msg"><p>GPSファイル（<span class="emp">' + arg.gpx + '</span>）が見つかりません。</span></p></div>';
-	} else {
-		window.addEventListener('DOMContentLoaded', function(){
-			window.addEventListener('resize', function(){
-				winResize();
-			});
-		});
-		gpx2map(request.responseText);		// request.responseText: gpxデータ
-	}
+	};
 }
 </script>
 </body>
