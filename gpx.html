@@ -12,7 +12,7 @@
 <script src="js/easy-button.js"></script>
 <script src="//code.highcharts.com/highcharts.js"></script>
 <link rel="stylesheet" href="css/my-gps.css"/>
-<script src="js/my-gpx-1.2.js"></script>
+<script src="js/my-gpx-1.3.js"></script>
 <style>
 .msg {
 	margin: 20px 30px;
@@ -48,11 +48,6 @@ if (typeof arg.gpx === 'undefined' || arg.gpx == '') {		// arg.gpx: gpxファイ
 		let div = document.getElementById('container');
 		div.innerHTML = '<div class="msg"><p>GPXファイル（<span class="emp">' + arg.gpx + '</span>）が見つかりません。</span></p></div>';
 	} else {
-		window.addEventListener('DOMContentLoaded', function(){
-			window.addEventListener('resize', function(){
-				winResize();
-			});
-		});
 		gpx2map(request.responseText);		// request.responseText: gpxデータ
 	}
 }
