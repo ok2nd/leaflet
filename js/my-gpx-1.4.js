@@ -45,7 +45,7 @@ function gpx2map(gpxStr, resetBtn=false) {
 		if (height_min > height) height_min = height;
 		chartEle[i] = [pos['time'].getTime() + 60*60*9*1000, parseInt(height)];	// 日本時間
 		routeLatLng[i] = [pos['lat'], pos['lon']];
-		if (pos['time'].getTime() > (preTime + (60*60*500)) ) {	// 30分間隔
+		if (pos['time'].getTime() > (preTime + (60*30*1000)) ) {	// 30分間隔
 			timeLavel(pos['lat'], pos['lon'], pos['time']);
 			preTime = pos['time'].getTime();
 		}
