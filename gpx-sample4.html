@@ -70,8 +70,8 @@ new L.GPX(gpxFile, {
 	async: true,
 /*
 	marker_options: {
-		startIconUrl: 'icon/red-dot.png',
-		endIconUrl: 'icon/ltblue-dot.png',
+		startIconUrl: 'icon/ltblue-dot.png',
+		endIconUrl: 'icon/red-dot.png',
 		shadowUrl: false,
 		iconSize: [32, 32],
 		iconAnchor: [16, 30]
@@ -211,16 +211,16 @@ function currentWatchReset() {
 	</trkpt>
 */
 // ---------------------------------------------------
-var iconRed = L.icon({
-	iconUrl: 'icon/red-dot.png',
-	iconRetinaUrl: 'icon/red-dot.png',
+var iconStart = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
 	iconSize: [32, 32],
 	iconAnchor: [16, 30],
 	popupAnchor: [1, -22],
 });
-var iconBlue = L.icon({
-	iconUrl: 'icon/ltblue-dot.png',
-	iconRetinaUrl: 'icon/ltblue-dot.png',
+var iconEnd = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
 	iconSize: [32, 32],
 	iconAnchor: [16, 30],
 	popupAnchor: [1, -22],
@@ -241,7 +241,7 @@ posStr1 = '<span class="panel"><strong>【 開始地点 】</strong><br>'
 	+ '緯度：' + start['lat'] + '<br>'
 	+ '経度：' + start['lon'] + '<br>'
 	+ '標高：' + start['ele'] + ' m</span>';
-L.marker([start['lat'] , start['lon'] ], {icon: iconRed}).addTo(map).bindPopup(posStr1);
+L.marker([start['lat'] , start['lon'] ], {icon: iconStart}).addTo(map).bindPopup(posStr1);
 // ---------------------------------------------------
 var end = gpxParse(endPoint);
 posStr2 = '<span class="panel"><strong>【 終了地点 】</strong><br>'
@@ -249,7 +249,7 @@ posStr2 = '<span class="panel"><strong>【 終了地点 】</strong><br>'
 	+ '緯度：' + end['lat'] + '<br>'
 	+ '経度：' + end['lon'] + '<br>'
 	+ '標高：' + end['ele'] + ' m</span>';
-L.marker([end['lat'] , end['lon'] ], {icon: iconBlue}).addTo(map).bindPopup(posStr2);
+L.marker([end['lat'] , end['lon'] ], {icon: iconEnd}).addTo(map).bindPopup(posStr2);
 // ---------------------------------------------------
 var distTotal = 0;
 var before = {};
