@@ -12,7 +12,7 @@
 <script src="js/easy-button.js"></script>
 <script src="//code.highcharts.com/highcharts.js"></script>
 <link rel="stylesheet" href="css/my-gps-1.4.css"/>
-<script src="js/my-gpx-1.6.js"></script>
+<script src="js/my-gpx-1.7.js"></script>
 <style>
 .msg {
 	margin: 20px 30px;
@@ -41,6 +41,7 @@ if (typeof arg.gpx === 'undefined' || arg.gpx == '') {		// arg.gpx: gpxファイ
 	let href = location.href.split('?');
 	div.innerHTML = '<div class="msg"><p>GPXファイルを指定してください。</p><p>例：' + href[0] + '<span class="emp">?gpx=xxx/xxx.gpx</span></p></div>';
 } else {
+/* ========================================
 	var request = new XMLHttpRequest();
 	request.open('get', arg.gpx, false);
 	request.send(null);
@@ -50,6 +51,22 @@ if (typeof arg.gpx === 'undefined' || arg.gpx == '') {		// arg.gpx: gpxファイ
 	} else {
 		gpx2map(request.responseText);		// request.responseText: gpxデータ
 	}
+======================================== */
+	fetch(arg.gpx)
+	.then((response) => {
+		if(response.ok) { // ステータスがokならば
+			return response.text(); // レスポンスをテキストとして変換する
+		} else {
+			throw new Error();
+		}
+	})
+	.then((text) => {
+		gpx2map(text);		// text: gpxデータ
+	})
+	.catch((error) => {
+		let div = document.getElementById('container');
+		div.innerHTML = '<div class="msg"><p>GPXファイル（<span class="emp">' + arg.gpx + '</span>）が見つかりません。</span></p></div>';
+	})
 }
 </script>
 </body>
