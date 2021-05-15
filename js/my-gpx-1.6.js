@@ -32,7 +32,7 @@ function gpx2map(gpxStr, resetBtn=false) {
 	var height_min = 10000;
 	var routeLatLng = [];
 	var chartEle = [];
-	var preTime = 0;
+//	var preTime = 0;
 	var pointCnt = 0;
 	map = L.map('map');
 	for (var i=0; i<(elements.length-1); i++) {
@@ -51,7 +51,7 @@ function gpx2map(gpxStr, resetBtn=false) {
 	//	if (pos['time'].getTime() > (preTime + (60*30*1000)) ) {	// 30分間隔
 		if (pos['time'].getTime() > (startTime + (60*30*1000) * pointCnt) ) {	// 30分間隔
 			timeLavel(pos['lat'], pos['lon'], pos['time']);
-			preTime = pos['time'].getTime();
+	//		preTime = pos['time'].getTime();
 			pointCnt++;
 		}
 	}
