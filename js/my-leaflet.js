@@ -79,6 +79,7 @@ function onMapClick(e) {
 	lng = e.latlng.lng;
 	// 地理院地図サーバから標高を求める	http://maps.gsi.go.jp/development/elevation_s.html
 	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+/* ========================================
 	var req = new XMLHttpRequest();
 	req.onreadystatechange = function() {
 		if(req.readyState == 4 && req.status == 200) {
@@ -90,6 +91,16 @@ function onMapClick(e) {
 	};
 	req.open('GET', src, false);
 	req.send(null)
+======================================== */
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {	// text: json
+		var results = JSON.parse(text);
+		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+		clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+	})
 }
 function onMarkerClick(e) {
 	map.removeLayer(clickMarker);
