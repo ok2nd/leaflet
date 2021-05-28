@@ -10,8 +10,10 @@
 <!-- Font Awesome アイコン -->
 <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
 <!-- メニューボタン（現在地表示、マーカーすべて表示） -->
-<link rel='stylesheet' href='css/easy-button.css'/>
-<script src='js/easy-button.js'></script>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; right:0; left:0; }
@@ -102,6 +104,13 @@ var baseMap = {
 	"Esri World Topo Map": Basic_Map[ 4 ]
 };
 L.control.layers(baseMap).addTo(map);
+// フルスクリーンボタン
+map.addControl(new L.Control.Fullscreen({
+	title: {
+		'false': '最大化',
+		'true': '元に戻す'
+	}
+}));
 // 現在地表示ボタン
 var watch_id = 0;
 var curMarker = null;	// 現在地マーカー
