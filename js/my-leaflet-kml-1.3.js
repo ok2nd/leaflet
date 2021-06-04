@@ -21,7 +21,7 @@ var iconRed = L.icon({
 	iconAnchor: [14, 27],
 	popupAnchor: [1, -22],
 });
-function kml2map(kmlStr, resetBtn=false) {
+function kml2map(kmlStr) {
 	map = L.map('map');
 	var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
