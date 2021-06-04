@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KML地図：京都伏見酒蔵マップ</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<script src="js/L.KML.js"></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+tileLayer.addTo(map);
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	'Google マップ': Basic_Map[ 0 ],
+	'OpenStreetMap': Basic_Map[ 1 ],
+	'国土地理院 標準地図': Basic_Map[ 2 ],
+	'国土地理院 写真': Basic_Map[ 3 ],
+	'Esri World Topo Map': Basic_Map[ 4 ]
+};
+L.control.layers(baseMap).addTo(map);
+// ---------------------------------------------------
+var kml = 'kml/kyoto-fushimi.kml';
+fetch(kml)
+	.then(res => res.text())
+	.then(kmltext => {
+		const parser = new DOMParser();
+		const kml = parser.parseFromString(kmltext, 'text/xml');
+		const track = new L.KML(kml);
+		map.addLayer(track);
+		const bounds = track.getBounds();
+		map.fitBounds(bounds);
+	});
+// ---------------------------------------------------
+</script>
+</body>
+</html>
