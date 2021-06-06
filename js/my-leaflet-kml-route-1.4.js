@@ -104,8 +104,161 @@ function kml2map(kmlStr) {
 		}
 		map.fitBounds(iconMarkers.getBounds());
 	}).addTo(map);
+
+
+	L.easyButton('fa-walking', function(btn, easyMap) {
+		posMarkerRemove();
+		endMarkerRemove();
+		routeControlReset();
+		route_mode = true;
+		btn.state('route-off');
+	}).addTo(map);
+	L.easyButton('fa fa-times', function(btn, easyMap) {
+		posMarkerRemove();
+		endMarkerRemove();
+		routeControlReset();
+		route_mode = false;
+	}).addTo(map);
 	map.on('click', onMapClick);
 }
+// ------------------------------------------
+var route_mode = true;
+function onMapClick(e) {
+	if (route_mode) {
+		routeProc(e);
+	} else {
+		currentPop(e);
+	}
+}
+// クリックした地点の緯度・経度、標高を表示
+var posMarker = null;
+function currentPop(e) {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {	// text: json
+		var results = JSON.parse(text);
+		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+	})
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+function startMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
+	if (startMarker) {
+		map.removeLayer(startMarker);
+		startMarker = null;
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+		routeControl = null;
+	}
+}
+function endMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
+	}
+	routeControlReset();
+}
+function routeControlReset() {
+	if (startMarker) {
+		map.removeLayer(startMarker);
+		startMarker = null;
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+		routeControl = null;
+	}
+}
+// クリックした地点2箇所の経路検索
+var dummyIcon = L.icon({
+	iconUrl: 'icon/10x10.png',
+	iconRetinaUrl: 'icon/10x10.png',
+	iconSize: [16, 27],
+	iconAnchor: [7, 27],
+	popupAnchor: [1, -22],
+});
+var iconStart = L.icon({
+	iconUrl: 'icon/green-dot.png',
+	iconRetinaUrl: 'icon/green-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var iconEnd = L.icon({
+	iconUrl: 'icon/orange-dot.png',
+	iconRetinaUrl: 'icon/orange-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var startMarker = null;
+var endMarker = null;
+var endLatLng;
+var routeControl = null;
+function routeProc(e) {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	if (endMarker == null) {
+		endMarker = L.marker([lat, lng], {icon: iconEnd}).on('click', endMarkerRemove).addTo(map);
+		endLatLng = e.latlng;
+	} else {
+		if (startMarker) {
+			routeControlReset();
+		}
+		startMarker = L.marker([lat, lng], {icon: iconStart}).on('click', startMarkerRemove).addTo(map);
+		routingView(e.latlng, endLatLng);
+	}
+}
+function routingView(startLatLng, endLatLng) {
+	routeControl = L.Routing.control({
+		serviceUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
+		show: false,	// ルート詳細パネルを表示しない
+		lineOptions: {
+			styles: [
+				{color: 'black', opacity: 0.1, weight: 6},
+				{color: 'fuchsia', opacity: 0.4, weight: 5}
+			]
+		},
+		altLineOptions: {
+			styles: [
+				{color: 'black', opacity: 0.1, weight: 6},
+				{color: 'aqua', opacity: 0.5, weight: 5}
+			]
+		},
+		createMarker: function(i, wp, nWps) {
+			return L.marker(wp.latLng, {
+				icon: dummyIcon
+			});
+		},
+		waypoints: [
+			L.latLng(startLatLng),
+			L.latLng(endLatLng)
+		]
+	}).addTo(map);
+}
+// ------------------------------------------
 function kmlParse(Placemark) {
 	let latLng = Placemark.getElementsByTagName('coordinates')[0].textContent.split(',');
 	return {
@@ -113,28 +266,6 @@ function kmlParse(Placemark) {
 		lat: parseFloat(latLng[1]),
 		lng: parseFloat(latLng[0])
 	}
-}
-var clickMarker = null;
-function onMapClick(e) {
-	if (clickMarker) {
-		map.removeLayer(clickMarker);
-	}
-	lat = e.latlng.lat;
-	lng = e.latlng.lng;
-	// 地理院地図サーバから標高を求める	http://maps.gsi.go.jp/development/elevation_s.html
-	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
-	fetch(src)
-	.then((response) => {
-		return response.text();
-	})
-	.then((text) => {	// text: json
-		var results = JSON.parse(text);
-		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
-		clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
-	})
-}
-function onMarkerClick(e) {
-	map.removeLayer(clickMarker);
 }
 var curIcon = L.icon({
 	iconUrl: 'icon/hiking.png',

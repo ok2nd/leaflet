@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="ok.2nd">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KML地図</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<link rel="stylesheet" href="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<script src="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<link rel="stylesheet" href="css/my-leaflet.css"/>
+<script src="js/my-leaflet-kml-route-1.4.js"></script>
+<style>
+.msg {
+	margin: 20px 30px;
+	padding 0;
+}
+.emp {
+	color: #f00;
+}
+.center-icon {
+	color: #F79400;
+	background: rgba(255,255,255,0);
+	font-size: 20px;
+	font-weight: bold;
+}
+.center-icon2 {
+	width: 10px !important;
+	height: 10px !important;
+	border-radius: 5px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #FF8C00;
+}
+</style>
+</head>
+<body>
+<div id="container">
+	<div id="map"></div>
+</div>
+<script>
+//	https://........./kml.html?kml=xxx/xxx.kml
+let arg = new Object;
+let pair = location.search.substring(1).split('&');
+for (var i=0; pair[i]; i++) {
+	let kv = pair[i].split('=');
+	arg[kv[0]] = kv[1];
+}
+if (typeof arg.name != 'undefined' && arg.name != '') {
+	let title = decodeURI(arg.name);
+	document.title = title;
+}
+if (typeof arg.kml === 'undefined' || arg.kml == '') {		// arg.kml: kmlファイル名（'xxx/xxx.kml'）
+	let div = document.getElementById('container');
+	let href = location.href.split('?');
+	div.innerHTML = '<div class="msg"><p>KMLファイルを指定してください。</p><p>例：' + href[0] + '<span class="emp">?kml=xxx/xxx.kml</span></p></div>';
+} else {
+	fetch(arg.kml)
+	.then((response) => {
+		if(response.ok) { // ステータスがokならば
+			return response.text(); // レスポンスをテキストとして変換する
+		} else {
+			throw new Error();
+		}
+	})
+	.then((text) => {
+		kml2map(text);		// text: kmlデータ
+	})
+	.catch((error) => {
+		let div = document.getElementById('container');
+		div.innerHTML = '<div class="msg"><p>KMLファイル（<span class="emp">' + arg.kml + '</span>）が見つかりません。</span></p></div>';
+	})
+}
+</script>
+</body>
+</html>
