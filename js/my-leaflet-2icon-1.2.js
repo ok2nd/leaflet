@@ -59,6 +59,7 @@ map.addControl(new L.Control.Fullscreen({	// フルスクリーンボタン
 var watch_id = 0;
 var curMarker = null;
 var currentWatchBtn = null;
+/*
 L.easyButton({
 	states: [{
 		stateName: 'current-watch',
@@ -79,6 +80,11 @@ L.easyButton({
 		}
 	}]
 }).addTo( map );
+*/
+L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表示ボタン
+	currentWatchReset();
+	currentWatch();
+}).addTo(map);
 L.easyButton('fa fa-reply-all', function(btn, easyMap) {
 	currentWatchReset();
 	if (currentWatchBtn) {
@@ -128,11 +134,15 @@ var curIcon = L.icon({
 	iconRetinaUrl: 'icon/hiking.png',
 	iconAnchor: [15, 34]
 });
+var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-		map.setView([lat,lng]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
 		if (curMarker) {
 			map.removeLayer(curMarker);
 		}
@@ -151,6 +161,7 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
+	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
 		watch_id = 0;
