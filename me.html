@@ -230,6 +230,7 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
+	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
 		watch_id = 0;
