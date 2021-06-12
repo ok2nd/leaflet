@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="author" content="ok.2nd">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leaflet：経路表示</title>
+<title>Leaflet：住所検索・経路検索</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
@@ -14,16 +14,30 @@
 <script src="js/Leaflet.fullscreen.min.js"></script>
 <link rel="stylesheet" href="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 <script src="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<!--
+<link rel="stylesheet" href="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.css"/>
+<script src="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.js"></script>
+-->
+<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
+<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; right:0; left:0; }
-.center-icon {
+.center-icon-plus {
 	color: #F79400;
 	background: rgba(255,255,255,0);
 	font-size: 20px;
 	font-weight: bold;
 }
-.center-icon2 {
+.center-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #1E90FF;
+}
+.found-icon {
 	width: 12px !important;
 	height: 12px !important;
 	border-radius: 12px;
@@ -44,14 +58,16 @@ var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
 tileLayer.addTo(map);
 var curMarker = null;	// 現在地マーカー
 function onLocationFound(e) {
-	var centerIcon = L.divIcon({
-		html: '<div class="fa fa-plus center-icon"></div>',
+/*
+	var centerIconPlus = L.divIcon({
+		html: '<div class="fa fa-plus center-icon-plus"></div>',
 		iconSize: null,
 		iconAnchor: [9, 11]
 	});
-//	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
-	var centerIcon2 = L.divIcon({ className: 'center-icon2', iconAnchor: [8, 8] });
-	L.marker(e.latlng, {icon: centerIcon2}).addTo(map);
+	L.marker(e.latlng, {icon: centerIconPlus}).addTo(map);
+*/
+	var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
+	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
 }
 function onLocationError(e) {
 	alert('位置情報を取得できませんでした。' + e.message);
@@ -59,6 +75,24 @@ function onLocationError(e) {
 map.on('locationfound', onLocationFound);
 map.on('locationerror', onLocationError);
 map.locate({setView: true, maxZoom: 16, timeout: 20000});
+// 住所検索
+var osmGeocoder = new L.Control.OSMGeocoder({
+	collapsed: false,
+	text: '検索',
+	placeholder: '住所を入力してください。',
+	callback: function (results) {
+		var coords = L.latLng(results[0].lat,results[0].lon);
+		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
+		L.marker(coords, {icon: foundIcon}).addTo(map);
+		map.setView(coords,17);
+	//	var bbox = results[0].boundingbox,
+	//	first = new L.LatLng(bbox[0], bbox[2]),
+	//	second = new L.LatLng(bbox[1], bbox[3]),
+	//	bounds = new L.LatLngBounds([first, second]);
+	//	this._map.fitBounds(bounds);
+	}
+});
+map.addControl(osmGeocoder);
 // フルスクリーンボタン
 map.addControl(new L.Control.Fullscreen({
 	title: {
@@ -152,14 +186,14 @@ var route_mode = true;
 ----------------------------------------------- */
 L.easyButton('fa-walking', function(btn, easyMap) {
 	posMarkerRemove();
-	endMarkerRemove();
+	startMarkerRemove();
 	routeControlReset();
 	route_mode = true;
 	btn.state('route-off');
 }).addTo(map);
 L.easyButton('fa fa-times', function(btn, easyMap) {
 	posMarkerRemove();
-	endMarkerRemove();
+	startMarkerRemove();
 	routeControlReset();
 	route_mode = false;
 }).addTo(map);
@@ -221,9 +255,9 @@ function endMarkerRemove() {		// Routing.controlが動作していると、こ�
 	routeControlReset();
 }
 function routeControlReset() {
-	if (startMarker) {
-		map.removeLayer(startMarker);
-		startMarker = null;
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
 	}
 	if (routeControl) {
 		map.removeControl(routeControl);
@@ -238,14 +272,14 @@ var dummyIcon = L.icon({
 	iconAnchor: [7, 27],
 	popupAnchor: [1, -22],
 });
-var iconStart = L.icon({
+var iconRouteStart = L.icon({
 	iconUrl: 'icon/ltblue-dot.png',
 	iconRetinaUrl: 'icon/ltblue-dot.png',
 	iconSize: [32, 32],
 	iconAnchor: [16, 30],
 	popupAnchor: [1, -22],
 });
-var iconEnd = L.icon({
+var iconRouteEnd = L.icon({
 	iconUrl: 'icon/red-dot.png',
 	iconRetinaUrl: 'icon/red-dot.png',
 	iconSize: [32, 32],
@@ -254,7 +288,7 @@ var iconEnd = L.icon({
 });
 var startMarker = null;
 var endMarker = null;
-var endLatLng;
+var startLatLng;
 var routeControl = null;
 function routeProc(e) {
 	if (posMarker) {
@@ -262,15 +296,15 @@ function routeProc(e) {
 	}
 	lat = e.latlng.lat;
 	lng = e.latlng.lng;
-	if (endMarker == null) {
-		endMarker = L.marker([lat, lng], {icon: iconEnd}).on('click', endMarkerRemove).addTo(map);
-		endLatLng = e.latlng;
+	if (startMarker == null) {
+		startMarker = L.marker([lat, lng], {icon: iconRouteStart}).on('click', startMarkerRemove).addTo(map);
+		startLatLng = e.latlng;
 	} else {
-		if (startMarker) {
+		if (endMarker) {
 			routeControlReset();
 		}
-		startMarker = L.marker([lat, lng], {icon: iconStart}).on('click', startMarkerRemove).addTo(map);
-		routingView(e.latlng, endLatLng);
+		endMarker = L.marker([lat, lng], {icon: iconRouteEnd}).on('click', endMarkerRemove).addTo(map);
+		routingView(startLatLng, e.latlng);
 	}
 }
 function routingView(startLatLng, endLatLng) {
