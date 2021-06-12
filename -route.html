@@ -155,6 +155,9 @@ L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表�
 	currentWatchReset();
 	currentWatch();
 }).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	currentWatchReset();
+}).addTo(map);
 // ルート（経路）検索ボタン
 var route_mode = true;
 /* -----------------------------------------------
@@ -339,6 +342,7 @@ function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
+	//	map.setView([ lat,lng ]);
 		if (currentWatch_on == false) {
 			map.setView([ lat,lng ]);
 			currentWatch_on = true;

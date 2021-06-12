@@ -128,6 +128,7 @@ L.control.layers(baseMap).addTo(map);
 var watch_id = 0;
 var curMarker = null;	// 現在地マーカー
 var currentWatchBtn = null;
+/*
 L.easyButton({		// 現在地表示ボタン
 	states: [{
 		stateName: 'current-watch',
@@ -148,6 +149,14 @@ L.easyButton({		// 現在地表示ボタン
 		}
 	}]
 }).addTo( map );
+*/
+L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表示ボタン
+	currentWatchReset();
+	currentWatch();
+}).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	currentWatchReset();
+}).addTo(map);
 // クリックした地点の緯度・経度、標高を表示
 map.on('click', onMapClick);
 var clickMarker = null;
@@ -187,11 +196,16 @@ function onMapClick(e) {
 function onMarkerClick(e) {
 	map.removeLayer(clickMarker);
 }
+var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-		map.setView([ lat,lng ]);
+	//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
 		if (curMarker) {
 			map.removeLayer(curMarker);
 		}
