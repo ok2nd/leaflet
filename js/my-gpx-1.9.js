@@ -122,6 +122,9 @@ function gpx2map(gpxStr, resetBtn=false) {
 		currentWatchReset();
 		currentWatch();
 	}).addTo(map);
+	L.easyButton('fa fa-times', function(btn, easyMap) {
+		currentWatchReset();
+	}).addTo(map);
 	L.easyButton('fa fa-reply-all', function(btn, easyMap) {	// マーカーすべて表示画面に戻るボタン
 		currentWatchReset();
 		if (currentWatchBtn) {

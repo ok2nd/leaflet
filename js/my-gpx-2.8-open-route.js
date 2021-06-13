@@ -87,7 +87,6 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		'国土地理院 写真': Basic_Map[ 3 ],
 		'Esri World Topo Map': Basic_Map[ 4 ]
 	};
-	L.control.layers(baseMap).addTo(map);
 	// ---------------------------------------------------
 	map.addControl(new L.Control.Fullscreen({	// フルスクリーンボタン
 		title: {
@@ -133,6 +132,19 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		}
 		map.fitBounds(routeLatLng);
 	}).addTo(map);
+	L.easyButton('fa-walking', function(btn, easyMap) {
+		posMarkerRemove();
+		startMarkerRemove();
+		routeControlReset();
+		route_mode = true;
+		btn.state('route-off');
+	}).addTo(map);
+	L.easyButton('fa fa-times', function(btn, easyMap) {
+		posMarkerRemove();
+		startMarkerRemove();
+		routeControlReset();
+		route_mode = false;
+	}).addTo(map);
 	L.easyButton({			// グラフ表示/非表示切り替えボタン
 		states: [{
 			stateName: 'chart-on',
@@ -168,7 +180,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	var iconEnd = L.icon({
 		iconUrl: 'icon/red-dot.png',
 		iconRetinaUrl: 'icon/red-dot.png',
-		iconSize: [32, 32],
+			iconSize: [32, 32],
 		iconAnchor: [16, 30],
 		popupAnchor: [1, -22],
 	});
@@ -222,47 +234,154 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	}
 	const dmy = L.latLng(34.69464402144777, 135.19480347633365);	// 何故か必要 ???
 	L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
+	L.control.layers(baseMap).addTo(map);
 //	var subtitle = start['timeStr'] + '～' + end['timeStr'] + '　所要時間:' + diffTime
 	var subtitle = '所要時間:' + diffTime.substr(0,5)
 		+ '　距離:' + distTotalKm + 'km　最高地点:' + Math.round(height_max) + 'm　最低地点:' + Math.round(height_min) + 'm';
 	chartView(chartEle, start['dateStr'] + ' ' + title, subtitle);
 	return 0;
 }
+// ------------------------------------------
+var route_mode = true;
 function onMapClick(e) {
-	if (clickMarker) {
-		map.removeLayer(clickMarker);
+	if (route_mode) {
+		routeProc(e);
+	} else {
+		currentPop(e);
+	}
+}
+// クリックした地点の緯度・経度、標高を表示
+var posMarker = null;
+function currentPop(e) {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
 	}
 	lat = e.latlng.lat;
 	lng = e.latlng.lng;
 	// 地理院地図サーバから標高を求める
 	// http://maps.gsi.go.jp/development/elevation_s.html
-	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
-/* ========================================
-	var req = new XMLHttpRequest();
-	req.onreadystatechange = function() {
-		if(req.readyState == 4 && req.status == 200) {
-			var json = req.responseText;
-			var results = JSON.parse(json);
-			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
-			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
-		}
-	};
-	req.open('GET', src, false);
-	req.send(null);
-======================================== */
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
 	fetch(src)
 	.then((response) => {
 		return response.text();
 	})
 	.then((text) => {	// text: json
 		var results = JSON.parse(text);
+		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
 		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
-		clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
 	})
 }
-function onMarkerClick(e) {
-	map.removeLayer(clickMarker);
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
 }
+function startMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
+	if (startMarker) {
+		map.removeLayer(startMarker);
+		startMarker = null;
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+		routeControl = null;
+	}
+}
+function endMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
+	}
+	routeControlReset();
+}
+function routeControlReset() {
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+		routeControl = null;
+	}
+}
+// クリックした地点2箇所の経路検索
+var dummyIcon = L.icon({
+	iconUrl: 'icon/10x10.png',
+	iconRetinaUrl: 'icon/10x10.png',
+	iconSize: [16, 27],
+	iconAnchor: [7, 27],
+	popupAnchor: [1, -22],
+});
+var iconRouteStart = L.icon({
+	iconUrl: 'icon/green-dot.png',
+	iconRetinaUrl: 'icon/green-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var iconRouteEnd = L.icon({
+	iconUrl: 'icon/orange-dot.png',
+	iconRetinaUrl: 'icon/orange-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var startMarker = null;
+var endMarker = null;
+var startLatLng;
+var routeControl = null;
+function routeProc(e) {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	if (startMarker == null) {
+		startMarker = L.marker([lat, lng], {icon: iconRouteStart}).on('click', startMarkerRemove).addTo(map);
+		startLatLng = e.latlng;
+	} else {
+		if (endMarker) {
+			routeControlReset();
+		}
+		endMarker = L.marker([lat, lng], {icon: iconRouteEnd}).on('click', endMarkerRemove).addTo(map);
+		routingView(startLatLng, e.latlng);
+	}
+}
+function routingView(startLatLng, endLatLng) {
+	routeControl = L.Routing.control({
+		serviceUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
+		show: false,	// ルート詳細パネルを表示しない
+		collapsible: true,	// hide/show panel routing
+	//	routeWhileDragging: true,
+	//	routeDragInterval: 500,
+		lineOptions: {
+			styles: [
+				{color: 'black', opacity: 0.1, weight: 6},
+				{color: 'fuchsia', opacity: 0.4, weight: 5}
+			]
+		},
+		altLineOptions: {
+			styles: [
+				{color: 'black', opacity: 0.1, weight: 6},
+				{color: 'aqua', opacity: 0.5, weight: 5}
+			]
+		},
+		createMarker: function(i, wp, nWps) {
+			return L.marker(wp.latLng, {
+				icon: dummyIcon
+			});
+		},
+		waypoints: [
+			L.latLng(startLatLng),
+			L.latLng(endLatLng)
+		]
+	}).addTo(map);
+}
+// ------------------------------------------
 var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {

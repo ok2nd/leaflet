@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>Simple WMS on Leaflet</title>
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+<script src="js/L.TileLayer.BetterWMS.js"></script>
+<script src="js/proj4.js"></script>
+<script src="http://code.jquery.com/jquery-2.2.3.min.js"></script>
+<style>
+body {padding: 0; margin: 0}
+html, body, #map {height: 100%; width: 100%;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script type="text/javascript">
+	var initcx = 139.0;
+	var initcy = 35.2;
+	var initZoomlv = 10;
+
+	var map = L.map('map', {
+		center: [initcy, initcx],
+		zoom: initZoomlv,
+		keyboard: true,
+		boxZoom: true,
+		minZoom: 1,
+		maxZoom: 13,
+		doubleClickZoom: true,
+		scrollWheelZoom: true,
+		touchZoom: true,
+	});
+
+	//表示中心位置とズームレベル
+	map.setView([initcy, initcx], initZoomlv);
+
+	//地理院地図 ベースマップ
+	var cyberjapanstd = L.tileLayer('http://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+		attribution: '<a href="http://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+		zIndex: 100
+	}).addTo(map);
+
+	//ラベルの表示
+	var labelLayer = L.tileLayer.betterWms('https://gbank.gsj.jp/ows/seamlessgeology200k_b' ,{
+		layers: 'label',
+		format: 'image/png',
+		transparent : true,
+		opacity: 1.0,
+		zIndex: 1000,
+		attribution: '<a href="https://www.gsj.jp/license/" target="_blank">GSJ, AIST</a>'
+	});
+
+	//地質図の表示
+	var detailLayer = L.tileLayer.betterWms('https://gbank.gsj.jp/ows/seamlessgeology200k_b' ,{
+		layers: 'area',
+		format: 'image/png',
+		transparent : true,
+		opacity: 0.7,
+		zIndex: 2000,
+		attribution: '<a href="https://www.gsj.jp/license/" target="_blank">GSJ, AIST</a>'
+	}).addTo(map);
+
+	//ラインの表示
+	var lineLayer = L.tileLayer.betterWms('https://gbank.gsj.jp/ows/seamlessgeology200k_b' ,{
+		layers: 'line',
+		format: 'image/png',
+		transparent : true,
+		opacity: 0.8,
+		zIndex: 3000,
+		attribution: '<a href="https://www.gsj.jp/license/" target="_blank">GSJ, AIST</a>'
+	});
+
+	var Layers = {
+		'地理院地図 (標準地図)': cyberjapanstd,
+	};
+
+	// Overlay layers are grouped
+	var Overlays = {
+		'地質図 (基本版)': detailLayer,
+		'地質図ライン': lineLayer,
+		'地質図ラベル': labelLayer
+	};
+
+	//レイヤコントロールを表示
+	L.control.layers(Layers, Overlays, { collapsed: true }).addTo(map);
+
+	//スケールコントロールを表示（オプションはフィート単位を非表示）
+	L.control.scale({imperial: false}).addTo(map);
+
+</script>
+</body>
+</html>

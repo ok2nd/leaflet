@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>Simple WMS on Leaflet</title>
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+<script src="js/L.TileLayer.BetterWMS.js"></script>
+<script src="js/proj4.js"></script>
+<script src="http://code.jquery.com/jquery-2.2.3.min.js"></script>
+
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+
+
+<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
+<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
+
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.center-icon-plus {
+	color: #F79400;
+	background: rgba(255,255,255,0);
+	font-size: 20px;
+	font-weight: bold;
+}
+.center-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #1E90FF;
+}
+.found-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #FF8C00;
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script type="text/javascript">
+	var initcx = 139.0;
+	var initcy = 35.2;
+	var initZoomlv = 10;
+
+	var map = L.map('map', {
+		center: [initcy, initcx],
+		zoom: initZoomlv,
+		keyboard: true,
+		boxZoom: true,
+		minZoom: 1,
+		maxZoom: 13,
+		doubleClickZoom: true,
+		scrollWheelZoom: true,
+		touchZoom: true,
+	});
+
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	maxZoom: 18,
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+tileLayer.addTo(map);
+
+
+var curMarker = null;	// 現在地マーカー
+function onLocationFound(e) {
+/*
+	var centerIconPlus = L.divIcon({
+		html: '<div class="fa fa-plus center-icon-plus"></div>',
+		iconSize: null,
+		iconAnchor: [9, 11]
+	});
+	L.marker(e.latlng, {icon: centerIconPlus}).addTo(map);
+*/
+	var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
+	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
+}
+function onLocationError(e) {
+	alert('位置情報を取得できませんでした。' + e.message);
+}
+map.on('locationfound', onLocationFound);
+map.on('locationerror', onLocationError);
+map.locate({setView: true, maxZoom: 16, timeout: 20000});
+
+
+// 住所検索
+var osmGeocoder = new L.Control.OSMGeocoder({
+	collapsed: false,
+	text: '検索',
+	placeholder: '住所を入力してください。',
+	callback: function (results) {
+		var coords = L.latLng(results[0].lat,results[0].lon);
+		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
+		L.marker(coords, {icon: foundIcon}).addTo(map);
+		map.setView(coords,17);
+	//	var bbox = results[0].boundingbox,
+	//	first = new L.LatLng(bbox[0], bbox[2]),
+	//	second = new L.LatLng(bbox[1], bbox[3]),
+	//	bounds = new L.LatLngBounds([first, second]);
+	//	this._map.fitBounds(bounds);
+	}
+});
+map.addControl(osmGeocoder);
+
+
+
+
+map.addControl(new L.Control.Fullscreen({
+	title: {
+		'false': '最大化',
+		'true': '元に戻す'
+	}
+}));
+
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	"Google マップ": Basic_Map[ 0 ],
+	"OpenStreetMap": Basic_Map[ 1 ],
+	"国土地理院 標準地図": Basic_Map[ 2 ],
+	"国土地理院 写真": Basic_Map[ 3 ],
+	"Esri World Topo Map": Basic_Map[ 4 ]
+};
+
+
+
+
+
+
+	//表示中心位置とズームレベル
+	map.setView([initcy, initcx], initZoomlv);
+
+	//地理院地図 ベースマップ
+	var cyberjapanstd = L.tileLayer('http://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+		attribution: '<a href="http://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+		zIndex: 100
+	}).addTo(map);
+
+	//ラベルの表示
+	var labelLayer = L.tileLayer.betterWms('https://gbank.gsj.jp/ows/seamlessgeology200k_b' ,{
+		layers: 'label',
+		format: 'image/png',
+		transparent : true,
+		opacity: 1.0,
+		zIndex: 1000,
+		attribution: '<a href="https://www.gsj.jp/license/" target="_blank">GSJ, AIST</a>'
+	});
+
+	//地質図の表示
+	var detailLayer = L.tileLayer.betterWms('https://gbank.gsj.jp/ows/seamlessgeology200k_b' ,{
+		layers: 'area',
+		format: 'image/png',
+		transparent : true,
+		opacity: 0.7,
+		zIndex: 2000,
+		attribution: '<a href="https://www.gsj.jp/license/" target="_blank">GSJ, AIST</a>'
+	}).addTo(map);
+
+	//ラインの表示
+	var lineLayer = L.tileLayer.betterWms('https://gbank.gsj.jp/ows/seamlessgeology200k_b' ,{
+		layers: 'line',
+		format: 'image/png',
+		transparent : true,
+		opacity: 0.8,
+		zIndex: 3000,
+		attribution: '<a href="https://www.gsj.jp/license/" target="_blank">GSJ, AIST</a>'
+	});
+
+	var Layers = {
+		'地理院地図 (標準地図)': cyberjapanstd,
+	};
+
+	// Overlay layers are grouped
+	var Overlays = {
+		'地質図 (基本版)': detailLayer,
+		'地質図ライン': lineLayer,
+		'地質図ラベル': labelLayer
+	};
+
+	//レイヤコントロールを表示
+	L.control.layers(Layers, Overlays, { collapsed: true }).addTo(map);
+
+	//スケールコントロールを表示（オプションはフィート単位を非表示）
+	L.control.scale({imperial: false}).addTo(map);
+
+</script>
+</body>
+</html>

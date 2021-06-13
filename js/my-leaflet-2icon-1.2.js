@@ -85,6 +85,9 @@ L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表�
 	currentWatchReset();
 	currentWatch();
 }).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	currentWatchReset();
+}).addTo(map);
 L.easyButton('fa fa-reply-all', function(btn, easyMap) {
 	currentWatchReset();
 	if (currentWatchBtn) {
