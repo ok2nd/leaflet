@@ -1,21 +1,14 @@
+<?php
+//	$filepath = '/_attach/gpslog/10010'.'/'.$_GET['gpx'];
+	$filepath = 'mygpx'.'/'.$_GET['gpx'];
+?>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>
-var gpx_folder = 'mygpx/';	/* =========================== */
-var arg = new Object;
-var pair = location.search.substring(1).split('&');
-for (var i=0; pair[i]; i++) {
-	let kv = pair[i].split('=');
-	arg[kv[0]] = kv[1];
-}
-var title = decodeURI(arg.name);
-document.title = title;
-</script>
-<title>GPXルート表示</title>
+<title><?= $_GET['name'] ?></title>
 <style>
 body { margin:0; padding:0; }
 #map {
@@ -30,8 +23,8 @@ body { margin:0; padding:0; }
 }
 .right-panel {
 	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-	font-size: 10px;
-	max-width: 100px;
+	font-size: 12px;
+	max-width: 120px;
 	overflow-wrap: anywhere;
 	margin : 2px 6px;
 	padding: 0;
@@ -45,11 +38,11 @@ body { margin:0; padding:0; }
 	background: #fff;
 }
 .panelDate {
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: bold;
 }
 .panelPlace {
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: bold;
 }
 .timeLavel {
@@ -60,32 +53,16 @@ body { margin:0; padding:0; }
 	white-space: nowrap;
 	font-size: 12px;
 }
-.center-icon {
-	color: #F79400;
-	background: rgba(255,255,255,0);
-	font-size: 20px;
-	font-weight: bold;
-}
-.center-icon2 {
-	width: 10px !important;
-	height: 10px !important;
-	border-radius: 5px;
-	border: 3px solid #fdfdfd;
-	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
-	background-color: #FF8C00;
-}
 </style>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
 <link rel="stylesheet" href="css/easy-button.css"/>
-<script src="js/easy-button.js"></script>
-<script src="js/highcharts.js"></script>
+<script src="_myhome/easy-button.js"></script>
+<script src="//code.highcharts.com/highcharts.js"></script>
 <link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
-<script src="js/Leaflet.fullscreen.min.js"></script>
-<link rel="stylesheet" href="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-<script src="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-<script src="js/my-gpx-2.8-open-route.js"></script>
+<script src="_myhome/Leaflet.fullscreen.min.js"></script>
+<script src="_myhome/my-gpx-2.5-open.js"></script>
 </head>
 <body>
 <div id="container">
@@ -93,19 +70,10 @@ body { margin:0; padding:0; }
 	<div id="chart"></div>
 </div>
 <script>
-if (typeof arg.gpx === 'undefined' || arg.gpx == '') {
-	let div = document.getElementById('container');
-	let href = location.href.split('?');
-	div.innerHTML = '<div class="msg"><p>GPXファイルを指定してください。</p><p>例：' + href[0] + '<span class="emp">?gpx=xxx.gpx</span></p></div>';
-} else {
-	fetch(gpx_folder + arg.gpx)
-	.then((response) => {
-		return response.text();
-	})
-	.then((text) => {
-		gpx2map(text, false, title, 230, 0);
-	})
-}
+	var request = new XMLHttpRequest();
+	request.open('get', '<?= $filepath ?>', false);
+	request.send(null);
+	gpx2map(request.responseText, false, '<?= $_GET['name'] ?>', 230, 0);
 </script>
 </body>
 </html>
