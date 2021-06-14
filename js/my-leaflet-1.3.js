@@ -37,7 +37,25 @@ var baseMap = {
 	'国土地理院 写真': Basic_Map[ 3 ],
 	'Esri World Topo Map': Basic_Map[ 4 ]
 };
-L.control.layers(baseMap).addTo(map);
+var Overlay_Map = new Array();
+Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
+	opacity: 0.2, maxNativeZoom: 15,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 16,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 2 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	opacity: 0.2,
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+var overlay = {
+	'国土地理院 色別標高図': Overlay_Map[ 0 ],
+	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
+	'Esri 衛星画像': Overlay_Map[ 2 ]
+};
+L.control.layers(baseMap, overlay).addTo(map);
 map.addControl(new L.Control.Fullscreen({	// フルスクリーンボタン
 	title: {
 		'false': '最大化',
