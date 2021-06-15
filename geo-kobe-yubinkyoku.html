@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
+<title>神戸市郵便局マップ</title>
+<link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
+<link rel="icon" href="favicon/earth.ico" type="image/ico">
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css">
+<link rel="stylesheet" href="css/easy-button.css">
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<link rel="stylesheet" href="css/my-leaflet.css">
+<script src="//code.jquery.com/jquery-latest.js"></script>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+function addrSearch(address) {
+	// 国土地理院のジオコーダー利用
+	var result = $.ajax({
+		type: 'GET',
+		url: 'https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + address,
+		async: false	// *** 同期通信 ***
+	}).responseText;
+	return result;
+}
+var place = Array();
+function getLatLng(name, address) {
+	var json = addrSearch(address);
+	var res = JSON.parse(json);
+	var latlng = res[0].geometry.coordinates;
+	return [name, latlng[1], latlng[0]];
+}
+place.push(getLatLng('有野郵便局', '神戸市北区藤原台北町６ー１９'));
+place.push(getLatLng('神戸山田郵便局', '神戸市北区松が枝町２ー１ー２'));
+place.push(getLatLng('神戸北郵便局', '神戸市北区北五葉２-１-１５'));
+place.push(getLatLng('須磨北郵便局', '神戸市須磨区西落合１-１-１０'));
+place.push(getLatLng('須磨郵便局', '神戸市須磨区鷹取町２ー１ー１'));
+place.push(getLatLng('垂水郵便局', '神戸市垂水区星陵台１-４-２９'));
+place.push(getLatLng('神戸中央郵便局', '神戸市中央区栄町通６-２-１'));
+place.push(getLatLng('長田郵便局', '神戸市長田区細田町７ー１ー１'));
+place.push(getLatLng('灘郵便局', '神戸市灘区大石東町３ー２ー８'));
+place.push(getLatLng('神戸西郵便局', '神戸市西区糀台５ー１２ー１'));
+place.push(getLatLng('東灘郵便局', '神戸市東灘区住吉東町２-２-１７'));
+place.push(getLatLng('兵庫郵便局', '神戸市兵庫区大開通２-２-１９'));
+</script>
+<script src="js/my-leaflet-2icon-1.2.js"></script>
+</body>
+</html>
