@@ -30,13 +30,13 @@ function addrSearch(address) {
 	}).responseText;
 	return result;
 }
-var place = Array();
 function getLatLng(name, address) {
 	var json = addrSearch(address);
 	var res = JSON.parse(json);
 	var latlng = res[0].geometry.coordinates;
 	return [name, latlng[1], latlng[0]];
 }
+var place = Array();
 place.push(getLatLng('有野郵便局', '神戸市北区藤原台北町６ー１９'));
 place.push(getLatLng('神戸山田郵便局', '神戸市北区松が枝町２ー１ー２'));
 place.push(getLatLng('神戸北郵便局', '神戸市北区北五葉２-１-１５'));
