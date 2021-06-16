@@ -132,14 +132,19 @@ Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshadema
 	opacity: 0.3, maxNativeZoom: 16,
 	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
 });
-Overlay_Map[ 2 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+Overlay_Map[ 2 ] = L.tileLayer('https://gbank.gsj.jp/seamless/v2/api/1.2.1/tiles/{z}/{y}/{x}.png?layer=glfs', {
+	opacity: 0.4, maxNativeZoom: 13,
+	attribution: '日本シームレス地質図V2: GSJ/AIST'
+});
+Overlay_Map[ 3 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
 	opacity: 0.2,
 	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 });
 var overlay = {
 	'国土地理院 色別標高図': Overlay_Map[ 0 ],
 	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
-	'Esri 衛星画像': Overlay_Map[ 2 ]
+	'産総研 地質図': Overlay_Map[ 2 ],
+	'Esri 衛星画像': Overlay_Map[ 3 ]
 };
 L.control.layers(baseMap, overlay).addTo(map);
 // 現在地表示ボタン
@@ -204,11 +209,23 @@ function onMapClick(e) {
 	.then((response) => {
 		return response.text();
 	})
-	.then((text) => {	// text: json
+	.then((text) => {
 		var results = JSON.parse(text);
-	//	var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
 		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
-		clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		// 日本シームレス地質図V2
+		// https://gbank.gsj.jp/seamless/v2/api/1.2.1/
+		var src = 'https://gbank.gsj.jp/seamless/v2/api/1.2.1/legend.json?point=' + e.latlng.lat + ',' + e.latlng.lng;
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var data = JSON.parse(text);
+			var titulo = data.title;
+			popStr += '<br>地質：' + titulo;
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		})
 	})
 }
 function onMarkerClick(e) {
