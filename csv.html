@@ -5,7 +5,7 @@
 <meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
-<title>マップ：住所から緯度経度</title>
+<title>マップ：CSV読み込み</title>
 <link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
 <link rel="icon" href="favicon/earth.ico" type="image/ico">
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
@@ -17,7 +17,7 @@
 <script src="js/Leaflet.fullscreen.min.js"></script>
 <link rel="stylesheet" href="css/my-leaflet.css">
 <script src="//code.jquery.com/jquery-latest.js"></script>
-<script src="js/my-leaflet-place2map-1.3.js"></script>
+<script src="js/my-leaflet-place2map-plus-2.4.js"></script>
 </head>
 <body>
 <div id="container"><div id="map"></div></div>
@@ -59,14 +59,12 @@ function csv2map(csv) {
 	line = csv.split("\n");
 	for (var i=0; i<line.length; ++i) {
 		data = line[i].split(',');
-		if (data.length >= 2) {
-			place.push(getLatLng(data[0], data[1]));
+		if (data.length > 2) {
+			var memo = '<b>代表銘柄：' + data[5] + '</b><br>' + data[10];
+			place.push([data[0], data[1], data[2], data[4], memo]);
 		}
 	}
-	place2map(place);	// place[0] = ['地名', 緯度, 経度];
-/*
-	place2map(place, others);	// place[0] = ['地名', 緯度, 経度];
-*/
+	place2map(place, false, true);	// place[0] = ['地名', 緯度, 経度, URL, 補足メモ]; 3番目引数true: URL有り
 }
 function addrSearch(address) {
 	// 国土地理院のジオコーダー利用
