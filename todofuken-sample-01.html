@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 参考：https://knooto.info/example/leaflet/pref-map-chart.html（Leaflet都道府県地図） -->
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<title>Leaflet：都道府県地図サンプル</title>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.info {
+	padding: 10px 10px;
+	background: white;
+	border-radius: 3px;
+}
+.legend-item {
+	display: flex;
+	align-items: center;
+	color: #555;
+}
+.legend-item-color {
+	display: block;
+	width: 15px;
+	height: 15px;
+	margin-right: 5px;
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="js/prefs.js"></script>
+<script>
+// 都道府県番号 : 値
+var valueMap = {
+	 1:835,
+	 2:762,
+	 3:762,
+	 4:798,
+	 5:762,
+	 6:763,
+	 7:772,
+	 8:822,
+	 9:826,
+	10:809,
+	11:898,
+	12:895,
+	13:985,
+	14:983,
+	15:803,
+	16:821,
+	17:806,
+	18:803,
+	19:810,
+	20:821,
+	21:825,
+	22:858,
+	23:898,
+	24:846,
+	25:839,
+	26:882,
+	27:936,
+	28:871,
+	29:811,
+	30:803,
+	31:762,
+	32:764,
+	33:807,
+	34:844,
+	35:802,
+	36:766,
+	37:792,
+	38:764,
+	39:762,
+	40:814,
+	41:762,
+	42:762,
+	43:762,
+	44:762,
+	45:762,
+	46:761,
+	47:762,
+};
+var colorDefs = [
+	{ min:  975, max: null, color: '#ff5722' },
+	{ min:  950, max:  974, color: '#ff6a3d' },
+	{ min:  925, max:  949, color: '#ff9800' },
+	{ min:  900, max:  924, color: '#ffa51f' },
+	{ min:  875, max:  899, color: '#ffc107' },
+	{ min:  850, max:  874, color: '#ffc824' },
+	{ min:  825, max:  849, color: '#4caf50' },
+	{ min:  800, max:  824, color: '#cddc39' },
+	{ min:  775, max:  799, color: '#68cefd' },
+	{ min: null, max:  774, color: '#03a9f4' },
+];
+var color = function(prefCode) {
+	var value = valueMap[prefCode];
+	var colorDef = null;
+	for (var i = 0; i < colorDefs.length; i++) {
+		colorDef = colorDefs[i];
+		var minOK = (colorDef.min == null || colorDef.min <= value);
+		var maxOK = (colorDef.max == null || value <= colorDef.max);
+		if (minOK && maxOK) return colorDef.color;
+	}
+	return colorDef.color;
+};
+var mymap = L.map('map').setView([38, 138], 5);
+// 地図レイヤー追加
+L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	maxZoom: 18,
+	attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+}).addTo(mymap);
+L.geoJSON(prefs, {
+	style: function(feature) {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'white',
+			dashArray: '3',
+			fillOpacity: 1,
+			fillColor: color( feature.properties.prefectures_code )
+		};
+	}
+}).addTo(mymap);
+// 凡例を右下に追加
+var legend = L.control({position: 'bottomright'});
+legend.onAdd = function (map) {
+	var div = L.DomUtil.create('div', 'info legend');
+	var labels = [];
+	for (var i = 0; i < colorDefs.length; i++) {
+		var colorDef = colorDefs[i];
+		var text = '';
+		if (colorDef.min != null && colorDef.max != null) {
+			text = colorDef.min + ' ～ ' + colorDef.max;
+		}
+		else if (colorDef.max != null) {
+			text = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ～ ' + colorDef.max;
+		}
+		else if (colorDef.min != null) {
+			text = colorDef.min + ' ～';
+		}
+		labels.push('<span class="legend-item"><span class="legend-item-color" style="background:' + colorDef.color + '"></span> ' + text + '</span>');
+	}
+	div.innerHTML = labels.join('');
+	return div;
+};
+legend.addTo(mymap);
+</script>
+</body>
+</html>

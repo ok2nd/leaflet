@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 参考：https://knooto.info/example/leaflet/pref-map-chart.html（Leaflet都道府県地図） -->
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<title>Leaflet：都道府県地図サンプル</title>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.info {
+	padding: 10px 10px;
+	background: white;
+	border-radius: 3px;
+}
+.legend-item {
+	display: flex;
+	align-items: center;
+	color: #555;
+}
+.legend-item-color {
+	display: block;
+	width: 15px;
+	height: 15px;
+	margin-right: 5px;
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="js/prefs.js"></script>
+<script>
+// 都道府県番号 : 値
+var valueMap = {
+	 1:835,
+	 2:762,
+	 3:762,
+	 4:798,
+	 5:762,
+	 6:763,
+	 7:772,
+	 8:822,
+	 9:826,
+	10:809,
+	11:898,
+	12:895,
+	13:985,
+	14:983,
+	15:803,
+	16:821,
+	17:806,
+	18:803,
+	19:810,
+	20:821,
+	21:825,
+	22:858,
+	23:898,
+	24:846,
+	25:839,
+	26:882,
+	27:936,
+	28:871,
+	29:811,
+	30:803,
+	31:762,
+	32:764,
+	33:807,
+	34:844,
+	35:802,
+	36:766,
+	37:792,
+	38:764,
+	39:762,
+	40:814,
+	41:762,
+	42:762,
+	43:762,
+	44:762,
+	45:762,
+	46:761,
+	47:762,
+};
+var colorDefs = [
+	{ min:  975, max: null, color: '#ff5722' },
+	{ min:  950, max:  974, color: '#ff6a3d' },
+	{ min:  925, max:  949, color: '#ff9800' },
+	{ min:  900, max:  924, color: '#ffa51f' },
+	{ min:  875, max:  899, color: '#ffc107' },
+	{ min:  850, max:  874, color: '#ffc824' },
+	{ min:  825, max:  849, color: '#4caf50' },
+	{ min:  800, max:  824, color: '#cddc39' },
+	{ min:  775, max:  799, color: '#68cefd' },
+	{ min: null, max:  774, color: '#03a9f4' },
+];
+var color = function(prefCode) {
+	var value = valueMap[prefCode];
+	var colorDef = null;
+	for (var i = 0; i < colorDefs.length; i++) {
+		colorDef = colorDefs[i];
+		var minOK = (colorDef.min == null || colorDef.min <= value);
+		var maxOK = (colorDef.max == null || value <= colorDef.max);
+		if (minOK && maxOK) return colorDef.color;
+	}
+	return colorDef.color;
+};
+var map = L.map('map').setView([38, 138], 6);
+var tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+tileLayer.addTo(map);
+L.geoJSON(prefs, {
+	style: function(feature) {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'white',
+		//	dashArray: '3',
+			fillOpacity: 0.7,
+			fillColor: color( feature.properties.prefectures_code )
+		};
+	}
+}).addTo(map);
+// 凡例を右下に追加
+var legend = L.control({position: 'bottomright'});
+legend.onAdd = function (map) {
+	var div = L.DomUtil.create('div', 'info legend');
+	var labels = [];
+	for (var i = 0; i < colorDefs.length; i++) {
+		var colorDef = colorDefs[i];
+		var text = '';
+		if (colorDef.min != null && colorDef.max != null) {
+			text = colorDef.min + ' ～ ' + colorDef.max;
+		}
+		else if (colorDef.max != null) {
+			text = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ～ ' + colorDef.max;
+		}
+		else if (colorDef.min != null) {
+			text = colorDef.min + ' ～';
+		}
+		labels.push('<span class="legend-item"><span class="legend-item-color" style="background:' + colorDef.color + '"></span> ' + text + '</span>');
+	}
+	div.innerHTML = labels.join('');
+	return div;
+};
+legend.addTo(map);
+map.addControl(new L.Control.Fullscreen({
+	title: {
+		'false': '最大化',
+		'true': '元に戻す'
+	}
+}));
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+var currentWatch_on = false;
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+	//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
+		// 現在地に表示するマーカー
+		if (curMarker) {
+			map.removeLayer(curMarker);
+		}
+		var curIcon = L.icon({	/* アイコン */
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+map.on('click', onMapClick);
+var posMarker = null;
+function onMapClick(e) {
+	posMarkerRemove();
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+	})
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+</script>
+</body>
+</html>

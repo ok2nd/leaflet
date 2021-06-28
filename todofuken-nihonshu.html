@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 参考：https://knooto.info/example/leaflet/pref-map-chart.html（Leaflet都道府県地図） -->
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<title>日本酒生産量: 都道府県別マップ</title>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.info {
+	padding: 10px 10px;
+	background: white;
+	border-radius: 3px;
+}
+.legend-item {
+	display: flex;
+	align-items: center;
+	color: #555;
+}
+.legend-item-color {
+	display: block;
+	width: 15px;
+	height: 15px;
+	margin-right: 5px;
+}
+.kenmei {
+	font-size: 16px;
+	font-weight: bold;
+}
+.seisanryo {
+	color: #f00;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="js/prefs.js"></script>
+<script>
+// 都道府県番号,都道府県名,日本酒生産量（kl）/2020年
+/*
+	1,北海道,3487
+	2,青森県,3145
+	3,岩手県,2833
+	4,宮城県,5420
+	5,秋田県,12589
+	6,山形県,7256
+	7,福島県,8587
+	8,茨城県,2595
+	9,栃木県,6164
+	10,群馬県,2234
+	11,埼玉県,15189
+	12,千葉県,6372
+	13,東京都,1275
+	14,神奈川県,778
+	15,新潟県,28693
+	16,富山県,3805
+	17,石川県,4091
+	18,福井県,2592
+	19,山梨県,7737
+	20,長野県,6455
+	21,岐阜県,3403
+	22,静岡県,3125
+	23,愛知県,9799
+	24,三重県,1900
+	25,滋賀県,2954
+	26,京都府,59975
+	27,大阪府,688
+	28,兵庫県,93599
+	29,奈良県,2672
+	30,和歌山県,1732
+	31,鳥取県,587
+	32,島根県,1420
+	33,岡山県,1747
+	34,広島県,5747
+	35,山口県,5493
+	36,徳島県,291
+	37,香川県,782
+	38,愛媛県,1221
+	39,高知県,3853
+	40,福岡県,2613
+	41,佐賀県,2108
+	42,長崎県,741
+	43,熊本県,703
+	44,大分県,1887
+	45,宮崎県,0
+	46,鹿児島県,0
+	47,沖縄県,0
+*/
+var todofuken = {
+	1:'北海道',
+	2:'青森県',
+	3:'岩手県',
+	4:'宮城県',
+	5:'秋田県',
+	6:'山形県',
+	7:'福島県',
+	8:'茨城県',
+	9:'栃木県',
+	10:'群馬県',
+	11:'埼玉県',
+	12:'千葉県',
+	13:'東京都',
+	14:'神奈川県',
+	15:'新潟県',
+	16:'富山県',
+	17:'石川県',
+	18:'福井県',
+	19:'山梨県',
+	20:'長野県',
+	21:'岐阜県',
+	22:'静岡県',
+	23:'愛知県',
+	24:'三重県',
+	25:'滋賀県',
+	26:'京都府',
+	27:'大阪府',
+	28:'兵庫県',
+	29:'奈良県',
+	30:'和歌山県',
+	31:'鳥取県',
+	32:'島根県',
+	33:'岡山県',
+	34:'広島県',
+	35:'山口県',
+	36:'徳島県',
+	37:'香川県',
+	38:'愛媛県',
+	39:'高知県',
+	40:'福岡県',
+	41:'佐賀県',
+	42:'長崎県',
+	43:'熊本県',
+	44:'大分県',
+	45:'宮崎県',
+	46:'鹿児島県',
+	47:'沖縄県'
+}
+// 都道府県番号 : 日本酒生産量
+var fukenValue = {
+	1:3487,
+	2:3145,
+	3:2833,
+	4:5420,
+	5:12589,
+	6:7256,
+	7:8587,
+	8:2595,
+	9:6164,
+	10:2234,
+	11:15189,
+	12:6372,
+	13:1275,
+	14:778,
+	15:28693,
+	16:3805,
+	17:4091,
+	18:2592,
+	19:7737,
+	20:6455,
+	21:3403,
+	22:3125,
+	23:9799,
+	24:1900,
+	25:2954,
+	26:59975,
+	27:688,
+	28:93599,
+	29:2672,
+	30:1732,
+	31:587,
+	32:1420,
+	33:1747,
+	34:5747,
+	35:5493,
+	36:291,
+	37:782,
+	38:1221,
+	39:3853,
+	40:2613,
+	41:2108,
+	42:741,
+	43:703,
+	44:1887,
+	45:0,
+	46:0,
+	47:0
+};
+var colorDefs = [
+	{ min: 20000, max: null, color: '#FF1905' },
+	{ min: 10000, max: 19999, color: '#ff6a3d' },
+	{ min: 7000, max: 9999, color: '#ff9800' },
+	{ min: 5000, max: 6999, color: '#ffc824' },
+	{ min: 4000, max: 4999, color: '#F7EB45' },
+	{ min: 3000, max: 3999, color: '#cddc39' },
+	{ min: 2000, max: 2999, color: '#4caf50' },
+	{ min: 1000, max: 1999, color: '#03a9f4' },
+	{ min: 200, max: 999, color: '#68cefd' },
+	{ min: null, max: 199, color: '#A9A9A9' },
+];
+var color = function(prefCode) {
+	var value = fukenValue[prefCode];
+	var colorDef = null;
+	for (var i = 0; i < colorDefs.length; i++) {
+		colorDef = colorDefs[i];
+		var minOK = (colorDef.min == null || colorDef.min <= value);
+		var maxOK = (colorDef.max == null || value <= colorDef.max);
+		if (minOK && maxOK) return colorDef.color;
+	}
+	return colorDef.color;
+};
+var map = L.map('map').setView([38, 138], 6);
+var tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+tileLayer.addTo(map);
+L.geoJSON(prefs, {
+	style: function(feature) {
+		return {
+			weight: 1,
+			opacity: 1,
+			color: 'white',
+		//	dashArray: '3',
+			fillOpacity: 0.6,
+			fillColor: color( feature.properties.prefectures_code )
+		};
+	}
+}).addTo(map);
+// 凡例を右下に追加
+var legend = L.control({position: 'bottomright'});
+legend.onAdd = function (map) {
+	var div = L.DomUtil.create('div', 'info legend');
+	var labels = [];
+	for (var i = 0; i < colorDefs.length; i++) {
+		var colorDef = colorDefs[i];
+		var text = '';
+		if (colorDef.min != null && colorDef.max != null) {
+			text = colorDef.min + ' ～ ' + colorDef.max;
+		}
+		else if (colorDef.max != null) {
+			text = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ～ ' + colorDef.max;
+		}
+		else if (colorDef.min != null) {
+			text = colorDef.min + ' ～';
+		}
+		labels.push('<span class="legend-item"><span class="legend-item-color" style="background:' + colorDef.color + '"></span> ' + text + '</span>');
+	}
+	div.innerHTML = labels.join('');
+	return div;
+};
+legend.addTo(map);
+map.addControl(new L.Control.Fullscreen({
+	title: {
+		'false': '最大化',
+		'true': '元に戻す'
+	}
+}));
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+var currentWatch_on = false;
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
+		// 現在地に表示するマーカー
+		if (curMarker) {
+			map.removeLayer(curMarker);
+		}
+		var curIcon = L.icon({	/* アイコン */
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+map.on('click', onMapClick);
+var posMarker = null;
+function onMapClick(e) {
+	posMarkerRemove();
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから逆ジオコーディングで都道府県を調べる
+	var src = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=' + lat + '&lon=' + lng;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var kenCode = Number(results.results.muniCd.substr(0,2));	// 都道府県コード
+		var popStr = '<span class="kenmei">' + todofuken[kenCode] + '</span><br>日本酒生産量（2020年）<br><span class="seisanryo">' + fukenValue[kenCode].toLocaleString() + '</span> キロリットル';
+		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+	})
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+</script>
+</body>
+</html>
