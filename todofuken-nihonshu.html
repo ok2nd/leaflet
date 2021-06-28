@@ -335,8 +335,8 @@ map.on('click', onMapClick);
 var posMarker = null;
 function onMapClick(e) {
 	posMarkerRemove();
-	lat = e.latlng.lat;
-	lng = e.latlng.lng;
+	var lat = e.latlng.lat;
+	var lng = e.latlng.lng;
 	// 地理院地図サーバから逆ジオコーディングで都道府県を調べる
 	var src = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=' + lat + '&lon=' + lng;
 	fetch(src)
