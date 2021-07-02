@@ -103,10 +103,11 @@ function onMapClick(e) {
 	if (clickMarker) {
 		map.removeLayer(clickMarker);
 	}
-	lat = e.latlng.lat;
-	lng = e.latlng.lng;
+	var lat = e.latlng.lat;
+	var lng = e.latlng.lng;
 	// 地理院地図サーバから標高を求める
 	// http://maps.gsi.go.jp/development/elevation_s.html
+/*
 	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
 	var req = new XMLHttpRequest();
 	req.onreadystatechange = function() {
@@ -119,6 +120,17 @@ function onMapClick(e) {
 	};
 	req.open("GET", src, false);
 	req.send(null)
+*/
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+		clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+	})
 }
 function onMarkerClick(e) {
 	map.removeLayer(clickMarker);
