@@ -152,20 +152,16 @@ function onMapClick(e) {
 function onMarkerClick(e) {
 	map.removeLayer(clickMarker);
 }
+var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-			// 東京タワー
-			// var lat = 35.65837719526223;
-			// var lng = 139.7423601150513;
-		map.setView([ lat,lng ]);
-			// 現在地に表示するマーカー：Awesomeアイコン版
-			//	var curIcon = L.divIcon({
-			//		html: '<div class="fa fa-user" style="color: #FF7F50; font-size: 20px;"></div>',
-			//		iconSize: [20, 20],
-			//		className: 'myDivIcon'
-			//	});
+		//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
 		// 現在地に表示するマーカー
 		if (curMarker) {
 			map.removeLayer(curMarker);
@@ -191,6 +187,7 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
+	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
 		watch_id = 0;

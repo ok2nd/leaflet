@@ -234,11 +234,16 @@ function onMapClick(e) {
 function onMarkerClick(e) {
 	map.removeLayer(clickMarker);
 }
+var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-		map.setView([ lat,lng ]);
+		//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
 		if (curMarker) {
 			map.removeLayer(curMarker);
 		}
@@ -262,6 +267,7 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
+	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
 		watch_id = 0;
