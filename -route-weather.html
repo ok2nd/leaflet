@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leaflet：経路表示＆天気</title>
+<title>Leaflet：住所検索・経路検索・天気予報</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
@@ -14,22 +14,65 @@
 <script src="js/Leaflet.fullscreen.min.js"></script>
 <link rel="stylesheet" href="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 <script src="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<!--
+<link rel="stylesheet" href="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.css"/>
+<script src="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.js"></script>
+-->
+<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
+<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
+<script src="js/leaflet.rainviewer.js"></script><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.js -->
+<link rel="stylesheet" type="text/css" href="css/leaflet.rainviewer.css"><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.css -->
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; right:0; left:0; }
-.center-icon {
+.center-icon-plus {
 	color: #F79400;
 	background: rgba(255,255,255,0);
 	font-size: 20px;
 	font-weight: bold;
 }
-.center-icon2 {
+.center-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #1E90FF;
+}
+.found-icon {
 	width: 12px !important;
 	height: 12px !important;
 	border-radius: 12px;
 	border: 3px solid #fdfdfd;
 	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
 	background-color: #FF8C00;
+}
+.weather {
+	margin: 0;
+	padding: 0;
+	border-collapse: collapse;
+}
+.weather th {
+	border: solid 1px;
+	padding: 0;
+	vertical-align: top;
+	text-align: center;
+}
+.weather td {
+	border: solid 1px;
+	padding: 0;
+	vertical-align: top;
+	text-align: left;
+}
+.address {
+	margin: 0;
+	padding: 0;
+}
+.hi {
+	color: #f00;
+}
+.lo {
+	color: #00f;
 }
 </style>
 </head>
@@ -39,19 +82,21 @@ body { margin:0; padding:0; }
 var map = L.map('map');
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	maxZoom: 18,
-	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
 });
 tileLayer.addTo(map);
 var curMarker = null;	// 現在地マーカー
 function onLocationFound(e) {
-	var centerIcon = L.divIcon({
-		html: '<div class="fa fa-plus center-icon"></div>',
+/*
+	var centerIconPlus = L.divIcon({
+		html: '<div class="fa fa-plus center-icon-plus"></div>',
 		iconSize: null,
 		iconAnchor: [9, 11]
 	});
-//	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
-	var centerIcon2 = L.divIcon({ className: 'center-icon2', iconAnchor: [8, 8] });
-	L.marker(e.latlng, {icon: centerIcon2}).addTo(map);
+	L.marker(e.latlng, {icon: centerIconPlus}).addTo(map);
+*/
+	var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
+	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
 }
 function onLocationError(e) {
 	alert('位置情報を取得できませんでした。' + e.message);
@@ -59,6 +104,24 @@ function onLocationError(e) {
 map.on('locationfound', onLocationFound);
 map.on('locationerror', onLocationError);
 map.locate({setView: true, maxZoom: 16, timeout: 20000});
+// 住所検索
+var osmGeocoder = new L.Control.OSMGeocoder({
+	collapsed: false,
+	text: '検索',
+	placeholder: '地点名を入力してください。',
+	callback: function (results) {
+		var coords = L.latLng(results[0].lat,results[0].lon);
+		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
+		L.marker(coords, {icon: foundIcon}).addTo(map);
+		map.setView(coords,17);
+	//	var bbox = results[0].boundingbox,
+	//	first = new L.LatLng(bbox[0], bbox[2]),
+	//	second = new L.LatLng(bbox[1], bbox[3]),
+	//	bounds = new L.LatLngBounds([first, second]);
+	//	this._map.fitBounds(bounds);
+	}
+});
+map.addControl(osmGeocoder);
 // フルスクリーンボタン
 map.addControl(new L.Control.Fullscreen({
 	title: {
@@ -68,61 +131,146 @@ map.addControl(new L.Control.Fullscreen({
 }));
 var Basic_Map = new Array();
 Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
-	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
 });
 Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 	continuousWorld: false
 });
 Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
 });
 Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
 });
 Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
 	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
 });
-
-
-Basic_Map[ 5 ] = L.tileLayer('https://{s}.tile.openweathermap.org/map/{layername}/{z}/{x}/{y}.png', {
-	attribution: 'Weather from <a href="https://openweathermap.org/" alt="World Map and worldwide Weather Forecast online">OpenWeatherMap</a>'
-});
-
-
 var baseMap = {
-	"Google マップ": Basic_Map[ 0 ],
-	"OpenStreetMap": Basic_Map[ 1 ],
-	"国土地理院 標準地図": Basic_Map[ 2 ],
-	"国土地理院 写真": Basic_Map[ 3 ],
-	"Esri World Topo Map": Basic_Map[ 4 ],
-	"OpenWeatherMap": Basic_Map[ 5 ]
+	'Google マップ': Basic_Map[ 0 ],
+	'OpenStreetMap': Basic_Map[ 1 ],
+	'国土地理院 標準地図': Basic_Map[ 2 ],
+	'国土地理院 写真': Basic_Map[ 3 ],
+	'Esri World Topo Map': Basic_Map[ 4 ]
 };
-L.control.layers(baseMap).addTo(map);
+var Overlay_Map = new Array();
+Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
+	opacity: 0.2, maxNativeZoom: 15,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 16,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 2 ] = L.tileLayer('https://gbank.gsj.jp/seamless/v2/api/1.2.1/tiles/{z}/{y}/{x}.png?layer=glfs', {
+	opacity: 0.4, maxNativeZoom: 13,
+	attribution: '日本シームレス地質図V2: GSJ/AIST'
+});
+Overlay_Map[ 3 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	opacity: 0.2,
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+Overlay_Map[ 4 ] = L.tileLayer('https://tile.openweathermap.org/map/precipitation/{z}/{x}/{y}.png?appid=d39b8f3b06fd87bdf447a70ede5b990e', {
+	opacity: 0.5,
+	attribution: '<a href="https://openweathermap.org/">OpenWeather</a>'
+});
+Overlay_Map[ 5 ] = L.tileLayer('https://tile.openweathermap.org/map/clouds/{z}/{x}/{y}.png?appid=d39b8f3b06fd87bdf447a70ede5b990e', {
+	opacity: 1.0,
+	attribution: '<a href="https://openweathermap.org/">OpenWeather</a>'
+});
+Overlay_Map[ 6 ] = L.tileLayer('https://tile.openweathermap.org/map/pressure_cntr/{z}/{x}/{y}.png?appid=d39b8f3b06fd87bdf447a70ede5b990e', {
+	opacity: 1.0,
+	attribution: '<a href="https://openweathermap.org/">OpenWeather</a>'
+});
+Overlay_Map[ 7 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：洪水浸水想定区域（想定最大規模）'
+});
+Overlay_Map[ 8 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 17,
+	attribution: '国土地理院：浸水継続時間（想定最大規模）'
+});
+Overlay_Map[ 9 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：高潮浸水想定区域'
+});
+Overlay_Map[ 10 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：津波浸水想定'
+});
+Overlay_Map[ 11 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（土石流）'
+});
+Overlay_Map[ 12 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（急傾斜地の崩壊）'
+});
+Overlay_Map[ 13 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
+});
+var overlay = {
+	'国土地理院 色別標高図': Overlay_Map[ 0 ],
+	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
+	'産総研 地質図': Overlay_Map[ 2 ],
+	'Esri 衛星画像': Overlay_Map[ 3 ],
+	'OpenWeatherMap 降水量': Overlay_Map[ 4 ],
+	'OpenWeatherMap 雲': Overlay_Map[ 5 ],
+	'OpenWeatherMap 気圧図': Overlay_Map[ 6 ],
+	'ハザードマップ 洪水浸水想定区域': Overlay_Map[ 7 ],
+	'ハザードマップ 浸水継続時間': Overlay_Map[ 8 ],
+	'ハザードマップ 高潮浸水想定区域': Overlay_Map[ 9 ],
+	'ハザードマップ 津波浸水想定': Overlay_Map[ 10 ],
+	'ハザードマップ 土石流': Overlay_Map[ 11 ],
+	'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 12 ],
+	'ハザードマップ 地すべり': Overlay_Map[ 13 ]
+};
+L.control.layers(baseMap, overlay).addTo(map);
+// 雨雲レーダー
+L.control.rainviewer({ 
+	position: 'topright',
+	nextButtonText: '>',
+	playStopButtonText: '開始/停止',
+	prevButtonText: '<',
+	positionSliderLabelText: '時間',
+	opacitySliderLabelText: '透明度',
+	animationInterval: 500,
+	opacity: 0.5
+}).addTo(map);
 // 現在地表示ボタン
 var watch_id = 0;
 var curMarker = null;	// 現在地マーカー
 var currentWatchBtn = null;
-L.easyButton({		// 現在地表示ボタン
-	states: [{
-		stateName: 'current-watch',
-		icon:	'fas fa-map-marker-alt',
-		title:	 '現在地',
-		onClick: function(btn, map) {
-			currentWatch();
-			btn.state('current-watch-reset');
-			currentWatchBtn = btn;
-		}
-	}, {
-		stateName: 'current-watch-reset',
-		icon:	'fa fa-user',
-		title:	 '現在地オフ',
-		onClick: function(btn, map) {
-			currentWatchReset();
-			btn.state('current-watch');
-		}
-	}]
-}).addTo( map );
+/*
+	L.easyButton({		// 現在地表示ボタン
+		states: [{
+			stateName: 'current-watch',
+			icon:	'fas fa-map-marker-alt',
+			title:	 '現在地',
+			onClick: function(btn, map) {
+				currentWatch();
+				btn.state('current-watch-reset');
+				currentWatchBtn = btn;
+			}
+		}, {
+			stateName: 'current-watch-reset',
+			icon:	'fa fa-user',
+			title:	 '現在地オフ',
+			onClick: function(btn, map) {
+				currentWatchReset();
+				btn.state('current-watch');
+			}
+		}]
+	}).addTo( map );
+*/
+L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表示ボタン
+	currentWatchReset();
+	currentWatch();
+}).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	currentWatchReset();
+}).addTo(map);
 // ルート（経路）検索ボタン
 var route_mode = true;
 /* -----------------------------------------------
@@ -154,16 +302,26 @@ var route_mode = true;
 ----------------------------------------------- */
 L.easyButton('fa-walking', function(btn, easyMap) {
 	posMarkerRemove();
-	endMarkerRemove();
+	startMarkerRemove();
 	routeControlReset();
 	route_mode = true;
+	weather_mode = false;
 	btn.state('route-off');
+}).addTo(map);
+var weather_mode = false;
+L.easyButton('fa-cloud-sun', function(btn, easyMap) {
+	posMarkerRemove();
+	startMarkerRemove();
+	routeControlReset();
+	route_mode = false;
+	weather_mode = true;
 }).addTo(map);
 L.easyButton('fa fa-times', function(btn, easyMap) {
 	posMarkerRemove();
-	endMarkerRemove();
+	startMarkerRemove();
 	routeControlReset();
 	route_mode = false;
+	weather_mode = false;
 }).addTo(map);
 // クリック処理
 map.on('click', onMapClick);
@@ -174,7 +332,7 @@ function onMapClick(e) {
 		currentPop(e);
 	}
 }
-// クリックした地点の緯度・経度、標高を表示
+// クリックした地点の緯度・経度、標高を表示 | OpenWeatherMapから天気情報取得
 var posMarker = null;
 function currentPop(e) {
 	if (posMarker) {
@@ -185,20 +343,116 @@ function currentPop(e) {
 	}
 	lat = e.latlng.lat;
 	lng = e.latlng.lng;
-	// 地理院地図サーバから標高を求める
-	// http://maps.gsi.go.jp/development/elevation_s.html
-	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
-	fetch(src)
-	.then((response) => {
-		return response.text();
-	})
-	.then((text) => {	// text: json
-		var results = JSON.parse(text);
-		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
-		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
-		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
-	})
+	if (weather_mode) {
+		// OpenWeatherMapから天気情報取得
+		// https://openweathermap.org/
+		var src = 'https://api.openweathermap.org/data/2.5/onecall?lat=' + lat + '&lon=' + lng + '&units=metric&lang=ja&appid=d39b8f3b06fd87bdf447a70ede5b990e';
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var data = JSON.parse(text);
+			var week_date = ['', '', ''];
+			var week_icon = ['', '', ''];
+			var week = ['', '', ''];
+			for (i=0; i<3; i++) {
+				week_date[i] += get_date_string(data.daily[i].dt);
+				week_icon[i] += '<img src="https://openweathermap.org/img/w/' + data.daily[i].weather[0].icon + '.png">';
+				week_icon[i] += '<br>' + data.daily[i].weather[0].description;
+				week[i] = '気温：' + round_val(data.daily[i].temp.day) + ' ℃';
+				week[i] += '<br>最高：<span class="hi">' + round_val(data.daily[i].temp.max) + '</span> ℃';
+				week[i] += '<br>最低：<span class="lo">' + round_val(data.daily[i].temp.min) + '</span> ℃';
+				week[i] += '<br>気圧：' + data.daily[i].pressure + ' hPa';
+				week[i] += '<br>湿度：' + data.daily[i].humidity + ' %';
+				week[i] += '<br>風向：' + get_deg_string(data.daily[i].wind_deg);
+				week[i] += '<br>風速：' + data.daily[i].wind_speed + ' m/s';
+			}
+			var src = 'https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lng + '&units=metric&lang=ja&appid=d39b8f3b06fd87bdf447a70ede5b990e';
+			fetch(src)
+			.then((response) => {
+				return response.text();
+			})
+			.then((text) => {
+				var data = JSON.parse(text);
+				var pos_addr = '<p>－　' + data.name + '　－</p>';	// 地点名
+				var popHtml = pos_addr;
+/* ---
+					data.dt
+					data.weather[0].icon
+					data.weather[0].description;
+					data.main.temp
+					data.main.temp_max
+					data.main.temp_min
+					ata.main.pressure
+					data.main.humidity
+					data.wind.deg
+					data.wind.speed
+--- */
+				popHtml += '<table class="weather"><tr><th>' + week_date[0] + '</th><th>' + week_date[1] + '</th><th>' + week_date[2] + '</th></tr>';
+				popHtml += '<tr><th>' + week_icon[0] + '</th><th>' + week_icon[1] + '</th><th>' + week_icon[2] + '</th></tr>';
+				popHtml += '<tr><td>' + week[0] + '</td><td>' + week[1] + '</td><td>' + week[2] + '</td></tr></table>';
+				posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popHtml).openPopup();
+			})
+		})
+	} else {
+		// 地理院地図サーバから標高を求める
+		// http://maps.gsi.go.jp/development/elevation_s.html
+		var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var results = JSON.parse(text);
+			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+			// 日本シームレス地質図V2
+			// https://gbank.gsj.jp/seamless/v2/api/1.2.1/
+			var src = 'https://gbank.gsj.jp/seamless/v2/api/1.2.1/legend.json?point=' + e.latlng.lat + ',' + e.latlng.lng;
+			fetch(src)
+			.then((response) => {
+				return response.text();
+			})
+			.then((text) => {
+				var data = JSON.parse(text);
+				var titulo = data.title;
+				popStr += '<br>地質：' + titulo;
+				posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+			})
+		})
+	}
 }
+var get_deg_string = function(deg) {
+	var r = '北';
+	if (deg>=11.25) r = '北北東';
+	if (deg>=33.75) r = '北東';
+	if (deg>=56.25) r = '東北東';
+	if (deg>=78.75) r = '東';
+	if (deg>=101.25) r = '東南東';
+	if (deg>=123.75) r = '南東';
+	if (deg>=146.25) r = '南南東';
+	if (deg>=168.75) r = '南';
+	if (deg>=191.25) r = '南南西';
+	if (deg>=213.75) r = '南西';
+	if (deg>=236.25) r = '西南西';
+	if (deg>=258.75) r = '西';
+	if (deg>=281.25) r = '西北西';
+	if (deg>=303.75) r = '北西';
+	if (deg>=326.25) r = '北北西';
+	return r+'の風';
+};
+var round_val = function(n) {
+	return Math.round(n*10)/10;
+};
+var get_date_string = function(dt) {
+	var date = new Date(dt*1000);
+	var week = ['日','月','火','水','木','金','土'];
+	var s = date.getMonth()+1+'月';
+	s += date.getDate()+'日';
+	s += '（'+week[date.getDay()]+'）';
+	return s;
+};
 function posMarkerRemove() {
 	if (posMarker) {
 		map.removeLayer(posMarker);
@@ -223,9 +477,9 @@ function endMarkerRemove() {		// Routing.controlが動作していると、こ�
 	routeControlReset();
 }
 function routeControlReset() {
-	if (startMarker) {
-		map.removeLayer(startMarker);
-		startMarker = null;
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
 	}
 	if (routeControl) {
 		map.removeControl(routeControl);
@@ -240,14 +494,14 @@ var dummyIcon = L.icon({
 	iconAnchor: [7, 27],
 	popupAnchor: [1, -22],
 });
-var iconStart = L.icon({
+var iconRouteStart = L.icon({
 	iconUrl: 'icon/ltblue-dot.png',
 	iconRetinaUrl: 'icon/ltblue-dot.png',
 	iconSize: [32, 32],
 	iconAnchor: [16, 30],
 	popupAnchor: [1, -22],
 });
-var iconEnd = L.icon({
+var iconRouteEnd = L.icon({
 	iconUrl: 'icon/red-dot.png',
 	iconRetinaUrl: 'icon/red-dot.png',
 	iconSize: [32, 32],
@@ -256,7 +510,7 @@ var iconEnd = L.icon({
 });
 var startMarker = null;
 var endMarker = null;
-var endLatLng;
+var startLatLng;
 var routeControl = null;
 function routeProc(e) {
 	if (posMarker) {
@@ -264,15 +518,15 @@ function routeProc(e) {
 	}
 	lat = e.latlng.lat;
 	lng = e.latlng.lng;
-	if (endMarker == null) {
-		endMarker = L.marker([lat, lng], {icon: iconEnd}).on('click', endMarkerRemove).addTo(map);
-		endLatLng = e.latlng;
+	if (startMarker == null) {
+		startMarker = L.marker([lat, lng], {icon: iconRouteStart}).on('click', startMarkerRemove).addTo(map);
+		startLatLng = e.latlng;
 	} else {
-		if (startMarker) {
+		if (endMarker) {
 			routeControlReset();
 		}
-		startMarker = L.marker([lat, lng], {icon: iconStart}).on('click', startMarkerRemove).addTo(map);
-		routingView(e.latlng, endLatLng);
+		endMarker = L.marker([lat, lng], {icon: iconRouteEnd}).on('click', endMarkerRemove).addTo(map);
+		routingView(startLatLng, e.latlng);
 	}
 }
 function routingView(startLatLng, endLatLng) {
@@ -302,11 +556,16 @@ function routingView(startLatLng, endLatLng) {
 		]
 	}).addTo(map);
 }
+var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-		map.setView([ lat,lng ]);
+	//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
 		if (curMarker) {
 			map.removeLayer(curMarker);
 		}
@@ -331,6 +590,7 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
+	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
 		watch_id = 0;
