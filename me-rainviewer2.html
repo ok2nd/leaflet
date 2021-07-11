@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaflet：現在地＆住所検索</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
+<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
+<script src="js/leaflet.rainviewer.js"></script><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.js -->
+<link rel="stylesheet" type="text/css" href="css/leaflet.rainviewer.css"><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.css -->
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.divicon {	/* 文字ラベル */
+	display: table-cell;
+	color: #f00;
+	background-color: #ff4;
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+}
+.center-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #1E90FF;
+}
+.found-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #FF8C00;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	maxZoom: 18,
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+tileLayer.addTo(map);
+var curMarker = null;	// 現在地マーカー
+// by https://kita-note.com/leaflet-tutorial-5
+function onLocationFound(e) {
+//	L.marker(e.latlng).addTo(map).bindPopup('現在地').openPopup();
+/*
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	if (curMarker) {
+		map.removeLayer(curMarker);
+	}
+	var curIcon = L.icon({
+		iconUrl: 'icon/hiking.png',
+		iconRetinaUrl: 'icon/hiking.png',
+		iconAnchor: [15, 34]
+	});
+	curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+*/
+	var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
+	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
+}
+function onLocationError(e) {
+	alert('位置情報を取得できませんでした。' + e.message);
+}
+map.on('locationfound', onLocationFound);
+map.on('locationerror', onLocationError);
+map.locate({setView: true, maxZoom: 16, timeout: 20000});
+// 住所検索
+var osmGeocoder = new L.Control.OSMGeocoder({
+	collapsed: false,
+	text: '検索',
+	placeholder: '地点名を入力してください。',
+	callback: function (results) {
+		var coords = L.latLng(results[0].lat,results[0].lon);
+		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
+		L.marker(coords, {icon: foundIcon}).addTo(map);
+		map.setView(coords,17);
+	}
+});
+map.addControl(osmGeocoder);
+// フルスクリーンボタン
+map.addControl(new L.Control.Fullscreen({
+	title: {
+		'false': '最大化',
+		'true': '元に戻す'
+	}
+}));
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	'Google マップ': Basic_Map[ 0 ],
+	'OpenStreetMap': Basic_Map[ 1 ],
+	'国土地理院 標準地図': Basic_Map[ 2 ],
+	'国土地理院 写真': Basic_Map[ 3 ],
+	'Esri World Topo Map': Basic_Map[ 4 ]
+};
+var Overlay_Map = new Array();
+Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
+	opacity: 0.2, maxNativeZoom: 15,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 16,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 2 ] = L.tileLayer('https://gbank.gsj.jp/seamless/v2/api/1.2.1/tiles/{z}/{y}/{x}.png?layer=glfs', {
+	opacity: 0.4, maxNativeZoom: 13,
+	attribution: '日本シームレス地質図V2: GSJ/AIST'
+});
+Overlay_Map[ 3 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	opacity: 0.2,
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+Overlay_Map[ 4 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：洪水浸水想定区域（想定最大規模）'
+});
+Overlay_Map[ 5 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 17,
+	attribution: '国土地理院：浸水継続時間（想定最大規模）'
+});
+Overlay_Map[ 6 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：高潮浸水想定区域'
+});
+Overlay_Map[ 7 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：津波浸水想定'
+});
+Overlay_Map[ 8 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（土石流）'
+});
+Overlay_Map[ 9 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（急傾斜地の崩壊）'
+});
+Overlay_Map[ 10 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
+});
+var overlay = {
+	'国土地理院 色別標高図': Overlay_Map[ 0 ],
+	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
+	'産総研 地質図': Overlay_Map[ 2 ],
+	'Esri 衛星画像': Overlay_Map[ 3 ],
+	'ハザードマップ 洪水浸水想定区域': Overlay_Map[ 4 ],
+	'ハザードマップ 浸水継続時間': Overlay_Map[ 5 ],
+	'ハザードマップ 高潮浸水想定区域': Overlay_Map[ 6 ],
+	'ハザードマップ 津波浸水想定': Overlay_Map[ 7 ],
+	'ハザードマップ 土石流': Overlay_Map[ 8 ],
+	'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 9 ],
+	'ハザードマップ 地すべり': Overlay_Map[ 10 ]
+};
+L.control.layers(baseMap, overlay).addTo(map);
+// 雨雲レーダー		// ### onMapClick()をオフに
+L.control.rainviewer({ 
+	position: 'topright',
+	nextButtonText: '>',
+	playStopButtonText: '開始/停止',
+	prevButtonText: '<',
+	positionSliderLabelText: '時間',
+	opacitySliderLabelText: '透明度',
+	animationInterval: 500,
+	opacity: 0.5
+}).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+/*
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+*/
+L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表示ボタン
+	currentWatchReset();
+	currentWatch();
+}).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	currentWatchReset();
+}).addTo(map);
+// クリックした地点の緯度・経度、標高を表示
+// ↓↓↓ 雨雲レーダー（L.control.rainviewer()）クリックでonMapClick()が反応してしまうので、コメントアウト。
+// map.on('click', onMapClick);
+var clickMarker = null;
+function onMapClick(e) {
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	// 地理院地図サーバから標高を求める
+	// http://maps.gsi.go.jp/development/elevation_s.html
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+/* ========================================
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open("GET", src, false);
+	req.send(null)
+======================================== */
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+		// 日本シームレス地質図V2
+		// https://gbank.gsj.jp/seamless/v2/api/1.2.1/
+		var src = 'https://gbank.gsj.jp/seamless/v2/api/1.2.1/legend.json?point=' + e.latlng.lat + ',' + e.latlng.lng;
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var data = JSON.parse(text);
+			var titulo = data.title;
+			popStr += '<br>地質：' + titulo;
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		})
+	})
+}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
+}
+var currentWatch_on = false;
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+	//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
+		if (curMarker) {
+			map.removeLayer(curMarker);
+		}
+		var curIcon = L.icon({
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。' + err.message);
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	currentWatch_on = false;
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+</script>
+</body>
+</html>
