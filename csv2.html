@@ -21,7 +21,7 @@
 <body>
 <div id="container"><div id="map"></div></div>
 <script>
-//	https://........./geo.html?csv=xxx/xxx.csv
+//	https://........./csv2.html?csv=xxx/xxx.csv
 let arg = new Object;
 let pair = location.search.substring(1).split('&');
 for (var i=0; pair[i]; i++) {
@@ -59,26 +59,10 @@ function csv2map(csv) {
 	for (var i=0; i<line.length; ++i) {
 		data = line[i].split(',');
 		if (data.length > 2) {
-			var memo = '<b>代表銘柄：' + data[5] + '</b><br>' + data[10];
-			place.push([data[0], data[1], data[2], data[4], memo]);
+			place.push([data[0], data[1], data[2]]);
 		}
 	}
-	place2map(place, false, true);	// place[0] = ['地名', 緯度, 経度, URL, 補足メモ]; 3番目引数true: URL有り
-}
-function addrSearch(address) {
-	// 国土地理院のジオコーダー利用
-	var result = $.ajax({
-		type: 'GET',
-		url: 'https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + address,
-		async: false	// *** 同期通信 ***
-	}).responseText;
-	return result;
-}
-function getLatLng(name, address) {
-	var json = addrSearch(address);
-	var res = JSON.parse(json);
-	var latlng = res[0].geometry.coordinates;
-	return [name, latlng[1], latlng[0]];
+	place2map(place, false, true);	// place[0] = ['地名', 緯度, 経度,];
 }
 </script>
 </body>
