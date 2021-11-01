@@ -19,7 +19,7 @@
     <Folder>
       <name>無題のレイヤ</name>
       <Placemark>
-        <name>高平ナナマツの森</name>
+        <name>高平ナナマツの森　あずまや</name>
         <styleUrl>#icon-1899-FF5252-labelson-nodesc</styleUrl>
         <Point>
           <coordinates>
@@ -42,6 +42,15 @@
         <Point>
           <coordinates>
             135.254917144775,34.9424653009587,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>水辺の広場</name>
+        <styleUrl>#icon-1899-FF5252-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            135.2615806,34.9449461,0
           </coordinates>
         </Point>
       </Placemark>
