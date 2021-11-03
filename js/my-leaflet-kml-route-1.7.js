@@ -33,7 +33,7 @@ function kml2map(kmlStr) {
 	var kml = parser.parseFromString(kmlStr, 'text/xml');
 	var elements = kml.getElementsByTagName('Placemark');
 	// ---------------------------------------------------
-	for (var i=0; i<(elements.length-1); i++) {
+	for (var i=0; i<(elements.length); i++) {
 		let pos = kmlParse(elements.item(i));
 		var divIcon = L.divIcon({
 			html: '<div class="divicon">' + pos['name'] + '</div>',

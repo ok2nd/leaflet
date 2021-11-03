@@ -35,7 +35,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 //	var preTime = 0;
 	var pointCnt = 0;
 	map = L.map('map');
-	for (var i=0; i<(elements.length-1); i++) {
+	for (var i=0; i<(elements.length); i++) {
 		let pos = gpxParse(elements.item(i));
 		if (i == 0) {
 			var startTime = pos['time'].getTime();

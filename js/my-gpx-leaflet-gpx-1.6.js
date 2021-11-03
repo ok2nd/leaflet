@@ -186,7 +186,7 @@ function gps_map(gpxFile) {
 	var height_max = -10000;
 	var height_min = 10000;
 	var chartEle = [];
-	for (var i=0; i<(elements.length-1); i++) {
+	for (var i=0; i<(elements.length); i++) {
 		let pos = gpxParse(elements.item(i));
 		if (i > 0) {
 			let before = gpxParse(elements.item(i-1));
