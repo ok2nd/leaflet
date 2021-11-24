@@ -102,12 +102,14 @@ function gpx2map(gpxFileStr, resetBtn=false) {
 	map.on('click', onMapClick);	// クリックした地点の緯度・経度、標高を表示
 	return 0;
 }
+var gpx_cnt = 0;
 function gpx2polyline(gpxStr) {
 	var routeLatLng = [];
 	var parser = new DOMParser();
 	var gpx = parser.parseFromString(gpxStr, 'text/xml');
 	var elements = gpx.getElementsByTagName('trkpt');
 	// ---------------------------------------------------
+	var line_color = ['#3B83CC', '#FF8C00', '#008000', '#7B68EE', '#FF69B4', '#4169E1', '#FF4500', '#00CED1', '#DDA0DD', '#808000' ];
 	var distTotal = 0;
 	var before = {};
 	var height_max = -10000;
@@ -135,8 +137,44 @@ function gpx2polyline(gpxStr) {
 			pointCnt++;
 		}
 	}
+	L.polyline(routeLatLng, {color: line_color[gpx_cnt], weight: 5}).addTo(map);
+	if (gpx_cnt++ > 8) {
+		gpx_cnt = 0;
+	}
 	// ---------------------------------------------------
-	L.polyline(routeLatLng, {color: '#3B83CC', weight: 5}).addTo(map);
+	var iconStart = L.icon({
+		iconUrl: 'icon/ltblue-dot.png',
+		iconRetinaUrl: 'icon/ltblue-dot.png',
+		iconSize: [32, 32],
+		iconAnchor: [16, 30],
+		popupAnchor: [1, -22],
+	});
+	var iconEnd = L.icon({
+		iconUrl: 'icon/red-dot.png',
+		iconRetinaUrl: 'icon/red-dot.png',
+		iconSize: [32, 32],
+		iconAnchor: [16, 30],
+		popupAnchor: [1, -22],
+	});
+	// ---------------------------------------------------
+	var startPoint = elements.item(0);
+	var endPoint = elements.item(elements.length-1);
+	// ---------------------------------------------------
+	var start = gpxParse(startPoint);
+	posStr1 = '<span class="panel"><strong>【 開始地点 】</strong><br>'
+		+ start['dateStr'] + ' ' + start['timeStr'] + '<br>'
+		+ '緯度：' + start['lat'] + '<br>'
+		+ '経度：' + start['lon'] + '<br>'
+		+ '標高：' + start['ele'] + ' m</span>';
+	L.marker([start['lat'], start['lon'] ], {icon: iconStart}).addTo(map).bindPopup(posStr1);
+	// ---------------------------------------------------
+	var end = gpxParse(endPoint);
+	posStr2 = '<span class="panel"><strong>【 終了地点 】</strong><br>'
+		+ end['dateStr'] + ' ' + end['timeStr'] + '<br>'
+		+ '緯度：' + end['lat'] + '<br>'
+		+ '経度：' + end['lon'] + '<br>'
+		+ '標高：' + end['ele'] + ' m</span>';
+	L.marker([end['lat'], end['lon'] ], {icon: iconEnd}).addTo(map).bindPopup(posStr2);
 	map.fitBounds(routeLatLngAll);
 }
 function onMapClick(e) {
@@ -274,104 +312,6 @@ function timeLavel(lat, lon, time) {
 	});
 	L.marker([lat, lon], {icon: timeLavel}).addTo(map);
 }
-function time2str(time) {
-	var timeHour = time / (1000 * 60 * 60);
-	var timeMinute = (timeHour - Math.floor(timeHour)) * 60;
-	var timeSecond = (timeMinute - Math.floor(timeMinute)) * 60;
-	return ('00' + Math.floor(timeHour)).slice(-2) + ':' + ('00' + Math.floor(timeMinute)).slice(-2) + ':' + ('00' + Math.round(timeSecond)).slice(-2);
-}
-function chartView(chartEle, subtitle) {
-chart = new Highcharts.Chart({
-	chart: {
-		renderTo: 'chart',
-		zoomType: 'xy'
-	},
-	title: {
-		text: '標高 グラフ',
-		style: {
-			fontWeight: 'bold'
-		}
-	},
-	subtitle: {
-		text: subtitle
-	},
-	xAxis: {
-		type: 'datetime'
-	},
-	yAxis: [{ // Primary yAxis
-		title: {
-			text: '標高',
-			style: {
-				color: '#89A54E'
-			}
-		},
-		labels: {
-			formatter: function() {
-				return this.value +' m';
-			},
-			style: {
-				color: '#89A54E'
-			}
-		}
-	}],
-	tooltip: {
-		formatter: function() {
-			var dt = Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x);
-			var unit = {
-				'標高': 'm'
-			}[this.series.name];
-			return '<b>' + dt +'</b><br><b>'+ this.y + '</b> ' + unit;
-		}
-	},
-	legend: {
-		layout: 'vertical',
-		align: 'left',
-		verticalAlign: 'top',
-		floating: true,
-		backgroundColor: '#FFFFFF'
-	},
-	plotOptions: {
-		area: {
-			fillColor: {
-				linearGradient: {x1:0, y1:0, x2:0, y2:1},
-				stops: [
-					[0, '#89A54E'],
-					[1, 'rgba(0,30,0,0)']
-				]
-			},
-			lineWidth: 1,
-			marker: {
-				enabled: false,
-				states: {
-					hover: {
-						enabled: true,
-						radius: 5
-					}
-				}
-			},
-			shadow: false,
-			states: {
-				hover: {
-					lineWidth: 1
-				}
-			},
-			threshold: null
-		},
-		spline: {
-			lineWidth: 1,
-			marker: {
-				enabled: false,
-			}
-		}
-	},
-	series: [{
-		name: '標高',
-		color: '#89A54E',
-		type: 'area',
-		data: chartEle
-	}]
-});
-}
 function winResize() {
 	let h = document.documentElement.clientHeight;
 	if (chartFlag) {
@@ -379,16 +319,4 @@ function winResize() {
 	} else {
 		document.getElementById('map').style.height = parseInt(h) - 2 + 'px';
 	}
-}
-function chartOff() {
-	let h = document.documentElement.clientHeight;
-	document.getElementById('map').style.height = parseInt(h) - 2 + 'px';
-	document.getElementById('chart').style.display = 'none';
-	chartFlag = false;
-}
-function chartOn() {
-	let h = document.documentElement.clientHeight;
-	document.getElementById('map').style.height = parseInt(h) - 240 + 'px';
-	document.getElementById('chart').style.display = 'block';
-	chartFlag = true;
 }
