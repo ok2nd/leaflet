@@ -126,8 +126,8 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		currentWatchReset();
 	}).addTo(map);
 	L.easyButton('fa fa-reply-all', function(btn, easyMap) {	// マーカーすべて表示画面に戻るボタン
-		document.getElementById('panelInfo').style.display = "block";	// パネル表示
 		currentWatchReset();
+		document.getElementById('panelInfo').style.display = "block";	// パネル表示
 		if (currentWatchBtn) {
 			currentWatchBtn.state('current-watch');
 			currentWatchBtn = null;
