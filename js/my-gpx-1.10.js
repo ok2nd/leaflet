@@ -126,6 +126,7 @@ function gpx2map(gpxStr, resetBtn=false) {
 		currentWatchReset();
 	}).addTo(map);
 	L.easyButton('fa fa-reply-all', function(btn, easyMap) {	// マーカーすべて表示画面に戻るボタン
+		document.getElementById('panelInfo').style.display = "block";	// パネル表示
 		currentWatchReset();
 		if (currentWatchBtn) {
 			currentWatchBtn.state('current-watch');
@@ -294,7 +295,6 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
-	document.getElementById('panelInfo').style.display = "block";	// パネル非表示
 	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
