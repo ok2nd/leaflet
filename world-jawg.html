@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>世界地図：Jawg Maps</title>
+<title>世界地図：Jawg Maps ＋ 雨雲</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; right:0; left:0; }
 </style>
+<script src="//code.jquery.com/jquery-3.5.1.js"></script>
 </head>
 <body>
 <div class="container"><div id="map"></div></div>
@@ -67,7 +68,27 @@ var baseMap = {
 	"Esri World Topo Map": Esri_World_Topo_Map,
 	"Google Map": GoogleMap
 };
-L.control.layers(baseMap).addTo(map);
+// ---------------
+let json = getRainViewer();
+let results = JSON.parse(json);
+let time = results[results.length - 1];
+var RainViewer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + time + '/256/{z}/{x}/{y}/2/1_1.png', {
+	opacity: 0.5,
+	attribution: 'Contains public sector information licensed under the Open Government Licence | Radar By <a target="_top" rel="noopener" href="https://jmwforecast.com">JMWForecast Limited</a>'
+});
+var overlay = {
+	"RainViewer 雨雲": RainViewer
+};
+// ---------------
+L.control.layers(baseMap, overlay).addTo(map);
+function getRainViewer(address) {
+	var result = $.ajax({
+		type: 'GET',
+		url: 'https://tilecache.rainviewer.com/api/maps.json',
+		async: false	// *** 同期通信 ***
+	}).responseText;
+	return result;
+}
 </script>
 </body>
 </html>
