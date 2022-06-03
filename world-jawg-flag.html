@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界地図：Jawg Maps ＋ 雨雲 ＋ 国旗</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.country {
+	font-weight: bold;
+}
+.display_name {
+	color: #222;
+}
+</style>
+<script src="//code.jquery.com/jquery-3.5.1.js"></script>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+map.setView([49, 26], 4);
+// ------- layers --------
+var Jawg_Streets = L.tileLayer('https://{s}.tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+Jawg_Streets.addTo(map);
+var Jawg_Terrain = L.tileLayer('https://{s}.tile.jawg.io/jawg-terrain/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Jawg_Sunny = L.tileLayer('https://{s}.tile.jawg.io/jawg-sunny/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Jawg_Light = L.tileLayer('https://{s}.tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Esri_World_Topo_Map = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/">Esri Japan</a>'
+});
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+// ---------------
+var baseMap = {
+	"Jawg.Streets": Jawg_Streets,
+	"Jawg.Terrain": Jawg_Terrain,
+	"Jawg.Sunny": Jawg_Sunny,
+	"Jawg.Light": Jawg_Light,
+	"OpenStreetMap": OpenStreetMap,
+	"Esri World Topo Map": Esri_World_Topo_Map,
+	"Google Map": GoogleMap
+};
+// ---------------
+let json = getRainViewer();
+let results = JSON.parse(json);
+let time = results[results.length - 1];
+var RainViewer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + time + '/256/{z}/{x}/{y}/2/1_1.png', {
+	opacity: 0.5,
+	attribution: 'Contains public sector information licensed under the Open Government Licence | Radar By <a target="_top" rel="noopener" href="https://jmwforecast.com">JMWForecast Limited</a>'
+});
+var overlay = {
+	"RainViewer 雨雲": RainViewer
+};
+// ---------------
+L.control.layers(baseMap, overlay).addTo(map);
+// ---------------
+map.on('click', onMapClick);
+var posMarker = null;
+function onMapClick(e) {
+	posMarkerRemove();
+	var lat = e.latlng.lat;
+	var lng = e.latlng.lng;
+	// 緯度経度から国名検索：逆ジオコーディング「Reverse - Nominatim」使用
+	var src = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var worldFlags = L.icon({
+			iconUrl: 'worldflags/' + results.address.country_code + '.png', 
+			iconSize: [40, 40],
+			iconAnchor: [20, 42],
+			popupAnchor: [0, -40],
+		});
+		var popStr = '<span class="country">' + results.address.country + '</span><br>';
+		popStr += '<span class="display_name">' + results.display_name + '</span>';
+		posMarker = L.marker(e.latlng, { icon: worldFlags }).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+	})
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+// ---------------
+function getRainViewer(address) {
+	var result = $.ajax({
+		type: 'GET',
+		url: 'https://tilecache.rainviewer.com/api/maps.json',
+		async: false	// *** 同期通信 ***
+	}).responseText;
+	return result;
+}
+</script>
+</body>
+</html>
