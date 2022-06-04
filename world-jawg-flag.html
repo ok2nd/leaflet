@@ -14,7 +14,10 @@ body { margin:0; padding:0; }
 	font-weight: bold;
 }
 .display_name {
-	color: #222;
+	color: #111;
+}
+.lat_lng {
+	color: #444;
 }
 </style>
 <script src="//code.jquery.com/jquery-3.5.1.js"></script>
@@ -94,6 +97,9 @@ function onMapClick(e) {
 	posMarkerRemove();
 	var lat = e.latlng.lat;
 	var lng = e.latlng.lng;
+	if (lng > 180) {
+		lng -= 360;	// 補正
+	}
 	// 緯度経度から国名検索：逆ジオコーディング「Reverse - Nominatim」使用
 	var src = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng;
 	fetch(src)
@@ -102,14 +108,23 @@ function onMapClick(e) {
 	})
 	.then((text) => {
 		var results = JSON.parse(text);
+/*
 		var worldFlags = L.icon({
-			iconUrl: 'worldflags/' + results.address.country_code + '.png', 
+			iconUrl: 'worldflags/40px/' + results.address.country_code + '.png', 
 			iconSize: [40, 40],
 			iconAnchor: [20, 42],
 			popupAnchor: [0, -40],
 		});
+*/
+		var worldFlags = L.icon({
+			iconUrl: 'worldflags/80px/' + results.address.country_code + '.png', 
+			iconSize: [80, 80],
+			iconAnchor: [40, 48],
+			popupAnchor: [0, -40],
+		});
 		var popStr = '<span class="country">' + results.address.country + '</span><br>';
-		popStr += '<span class="display_name">' + results.display_name + '</span>';
+		popStr += '<span class="display_name">' + results.display_name + '</span><br>';
+		popStr += '<span class="lat_lng">緯度:' + (Math.round(lat * 10000) / 10000) + ' 経度:' + (Math.round(lng * 10000) / 10000) + '</span>';
 		posMarker = L.marker(e.latlng, { icon: worldFlags }).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
 	})
 }
