@@ -171,7 +171,7 @@ console.log(data[0] + ' ' + data[7] + ' ' + data[8]);
 			popStr += '<span class="country">' + data[1] + '</span><br>';
 			popStr += '<span class="capital">' + data[3] + '</span><br>';
 			popStr += '<span class="lat_lng">緯度:' + data[7] + ' 経度:' + data[8] + '</span>';
-			posMarker = L.marker([data[7], data[8]], { icon: worldFlag }).addTo(map).bindPopup(popStr).openPopup();
+			L.marker([data[7], data[8]], { icon: worldFlag }).addTo(map).bindPopup(popStr).openPopup();
 		}
 	}
 }
