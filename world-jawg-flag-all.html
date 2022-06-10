@@ -74,6 +74,10 @@ var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.
 var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
 });
+var GoogleMapSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+	subdomains: ['mt0','mt1','mt2','mt3'],
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>",
+});
 // ---------------
 var baseMap = {
 	"Jawg.Streets": Jawg_Streets,
@@ -82,7 +86,8 @@ var baseMap = {
 	"Jawg.Light": Jawg_Light,
 	"OpenStreetMap": OpenStreetMap,
 	"Esri World Topo Map": Esri_World_Topo_Map,
-	"Google Map": GoogleMap
+	"Google Map": GoogleMap,
+	"Google Map Satellite": GoogleMapSatellite
 };
 // ---------------
 let json = getRainViewer();
