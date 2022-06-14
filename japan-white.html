@@ -27,11 +27,23 @@ body { margin:0; padding:0; }
 <div class="container"><div id="map"></div></div>
 <script>
 var map = L.map('map');
-var tileLayer = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', {
+var ChiriinWhiteMap = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', {
 	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
 });
-tileLayer.addTo(map);
-//map.setView([35, 136], 5);
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+var baseMap = {
+	"白地図": ChiriinWhiteMap,
+	"OpenStreetMap": OpenStreetMap,
+	"Google Map": GoogleMap
+};
+ChiriinWhiteMap.addTo(map);
+L.control.layers(baseMap).addTo(map);
 map.setView([37, 137], 6);
 var todofuken = {
 	1:'北海道',
