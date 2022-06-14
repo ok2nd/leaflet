@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日本白地図：Leaflet</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.kenmei {
+	font-size: 16px;
+	font-weight: bold;
+	color: #00b;
+}
+</style>
+<script src="js/prefs.js"></script>
+<!-- Font Awesome アイコン -->
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<!-- メニューボタン（現在地表示、マーカーすべて表示） -->
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var tileLayer = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+tileLayer.addTo(map);
+//map.setView([35, 136], 5);
+map.setView([37, 137], 6);
+var todofuken = {
+	1:'北海道',
+	2:'青森県',
+	3:'岩手県',
+	4:'宮城県',
+	5:'秋田県',
+	6:'山形県',
+	7:'福島県',
+	8:'茨城県',
+	9:'栃木県',
+	10:'群馬県',
+	11:'埼玉県',
+	12:'千葉県',
+	13:'東京都',
+	14:'神奈川県',
+	15:'新潟県',
+	16:'富山県',
+	17:'石川県',
+	18:'福井県',
+	19:'山梨県',
+	20:'長野県',
+	21:'岐阜県',
+	22:'静岡県',
+	23:'愛知県',
+	24:'三重県',
+	25:'滋賀県',
+	26:'京都府',
+	27:'大阪府',
+	28:'兵庫県',
+	29:'奈良県',
+	30:'和歌山県',
+	31:'鳥取県',
+	32:'島根県',
+	33:'岡山県',
+	34:'広島県',
+	35:'山口県',
+	36:'徳島県',
+	37:'香川県',
+	38:'愛媛県',
+	39:'高知県',
+	40:'福岡県',
+	41:'佐賀県',
+	42:'長崎県',
+	43:'熊本県',
+	44:'大分県',
+	45:'宮崎県',
+	46:'鹿児島県',
+	47:'沖縄県'
+}
+map.on('click', onMapClick);
+var posMarker = null;
+function onMapClick(e) {
+	posMarkerRemove();
+	var lat = e.latlng.lat;
+	var lng = e.latlng.lng;
+	if (map.getZoom() < 9) {
+		// 地理院地図サーバから逆ジオコーディングで都道府県を調べる
+		var src = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=' + lat + '&lon=' + lng;
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var results = JSON.parse(text);
+			var kenCode = Number(results.results.muniCd.substr(0,2));	// 都道府県コード
+			var popStr = '<span class="kenmei">' + todofuken[kenCode] + '</span>';
+		//	popStr += '<br><span class="">' + results.results.lv01Nm + '</span>';
+			posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+		})
+	} else {
+		// 逆ジオコーディング「Reverse - Nominatim」使用
+		var src = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng;
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var results = JSON.parse(text);
+			var popStr = '<span class="display_name">' + results.display_name + '</span><br>';
+			popStr += '<span class="lat_lng">緯度:' + (Math.round(lat * 10000) / 10000) + ' 経度:' + (Math.round(lng * 10000) / 10000) + '</span>';
+			posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+		})
+	}
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+L.easyButton({		// 現在地表示ボタン
+	states: [{
+		stateName: 'current-watch',
+		icon:	'fas fa-map-marker-alt',
+		title:	 '現在地',
+		onClick: function(btn, map) {
+			currentWatch();
+			btn.state('current-watch-reset');
+			currentWatchBtn = btn;
+		}
+	}, {
+		stateName: 'current-watch-reset',
+		icon:	'fa fa-user',
+		title:	 '現在地オフ',
+		onClick: function(btn, map) {
+			currentWatchReset();
+			btn.state('current-watch');
+		}
+	}]
+}).addTo( map );
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+		map.setView([ lat,lng ]);
+		// 現在地に表示するマーカー
+		if (curMarker) {
+			map.removeLayer(curMarker);
+		}
+		var curIcon = L.icon({	/* アイコン */
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。');
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+</script>
+</body>
+</html>
