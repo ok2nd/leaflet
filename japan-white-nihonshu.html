@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日本酒生産量（白地図＋Google Chart版）</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.kenmei {
+	font-size: 16px;
+	font-weight: bold;
+	color: #00b;
+}
+.seisanryo {
+	color: #f00;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+var ChiriinWhiteMap = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+var baseMap = {
+	"白地図": ChiriinWhiteMap,
+	"OpenStreetMap": OpenStreetMap,
+	"Google Map": GoogleMap
+};
+ChiriinWhiteMap.addTo(map);
+L.control.layers(baseMap).addTo(map);
+// -------------------------------------------
+var todofuken = [
+// 都道府県 中央？
+	['',0,0],	// ダミー
+	['北海道',42.66628070564928,140.86669921875003],
+	['青森県',40.6723059714534,140.51513671875003],
+	['岩手県',39.554883059924016,141.02600097656253],
+	['宮城県',38.17343267903542,140.78979492187503],
+	['秋田県',39.470125122358176,140.20751953125003],
+	['山形県',38.440682264173894,139.97131347656253],
+	['福島県',37.28716518793858,139.88891601562503],
+	['茨城県',36.07574221562703,140.19104003906253],
+	['栃木県',36.672824886786564,139.65820312500003],
+	['群馬県',36.421282443649496,138.81225585937503],
+	['埼玉県',35.88014896488361,139.28466796875003],
+	['千葉県',35.31736632923788,140.13061523437503],
+	['東京都',35.62158189955968,139.33410644531253],
+	['神奈川県',35.38457160381764,139.12811279296878],
+	['新潟県',37.47921744485059,138.87817382812503],
+	['富山県',36.474306755095235,137.07092285156253],
+	['石川県',36.30627216957992,136.47216796875003],
+	['福井県',35.88459964717596,136.21948242187503],
+	['山梨県',35.563512051219696,138.51013183593753],
+	['長野県',36.08018188118015,137.82348632812503],
+	['岐阜県',35.572448615622804,136.82373046875003],
+	['静岡県',34.84536693184101,137.99377441406253],
+	['愛知県',34.903952965590065,137.12036132812503],
+	['三重県',34.35250666867596,136.43371582031253],
+	['滋賀県',35.043489514314686,136.03820800781253],
+	['京都県',35.15584570226544,135.45043945312503],
+	['大阪府',34.53371242139567,135.46142578125003],
+	['兵庫県',34.912962495216966,134.69238281250003],
+	['奈良県',34.17090836352573,135.84045410156253],
+	['和歌山県',33.760882000869195,135.40100097656253],
+	['鳥取県',35.40696093270201,133.72558593750003],
+	['島根県',34.962497232449145,132.28088378906253],
+	['岡山県',34.77771580360469,133.59375000000003],
+	['広島県',34.38877925439021,132.57202148437503],
+	['山口県',34.102707993174874,131.41571044921878],
+	['徳島県',33.81110228864701,134.15405273437503],
+	['香川県',34.17772537282446,133.95629882812503],
+	['愛媛県',33.5665726400041,132.58575439453128],
+	['高知県',33.44977658311846,133.38500976562503],
+	['福岡県',33.502468829034314,130.50384521484378],
+	['佐賀県',33.128351191631566,130.06988525390628],
+	['長崎県',32.76649095995108,129.84741210937503],
+	['熊本県',32.43561304116276,130.64392089843753],
+	['大分県',32.983324091837474,131.46789550781253],
+	['宮崎県',32.01739159980399,131.23443603515628],
+	['鹿児島県',31.55981453201843,130.50384521484378],
+	['沖縄県',26.369724677109755,127.8204345703125]
+];
+// 都道府県番号:日本酒生産量（kl）/ 2020年
+var fukenValue = {
+	1:3487,
+	2:3145,
+	3:2833,
+	4:5420,
+	5:12589,
+	6:7256,
+	7:8587,
+	8:2595,
+	9:6164,
+	10:2234,
+	11:15189,
+	12:6372,
+	13:1275,
+	14:778,
+	15:28693,
+	16:3805,
+	17:4091,
+	18:2592,
+	19:7737,
+	20:6455,
+	21:3403,
+	22:3125,
+	23:9799,
+	24:1900,
+	25:2954,
+	26:59975,
+	27:688,
+	28:93599,
+	29:2672,
+	30:1732,
+	31:587,
+	32:1420,
+	33:1747,
+	34:5747,
+	35:5493,
+	36:291,
+	37:782,
+	38:1221,
+	39:3853,
+	40:2613,
+	41:2108,
+	42:741,
+	43:703,
+	44:1887,
+	45:0,
+	46:0,
+	47:0
+};
+var maxvalue = 93599;	// 兵庫
+for (var ix = 1; ix <= 47; ix++) {
+	var value = fukenValue[ix];
+	var barData = Math.ceil(value / maxvalue * 100);	// 最大:100
+	var chartSize = barData * 3;				// 最大:300
+	var chartIcon = L.icon({
+		// *** Google Charts API ***
+		//	chs=60x300		サイズ
+		//	cht=bvg			棒グラフ
+		//	chco=00A5C6		色
+		//	chf=bg,s,ffffff00	背景透過（ffffff00）
+		//	chd=t:100		データ（最大:100）
+		//	chl=兵庫		ラベル
+	//	iconUrl: 'https://chart.apis.google.com/chart?chs=60x300&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:' + barData + '&chl=' + todofuken[ix][0],
+	//	iconUrl: 'https://chart.apis.google.com/chart?chs=60x300&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:' + barData,
+	//	iconSize: [60, 300],
+		iconUrl: 'https://chart.apis.google.com/chart?chs=60x' + chartSize + '&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:100',
+		iconSize: [60, chartSize],
+		iconAnchor: [0, chartSize],
+		popupAnchor: [0, -20],
+	});
+	var popStr = '<span class="kenmei">' + todofuken[ix][0] + '</span><br>';
+	popStr += '日本酒生産量（2020年）<br>';
+	popStr += '<span class="seisanryo">' + fukenValue[ix] + '</span> キロリットル<br>';
+//	L.marker([todofuken[ix][1], todofuken[ix][2]], { icon: chartIcon }).addTo(map).bindPopup(popStr).openPopup();
+	L.marker([todofuken[ix][1], todofuken[ix][2]], { icon: chartIcon }).addTo(map);
+}
+map.setView([37, 137], 6);
+map.on('click', onMapClick);
+var posMarker = null;
+function onMapClick(e) {
+	posMarkerRemove();
+	var lat = e.latlng.lat;
+	var lng = e.latlng.lng;
+	// 地理院地図サーバから逆ジオコーディングで都道府県を調べる
+	var src = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=' + lat + '&lon=' + lng;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var kenCode = Number(results.results.muniCd.substr(0,2));	// 都道府県コード
+		var popStr = '<span class="kenmei">' + todofuken[kenCode][0] + '</span><br>';
+		popStr += '日本酒生産量（2020年）<br>';
+		popStr += '<span class="seisanryo">' + fukenValue[kenCode].toLocaleString() + '</span> キロリットル';
+		popStr += '<br>' + lat + ',' + lng;
+		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+	})
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+</script>
+</body>
+</html>
