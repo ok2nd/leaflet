@@ -149,27 +149,29 @@ for (var ix = 1; ix <= 47; ix++) {
 	var value = fukenValue[ix];
 	var barData = Math.ceil(value / maxvalue * 100);	// 最大:100
 	var chartSize = barData * 3;				// 最大:300
-	var chartIcon = L.icon({
-		// *** Google Charts API ***
-		//	chs=60x300		サイズ
-		//	cht=bvg			棒グラフ
-		//	chco=00A5C6		色
-		//	chf=bg,s,ffffff00	背景透過（ffffff00）
-		//	chd=t:100		データ（最大:100）
-		//	chl=兵庫		ラベル
-	//	iconUrl: 'https://chart.apis.google.com/chart?chs=60x300&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:' + barData + '&chl=' + todofuken[ix][0],
-	//	iconUrl: 'https://chart.apis.google.com/chart?chs=60x300&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:' + barData,
-	//	iconSize: [60, 300],
-		iconUrl: 'https://chart.apis.google.com/chart?chs=60x' + chartSize + '&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:100',
-		iconSize: [60, chartSize],
-		iconAnchor: [0, chartSize],
-		popupAnchor: [0, -20],
-	});
-	var popStr = '<span class="kenmei">' + todofuken[ix][0] + '</span><br>';
-	popStr += '日本酒生産量（2020年）<br>';
-	popStr += '<span class="seisanryo">' + fukenValue[ix] + '</span> キロリットル<br>';
-//	L.marker([todofuken[ix][1], todofuken[ix][2]], { icon: chartIcon }).addTo(map).bindPopup(popStr).openPopup();
-	L.marker([todofuken[ix][1], todofuken[ix][2]], { icon: chartIcon }).addTo(map);
+	if (chartSize > 0) {
+		var chartIcon = L.icon({
+			// *** Google Charts API ***
+			//	chs=60x300		サイズ
+			//	cht=bvg			棒グラフ
+			//	chco=00A5C6		色
+			//	chf=bg,s,ffffff00	背景透過（ffffff00）
+			//	chd=t:100		データ（最大:100）
+			//	chl=兵庫		ラベル
+		//	iconUrl: 'https://chart.apis.google.com/chart?chs=60x300&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:' + barData + '&chl=' + todofuken[ix][0],
+		//	iconUrl: 'https://chart.apis.google.com/chart?chs=60x300&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:' + barData,
+		//	iconSize: [60, 300],
+			iconUrl: 'https://chart.apis.google.com/chart?chs=60x' + chartSize + '&cht=bvg&chco=00A5C6&chf=bg,s,ffffff00&chd=t:100',
+			iconSize: [60, chartSize],
+			iconAnchor: [0, chartSize],
+			popupAnchor: [0, -20]
+		});
+		var popStr = '<span class="kenmei">' + todofuken[ix][0] + '</span><br>';
+		popStr += '日本酒生産量（2020年）<br>';
+		popStr += '<span class="seisanryo">' + fukenValue[ix] + '</span> キロリットル<br>';
+	//	L.marker([todofuken[ix][1], todofuken[ix][2]], { icon: chartIcon }).addTo(map).bindPopup(popStr).openPopup();
+		L.marker([todofuken[ix][1], todofuken[ix][2]], { icon: chartIcon }).addTo(map);
+	}
 }
 map.setView([37, 137], 6);
 map.on('click', onMapClick);
