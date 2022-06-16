@@ -115,9 +115,9 @@ fetch('csv/capital.csv')
 	map.setView([18, -10], 3);
 })
 function csv2map(csv) {
-	line = csv.split("\n");
+	var line = csv.split("\n");
 	for (var i=0; i<line.length; ++i) {
-		data = line[i].split('\t');
+		var data = line[i].split('\t');
 		if (data.length > 2) {
 /*
 			data[0]	country_code
@@ -136,7 +136,7 @@ function csv2map(csv) {
 			popStr += '<span class="country">' + data[1] + '</span><br>';
 			popStr += '<span class="capital">' + data[3] + '</span><br>';
 			popStr += '<span class="lat_lng">緯度:' + data[7] + ' 経度:' + data[8] + '</span>';
-			L.marker([data[7], data[8]], { icon: worldFlag }).addTo(map).bindPopup(popStr).openPopup();
+			L.marker([data[7], data[8]], { icon: worldFlag }).addTo(map).bindPopup(popStr);
 		}
 	}
 }
