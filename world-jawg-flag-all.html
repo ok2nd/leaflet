@@ -115,7 +115,6 @@ fetch('csv/capital.csv')
 	map.setView([18, -10], 3);
 })
 function csv2map(csv) {
-	var place = Array();
 	line = csv.split("\n");
 	for (var i=0; i<line.length; ++i) {
 		data = line[i].split('\t');
