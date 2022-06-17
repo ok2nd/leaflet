@@ -10,7 +10,7 @@
 <!--	https://amano-tec.com/data/world.html -->
 <!-- 宗教構成データは「Religious Composition by Country, 2010-2050 - Pew Research Center」（2020年を使用）-->
 <!--	https://www.pewresearch.org/religion/2015/04/02/religious-projection-table/ -->
-<title>世界地図：世界の国旗＋宗教構成</title>
+<title>世界地図：世界の国旗＋国別宗教構成</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <style>
@@ -133,7 +133,7 @@ function csv2array(csv) {
 			data[0] country_code
 			data[1] 国名
 			data[2] 人口
-				data[3] 100%
+			---	data[3] 100%
 			data[4] キリスト教
 			data[5] イスラム教
 			data[6] 無宗教
@@ -159,7 +159,7 @@ function marker2map() {
 	})
 	.then((text) => {
 		csv2map(text);
-		map.setView([18, -10], 3);
+		map.setView([30,10], 2);
 	})
 }
 function csv2map(csv) {
@@ -178,7 +178,7 @@ function csv2map(csv) {
 				iconUrl: 'worldflags/80px/' + data[0].toLowerCase() + '.png', 
 				iconSize: [80, 80],
 				iconAnchor: [40, 48],
-				popupAnchor: [0, -40],
+				popupAnchor: [0, -36],
 			});
 			var popStr = '<span class="country_code">' + data[0].toUpperCase() + '</span> ';
 			popStr += '<span class="country">' + data[1] + '</span><br>';
