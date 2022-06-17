@@ -180,11 +180,12 @@ function csv2map(csv) {
 				iconAnchor: [40, 48],
 				popupAnchor: [0, -36],
 			});
-			var popStr = '<span class="country_code">' + data[0].toUpperCase() + '</span> ';
+			var country_code = data[0].toUpperCase();
+			var popStr = '<span class="country_code">' + country_code + '</span> ';
 			popStr += '<span class="country">' + data[1] + '</span><br>';
 			popStr += '<span class="capital">' + data[3] + '</span><br>';
 			popStr += '<span class="lat_lng">緯度:' + data[7] + ' 経度:' + data[8] + '</span>';
-			if (country[data[0].toUpperCase()]) {
+			if (country[country_code]) {
 /*
 				country[0] 国名
 				country[1] 人口
@@ -197,15 +198,15 @@ function csv2map(csv) {
 				country[8] ユダヤ教
 				country[9] その他
 */
-				popStr += '<br>人口: <span class="population">' + Number(country[data[0].toUpperCase()] [1]).toLocaleString() + ' 人</span>';
-				popStr += '<br>キリスト教: <span class="religion">' + country[data[0].toUpperCase()] [2] + ' %</span>';
-				popStr += '<br>イスラム教: <span class="religion">' + country[data[0].toUpperCase()] [3] + ' %</span>';
-				popStr += '<br>無宗教: <span class="religion">' + country[data[0].toUpperCase()] [4] + ' %</span>';
-				popStr += '<br>ヒンズー教: <span class="religion">' + country[data[0].toUpperCase()] [5] + ' %</span>';
-				popStr += '<br>仏教: <span class="religion">' + country[data[0].toUpperCase()] [6] + ' %</span>';
-				popStr += '<br>民間信仰: <span class="religion">' + country[data[0].toUpperCase()] [7] + ' %</span>';
-				popStr += '<br>ユダヤ教: <span class="religion">' + country[data[0].toUpperCase()] [8] + ' %</span>';
-				popStr += '<br>その他: <span class="religion">' + country[data[0].toUpperCase()] [9] + ' %</span>';
+				popStr += '<br>人口: <span class="population">' + Number(country[country_code] [1]).toLocaleString() + ' 人</span>';
+				popStr += '<br>キリスト教: <span class="religion">' + country[country_code] [2] + ' %</span>';
+				popStr += '<br>イスラム教: <span class="religion">' + country[country_code] [3] + ' %</span>';
+				popStr += '<br>無宗教: <span class="religion">' + country[country_code] [4] + ' %</span>';
+				popStr += '<br>ヒンズー教: <span class="religion">' + country[country_code] [5] + ' %</span>';
+				popStr += '<br>仏教: <span class="religion">' + country[country_code] [6] + ' %</span>';
+				popStr += '<br>民間信仰: <span class="religion">' + country[country_code] [7] + ' %</span>';
+				popStr += '<br>ユダヤ教: <span class="religion">' + country[country_code] [8] + ' %</span>';
+				popStr += '<br>その他: <span class="religion">' + country[country_code] [9] + ' %</span>';
 			}
 			L.marker([data[7],data[8]],{icon:worldFlag}).addTo(map).bindPopup(popStr);
 		}
