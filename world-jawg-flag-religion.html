@@ -111,7 +111,7 @@ var overlay = {
 };
 L.control.layers(baseMap, overlay).addTo(map);
 // -----------------------------------
-fetch('csv/religion-country.csv')
+fetch('csv/religion-country.csv')		// 国別宗教構成データ
 .then((response) => {
 	if(response.ok) {
 		return response.text();
@@ -149,10 +149,10 @@ function csv2array(csv) {
 }
 // -----------------------------------
 function marker2map() {
-	fetch('csv/capital.csv')
+	fetch('csv/capital.csv')		// 世界の首都の緯度経度データ
 	.then((response) => {
-		if(response.ok) { // ステータスがokならば
-			return response.text(); // レスポンスをテキストとして変換する
+		if(response.ok) {
+			return response.text();
 		} else {
 			throw new Error();
 		}
@@ -197,16 +197,15 @@ function csv2map(csv) {
 				country[8] ユダヤ教
 				country[9] その他
 */
-				popStr += '<br><span class="">人口: <span class="population">' + Number(country[data[0].toUpperCase()] [1]).toLocaleString() + ' 人</span></span>';
-				popStr += '<br><span class="">キリスト教: <span class="religion">' + country[data[0].toUpperCase()] [2] + ' %</span></span>';
-				popStr += '<br><span class="">イスラム教: <span class="religion">' + country[data[0].toUpperCase()] [3] + ' %</span>';
-				popStr += '<br><span class="">無宗教: <span class="religion">' + country[data[0].toUpperCase()] [4] + ' %</span>';
-				popStr += '<br><span class="">ヒンズー教: <span class="religion">' + country[data[0].toUpperCase()] [5] + ' %</span>';
-				popStr += '<br><span class="">仏教: <span class="religion">' + country[data[0].toUpperCase()] [6] + ' %</span>';
-				popStr += '<br><span class="">民間信仰: <span class="religion">' + country[data[0].toUpperCase()] [7] + ' %</span>';
-				popStr += '<br><span class="">ユダヤ教: <span class="religion">' + country[data[0].toUpperCase()] [8] + ' %</span>';
-				popStr += '<br><span class="">その他: <span class="religion">' + country[data[0].toUpperCase()] [9] + ' %</span>';
-			} else {
+				popStr += '<br>人口: <span class="population">' + Number(country[data[0].toUpperCase()] [1]).toLocaleString() + ' 人</span>';
+				popStr += '<br>キリスト教: <span class="religion">' + country[data[0].toUpperCase()] [2] + ' %</span>';
+				popStr += '<br>イスラム教: <span class="religion">' + country[data[0].toUpperCase()] [3] + ' %</span>';
+				popStr += '<br>無宗教: <span class="religion">' + country[data[0].toUpperCase()] [4] + ' %</span>';
+				popStr += '<br>ヒンズー教: <span class="religion">' + country[data[0].toUpperCase()] [5] + ' %</span>';
+				popStr += '<br>仏教: <span class="religion">' + country[data[0].toUpperCase()] [6] + ' %</span>';
+				popStr += '<br>民間信仰: <span class="religion">' + country[data[0].toUpperCase()] [7] + ' %</span>';
+				popStr += '<br>ユダヤ教: <span class="religion">' + country[data[0].toUpperCase()] [8] + ' %</span>';
+				popStr += '<br>その他: <span class="religion">' + country[data[0].toUpperCase()] [9] + ' %</span>';
 			}
 			L.marker([data[7],data[8]],{icon:worldFlag}).addTo(map).bindPopup(popStr);
 		}
