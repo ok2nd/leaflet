@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 国旗アイコンは「ASTI アマノ技研」 の「National Flags of the World」を使用 -->
+<!--	https://amano-tec.com/data/worldflags.html -->
+<!-- 世界の首都の位置データは「ASTI アマノ技研」のデータを使用 -->
+<!--	https://amano-tec.com/data/world.html -->
+<!-- 宗教構成データは「Religious Composition by Country, 2010-2050 - Pew Research Center」（2020年を使用）-->
+<!--	https://www.pewresearch.org/religion/2015/04/02/religious-projection-table/ -->
+<title>世界地図：世界の国旗＋宗教構成</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.country_code {
+	color: red;
+}
+.country {
+	font-weight: bold;
+}
+.capital {
+	font-weight: bold;
+	color: #4169E1;
+}
+.population {
+	color: #008B8B;
+	font-weight: bold;
+}
+.religion {
+	color: #FF4500;
+}
+.lat_lng {
+	color: #444;
+}
+</style>
+<script src="//code.jquery.com/jquery-3.5.1.js"></script>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+// ------- layers --------
+var Jawg_Streets = L.tileLayer('https://{s}.tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+Jawg_Streets.addTo(map);
+var Jawg_Terrain = L.tileLayer('https://{s}.tile.jawg.io/jawg-terrain/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Jawg_Sunny = L.tileLayer('https://{s}.tile.jawg.io/jawg-sunny/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Jawg_Light = L.tileLayer('https://{s}.tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Esri_World_Topo_Map = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/">Esri Japan</a>'
+});
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+var GoogleMapSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+	subdomains: ['mt0','mt1','mt2','mt3'],
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>",
+});
+// ---------------
+var baseMap = {
+	"Jawg.Streets": Jawg_Streets,
+	"Jawg.Terrain": Jawg_Terrain,
+	"Jawg.Sunny": Jawg_Sunny,
+	"Jawg.Light": Jawg_Light,
+	"OpenStreetMap": OpenStreetMap,
+	"Esri World Topo Map": Esri_World_Topo_Map,
+	"Google Map": GoogleMap,
+	"Google Map Satellite": GoogleMapSatellite
+};
+// ---------------
+let json = getRainViewer();
+let results = JSON.parse(json);
+let time = results[results.length - 1];
+var RainViewer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + time + '/256/{z}/{x}/{y}/2/1_1.png', {
+	opacity: 0.5,
+	attribution: 'Contains public sector information licensed under the Open Government Licence | Radar By <a target="_top" rel="noopener" href="https://jmwforecast.com">JMWForecast Limited</a>'
+});
+var overlay = {
+	"RainViewer 雨雲": RainViewer
+};
+L.control.layers(baseMap, overlay).addTo(map);
+// -----------------------------------
+fetch('csv/religion-country.csv')
+.then((response) => {
+	if(response.ok) {
+		return response.text();
+	} else {
+		throw new Error();
+	}
+})
+.then((text) => {
+	csv2array(text);
+	marker2map();
+})
+var country = Array();
+function csv2array(csv) {
+	var line = csv.split("\n");
+	for (var i=0; i<line.length; ++i) {
+		var data = line[i].split(',');
+		if (data.length > 2) {
+/*
+			data[0] country_code
+			data[1] 国名
+			data[2] 人口
+				data[3] 100%
+			data[4] キリスト教
+			data[5] イスラム教
+			data[6] 無宗教
+			data[7] ヒンズー教
+			data[8] 仏教
+			data[9] 民間信仰
+			data[10] ユダヤ教
+			data[11] その他
+*/
+			country[data[0]] = [data[1],data[2],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]];
+		}
+	}
+}
+// -----------------------------------
+function marker2map() {
+	fetch('csv/capital.csv')
+	.then((response) => {
+		if(response.ok) { // ステータスがokならば
+			return response.text(); // レスポンスをテキストとして変換する
+		} else {
+			throw new Error();
+		}
+	})
+	.then((text) => {
+		csv2map(text);
+		map.setView([18, -10], 3);
+	})
+}
+function csv2map(csv) {
+	var line = csv.split("\n");
+	for (var i=0; i<line.length; ++i) {
+		var data = line[i].split('\t');
+		if (data.length > 2) {
+/*
+			data[0]	country_code
+			data[1]	name_jp
+			data[3]	capital_jp
+			data[7]	lat
+			data[8]	lon
+*/
+			var worldFlag = L.icon({
+				iconUrl: 'worldflags/80px/' + data[0].toLowerCase() + '.png', 
+				iconSize: [80, 80],
+				iconAnchor: [40, 48],
+				popupAnchor: [0, -40],
+			});
+			var popStr = '<span class="country_code">' + data[0].toUpperCase() + '</span> ';
+			popStr += '<span class="country">' + data[1] + '</span><br>';
+			popStr += '<span class="capital">' + data[3] + '</span><br>';
+			popStr += '<span class="lat_lng">緯度:' + data[7] + ' 経度:' + data[8] + '</span>';
+			if (country[data[0].toUpperCase()]) {
+/*
+				country[0] 国名
+				country[1] 人口
+				country[2] キリスト教
+				country[3] イスラム教
+				country[4] 無宗教
+				country[5] ヒンズー教
+				country[6] 仏教
+				country[7] 民間信仰
+				country[8] ユダヤ教
+				country[9] その他
+*/
+				popStr += '<br><span class="">人口: <span class="population">' + Number(country[data[0].toUpperCase()] [1]).toLocaleString() + ' 人</span></span>';
+				popStr += '<br><span class="">キリスト教: <span class="religion">' + country[data[0].toUpperCase()] [2] + ' %</span></span>';
+				popStr += '<br><span class="">イスラム教: <span class="religion">' + country[data[0].toUpperCase()] [3] + ' %</span>';
+				popStr += '<br><span class="">無宗教: <span class="religion">' + country[data[0].toUpperCase()] [4] + ' %</span>';
+				popStr += '<br><span class="">ヒンズー教: <span class="religion">' + country[data[0].toUpperCase()] [5] + ' %</span>';
+				popStr += '<br><span class="">仏教: <span class="religion">' + country[data[0].toUpperCase()] [6] + ' %</span>';
+				popStr += '<br><span class="">民間信仰: <span class="religion">' + country[data[0].toUpperCase()] [7] + ' %</span>';
+				popStr += '<br><span class="">ユダヤ教: <span class="religion">' + country[data[0].toUpperCase()] [8] + ' %</span>';
+				popStr += '<br><span class="">その他: <span class="religion">' + country[data[0].toUpperCase()] [9] + ' %</span>';
+			} else {
+			}
+			L.marker([data[7],data[8]],{icon:worldFlag}).addTo(map).bindPopup(popStr);
+		}
+	}
+}
+// -----------------------------------
+function getRainViewer(address) {
+	var result = $.ajax({
+		type: 'GET',
+		url: 'https://tilecache.rainviewer.com/api/maps.json',
+		async: false	// *** 同期通信 ***
+	}).responseText;
+	return result;
+}
+</script>
+</body>
+</html>
