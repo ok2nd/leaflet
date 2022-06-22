@@ -10,12 +10,20 @@
 <!--	https://amano-tec.com/data/world.html -->
 <!-- 宗教構成データは「Religious Composition by Country, 2010-2050 - Pew Research Center」（2020年を使用）-->
 <!--	https://www.pewresearch.org/religion/2015/04/02/religious-projection-table/ -->
-<title>世界地図：世界の国旗＋国別宗教構成（円グラフ）</title>
+<title>世界地図：国別宗教構成（円グラフ）</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.country_box {
+	position: relative;
+}
+.flag {
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+}
 .country_code {
 	color: red;
 }
@@ -193,14 +201,10 @@ function csv2map(csv) {
 			data[7]	lat
 			data[8]	lon
 */
-			var worldFlag = L.icon({
-				iconUrl: 'worldflags/80px/' + data[0].toLowerCase() + '.png', 
-				iconSize: [80, 80],
-				iconAnchor: [40, 48],
-				popupAnchor: [0, -36],
-			});
 			var country_code = data[0].toUpperCase();
-			var popStr = '<span class="country_code">' + country_code + '</span> ';
+			var popStr = '<div class="country_box">';
+			popStr += '<img class="flag" src="worldflags/80px/' + data[0].toLowerCase() + '.png">';
+			popStr += '<span class="country_code">' + country_code + '</span> ';
 			popStr += '<span class="country">' + data[1] + '</span><br>';
 			popStr += '<span class="capital">' + data[3] + '</span><br>';
 			popStr += '<span class="lat_lng">緯度:' + data[7] + ' 経度:' + data[8] + '</span>';
@@ -226,6 +230,7 @@ function csv2map(csv) {
 				popStr += '<br>民間信仰: <span class="religion">' + country[country_code] [7] + ' %</span>';
 				popStr += '<br>ユダヤ教: <span class="religion">' + country[country_code] [8] + ' %</span>';
 				popStr += '<br>その他: <span class="religion">' + country[country_code] [9] + ' %</span>';
+				popStr += '</div>';
 				var pie_data = country[country_code] [2];		// キリスト教
 				pie_data += ',' + country[country_code] [3];		// イスラム教
 				pie_data += ',' + country[country_code] [5];		// ヒンズー教
