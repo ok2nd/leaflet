@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>都道府県別「りんご」vs「みかん」<</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.kenmei {
+	font-size: 20px;
+	font-weight: bold;
+	color: #226;
+}
+.city-name {
+	font-size: 16px;
+	font-weight: bold;
+	color: #006400;
+}
+.pop-title {
+	font-weight: bold;
+	font-size: 14px;
+}
+.ringo {
+	color: #FF0000;
+	font-weight: bold;
+	font-size: 14px;
+}
+.mikan {
+	color: #FF8C00;
+	font-weight: bold;
+	font-size: 14px;
+}
+.data {
+	#000;
+	font-weight: bold;
+	font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var todofuken = [
+// 都道府県 中央？？
+	['',0,0],	// ダミー
+	['北海道',42.80,140.90],
+	['青森県',40.65,140.65],
+	['岩手県',39.55,141.30],
+	['宮城県',38.30,140.78],
+	['秋田県',39.60,140.35],
+	['山形県',38.44,139.97],
+	['福島県',37.40,140.20],
+	['茨城県',36.07,140.19],
+	['栃木県',36.67,139.75],
+	['群馬県',36.42,138.91],
+	['埼玉県',35.95,139.28],
+	['千葉県',35.31,140.13],
+	['東京都',35.62,139.45],
+	['神奈川県',35.38,139.25],
+	['新潟県',37.47,138.87],
+	['富山県',36.57,137.23],
+	['石川県',36.40,136.51],
+	['福井県',35.88,136.21],
+	['山梨県',35.56,138.58],
+	['長野県',36.08,138.00],
+	['岐阜県',35.60,136.95],
+	['静岡県',34.84,137.99],
+	['愛知県',34.97,137.10],
+	['三重県',34.53,136.37],
+	['滋賀県',35.12,136.06],
+	['京都県',35.15,135.50],
+	['大阪府',34.55,135.46],
+	['兵庫県',34.91,134.90],
+	['奈良県',34.28,135.84],
+	['和歌山県',33.76,135.40],
+	['鳥取県',35.40,133.72],
+	['島根県',34.96,132.28],
+	['岡山県',34.77,133.78],
+	['広島県',34.50,132.78],
+	['山口県',34.19,131.41],
+	['徳島県',33.85,134.23],
+	['香川県',34.17,133.95],
+	['愛媛県',33.68,132.83],
+	['高知県',33.58,133.38],
+	['福岡県',33.58,130.68],
+	['佐賀県',33.20,130.06],
+	['長崎県',32.76,129.94],
+	['熊本県',32.58,130.74],
+	['大分県',33.20,131.40],
+	['宮崎県',32.20,131.26],
+	['鹿児島県',31.75,130.50],
+	['沖縄県',26.40,127.82]
+];
+// -----------------------------------
+var map = L.map('map');
+var ChiriinWhiteMap = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+var baseMap = {
+	"白地図": ChiriinWhiteMap,
+	"OpenStreetMap": OpenStreetMap,
+	"Google Map": GoogleMap
+};
+ChiriinWhiteMap.addTo(map);
+L.control.layers(baseMap).addTo(map);
+// -----------------------------------
+fetch('csv/ringo-mikan.csv')		// コンビニ都道府県別店舗数データ
+.then((response) => {
+	if(response.ok) {
+		return response.text();
+	} else {
+		throw new Error();
+	}
+})
+.then((text) => {
+	csv2marker(text);
+	marker2map();
+})
+function csv2marker(csv) {
+	var line = csv.split("\n");
+	for (var i=0; i<line.length; ++i) {
+		var data = line[i].split(',');
+		if (data.length > 2) {
+/*
+			data[0] 都道府県コード
+			data[1] 都道府県名
+			data[2] 県庁所在地
+			data[3] りんご
+			data[4] みかん
+*/
+			var popStr = '<span class="kenmei">' + data[1] + '</span>';
+			popStr += '<br><span class="city-name">' + data[2] + '</span>';
+			popStr += '<br><span class="ringo">りんご</span>：<span class="data">' + Number(data[3]).toLocaleString() + ' g</span>';
+			popStr += '<br><span class="mikan">みかん</span>：<span class="data">' + Number(data[4]).toLocaleString() + ' g</span>';
+			var total = Number(data[3]) + Number(data[4]);
+			var pie_data = ratio(data[3], total);
+			pie_data += ',' + ratio(data[4], total);
+			var chartIcon = L.icon({
+				iconUrl: 'https://chart.apis.google.com/chart?cht=p&chs=80x80&chco=FF0000|FF8C00|8B4513&chf=bg,s,ffffff00&chd=t:' + pie_data,
+				iconSize: [80, 80],
+				iconAnchor: [30, 50],
+				popupAnchor: [-10, -45]
+			});
+			L.marker([todofuken[data[0]][1], todofuken[data[0]][2]], {icon:chartIcon}).addTo(map).bindPopup(popStr);
+		}
+	}
+}
+function ratio(val, all) {
+	return Math.round((Number(val) / Number(all) * 100));
+}
+function marker2map() {
+	var popStr = '<span class="pop-title">統計局/家計調査（二人以上の世帯）</span>';
+	popStr += '<br>2019年～2021年平均';
+	popStr += '<br><span class="kenmei">日本全国平均</span>';
+	popStr += '<br><span class="ringo">りんご</span>：<span class="data">10,325 g</span>';
+	popStr += '<br><span class="mikan">みかん</span>：<span class="data">9,726 g</span>';
+	var chartIcon = L.icon({
+		iconUrl: 'https://chart.apis.google.com/chart?cht=p&chs=200x200&chco=FF0000|FF8C00&chf=bg,s,ffffff00&chd=t:51,49&chdl=りんご|みかん',
+		iconSize: [200, 200],
+		iconAnchor: [60, 240],
+		popupAnchor: [0, -195],
+	});
+	L.marker([36, 135], {icon: chartIcon}).addTo(map).bindPopup(popStr);
+	map.setView([36, 136], 7);
+	map.on('click', onMapClick);
+}
+var posMarker = null;
+function onMapClick(e) {
+	posMarkerRemove();
+	var lat = e.latlng.lat;
+	var lng = e.latlng.lng;
+	// 地理院地図サーバから逆ジオコーディングで都道府県を調べる
+	var src = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=' + lat + '&lon=' + lng;
+	fetch(src)
+	.then((response) => {
+		return response.text();
+	})
+	.then((text) => {
+		var results = JSON.parse(text);
+		var kenCode = Number(results.results.muniCd.substr(0,2));	// 都道府県コード
+		var popStr = '<span class="kenmei">' + todofuken[kenCode][0] + '</span><br>';
+		popStr += '<br>緯度：' + lat + '<br>経度：' + lng;
+		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+	})
+}
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+</script>
+</body>
+</html>
