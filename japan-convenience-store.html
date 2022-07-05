@@ -152,7 +152,7 @@ function csv2marker(csv) {
 				iconUrl: 'https://chart.apis.google.com/chart?cht=p&chs=80x80&chco=ee1d23|00c64f|1f5fa8&chf=bg,s,ffffff00&chd=t:' + pie_data,
 				iconSize: [80, 80],
 				iconAnchor: [30, 50],
-				popupAnchor: [-10, -45]
+				popupAnchor: [10, -42]
 			});
 			L.marker([todofuken[data[0]][1], todofuken[data[0]][2]], {icon:chartIcon}).addTo(map).bindPopup(popStr);
 		}
@@ -170,7 +170,7 @@ function marker2map() {
 		iconUrl: 'https://chart.apis.google.com/chart?cht=p&chs=200x200&chco=ee1d23|00c64f|1f5fa8&chf=bg,s,ffffff00&chd=t:40,31,28&chdl=セブンイレブン|ファミリーマート|ローソン',
 		iconSize: [200, 200],
 		iconAnchor: [60, 240],
-		popupAnchor: [0, -195],
+		popupAnchor: [-18, -185],
 	});
 	L.marker([36, 135], {icon: chartIcon}).addTo(map).bindPopup(popStr);
 	map.setView([36, 136], 7);
