@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+
+【みんなの知識 ちょっと便利帳】世界の国旗を地図上に表示 = Flags of the world on a map
+https://www.benricho.org/map_World_Flags/
+
+-->
+<title>Leaflet：世界の国旗</title>
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
+<link rel="stylesheet" href="css/easy-button.css"/>
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<link rel="stylesheet" href="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<script src="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<!--
+<link rel="stylesheet" href="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.css"/>
+<script src="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.js"></script>
+-->
+<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
+<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.center-icon-plus {
+	color: #F79400;
+	background: rgba(255,255,255,0);
+	font-size: 20px;
+	font-weight: bold;
+}
+.center-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #1E90FF;
+}
+.found-icon {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 12px;
+	border: 3px solid #fdfdfd;
+	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+	background-color: #FF8C00;
+}
+.weather {
+	margin: 0;
+	padding: 0;
+	border-collapse: collapse;
+}
+.weather th {
+	border: solid 1px;
+	padding: 0;
+	vertical-align: top;
+	text-align: center;
+}
+.weather td {
+	border: solid 1px;
+	padding: 0;
+	vertical-align: top;
+	text-align: left;
+}
+.address {
+	margin: 0;
+	padding: 0;
+}
+.hi {
+	color: #f00;
+}
+.lo {
+	color: #00f;
+}
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var AD = L.icon({iconUrl: 'flags/40pix/AD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AE = L.icon({iconUrl: 'flags/40pix/AE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AF = L.icon({iconUrl: 'flags/40pix/AF.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AG = L.icon({iconUrl: 'flags/40pix/AG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AI = L.icon({iconUrl: 'flags/40pix/AI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AL = L.icon({iconUrl: 'flags/40pix/AL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AM = L.icon({iconUrl: 'flags/40pix/AM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AO = L.icon({iconUrl: 'flags/40pix/AO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AR = L.icon({iconUrl: 'flags/40pix/AR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AT = L.icon({iconUrl: 'flags/40pix/AT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AU = L.icon({iconUrl: 'flags/40pix/AU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AW = L.icon({iconUrl: 'flags/40pix/AW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+AZ = L.icon({iconUrl: 'flags/40pix/AZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BA = L.icon({iconUrl: 'flags/40pix/BA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BB = L.icon({iconUrl: 'flags/40pix/BB.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BD = L.icon({iconUrl: 'flags/40pix/BD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BE = L.icon({iconUrl: 'flags/40pix/BE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BF = L.icon({iconUrl: 'flags/40pix/BF.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BG = L.icon({iconUrl: 'flags/40pix/BG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BH = L.icon({iconUrl: 'flags/40pix/BH.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BI = L.icon({iconUrl: 'flags/40pix/BI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BJ = L.icon({iconUrl: 'flags/40pix/BJ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BN = L.icon({iconUrl: 'flags/40pix/BN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BO = L.icon({iconUrl: 'flags/40pix/BO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BR = L.icon({iconUrl: 'flags/40pix/BR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BS = L.icon({iconUrl: 'flags/40pix/BS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BT = L.icon({iconUrl: 'flags/40pix/BT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BW = L.icon({iconUrl: 'flags/40pix/BW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BY = L.icon({iconUrl: 'flags/40pix/BY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+BZ = L.icon({iconUrl: 'flags/40pix/BZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CA = L.icon({iconUrl: 'flags/40pix/CA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CD = L.icon({iconUrl: 'flags/40pix/CD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CF = L.icon({iconUrl: 'flags/40pix/CF.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CG = L.icon({iconUrl: 'flags/40pix/CG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CH = L.icon({iconUrl: 'flags/40pix/CH.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CI = L.icon({iconUrl: 'flags/40pix/CI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CK = L.icon({iconUrl: 'flags/40pix/CK.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CL = L.icon({iconUrl: 'flags/40pix/CL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CM = L.icon({iconUrl: 'flags/40pix/CM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CN = L.icon({iconUrl: 'flags/40pix/CN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CO = L.icon({iconUrl: 'flags/40pix/CO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CR = L.icon({iconUrl: 'flags/40pix/CR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CU = L.icon({iconUrl: 'flags/40pix/CU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CV = L.icon({iconUrl: 'flags/40pix/CV.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CY = L.icon({iconUrl: 'flags/40pix/CY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+CZ = L.icon({iconUrl: 'flags/40pix/CZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+DE = L.icon({iconUrl: 'flags/40pix/DE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+DJ = L.icon({iconUrl: 'flags/40pix/DJ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+DK = L.icon({iconUrl: 'flags/40pix/DK.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+DM = L.icon({iconUrl: 'flags/40pix/DM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+DO = L.icon({iconUrl: 'flags/40pix/DO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+DZ = L.icon({iconUrl: 'flags/40pix/DZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+EC = L.icon({iconUrl: 'flags/40pix/EC.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+EE = L.icon({iconUrl: 'flags/40pix/EE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+EG = L.icon({iconUrl: 'flags/40pix/EG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ER = L.icon({iconUrl: 'flags/40pix/ER.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ES = L.icon({iconUrl: 'flags/40pix/ES.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ET = L.icon({iconUrl: 'flags/40pix/ET.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+FI = L.icon({iconUrl: 'flags/40pix/FI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+FJ = L.icon({iconUrl: 'flags/40pix/FJ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+FM = L.icon({iconUrl: 'flags/40pix/FM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+FR = L.icon({iconUrl: 'flags/40pix/FR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GA = L.icon({iconUrl: 'flags/40pix/GA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GB = L.icon({iconUrl: 'flags/40pix/GB.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GD = L.icon({iconUrl: 'flags/40pix/GD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GE = L.icon({iconUrl: 'flags/40pix/GE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GH = L.icon({iconUrl: 'flags/40pix/GH.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GM = L.icon({iconUrl: 'flags/40pix/GM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GN = L.icon({iconUrl: 'flags/40pix/GN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GQ = L.icon({iconUrl: 'flags/40pix/GQ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GR = L.icon({iconUrl: 'flags/40pix/GR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GT = L.icon({iconUrl: 'flags/40pix/GT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GW = L.icon({iconUrl: 'flags/40pix/GW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+GY = L.icon({iconUrl: 'flags/40pix/GY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+HN = L.icon({iconUrl: 'flags/40pix/HN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+HR = L.icon({iconUrl: 'flags/40pix/HR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+HT = L.icon({iconUrl: 'flags/40pix/HT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+HU = L.icon({iconUrl: 'flags/40pix/HU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ID = L.icon({iconUrl: 'flags/40pix/ID.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IE = L.icon({iconUrl: 'flags/40pix/IE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IL = L.icon({iconUrl: 'flags/40pix/IL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IN = L.icon({iconUrl: 'flags/40pix/IN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IQ = L.icon({iconUrl: 'flags/40pix/IQ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IR = L.icon({iconUrl: 'flags/40pix/IR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IS = L.icon({iconUrl: 'flags/40pix/IS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+IT = L.icon({iconUrl: 'flags/40pix/IT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+JM = L.icon({iconUrl: 'flags/40pix/JM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+JO = L.icon({iconUrl: 'flags/40pix/JO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+JP = L.icon({iconUrl: 'flags/40pix/JP.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KE = L.icon({iconUrl: 'flags/40pix/KE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KG = L.icon({iconUrl: 'flags/40pix/KG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KH = L.icon({iconUrl: 'flags/40pix/KH.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KI = L.icon({iconUrl: 'flags/40pix/KI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KM = L.icon({iconUrl: 'flags/40pix/KM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KN = L.icon({iconUrl: 'flags/40pix/KN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KP = L.icon({iconUrl: 'flags/40pix/KP.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KR = L.icon({iconUrl: 'flags/40pix/KR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KS = L.icon({iconUrl: 'flags/40pix/KS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KW = L.icon({iconUrl: 'flags/40pix/KW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+KZ = L.icon({iconUrl: 'flags/40pix/KZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LA = L.icon({iconUrl: 'flags/40pix/LA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LB = L.icon({iconUrl: 'flags/40pix/LB.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LC = L.icon({iconUrl: 'flags/40pix/LC.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LI = L.icon({iconUrl: 'flags/40pix/LI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LK = L.icon({iconUrl: 'flags/40pix/LK.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LR = L.icon({iconUrl: 'flags/40pix/LR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LS = L.icon({iconUrl: 'flags/40pix/LS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LT = L.icon({iconUrl: 'flags/40pix/LT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LU = L.icon({iconUrl: 'flags/40pix/LU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LV = L.icon({iconUrl: 'flags/40pix/LV.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+LY = L.icon({iconUrl: 'flags/40pix/LY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MA = L.icon({iconUrl: 'flags/40pix/MA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MC = L.icon({iconUrl: 'flags/40pix/MC.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MD = L.icon({iconUrl: 'flags/40pix/MD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ME = L.icon({iconUrl: 'flags/40pix/ME.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MG = L.icon({iconUrl: 'flags/40pix/MG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MH = L.icon({iconUrl: 'flags/40pix/mh.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MK = L.icon({iconUrl: 'flags/40pix/MK.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ML = L.icon({iconUrl: 'flags/40pix/ML.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MM = L.icon({iconUrl: 'flags/40pix/MM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MN = L.icon({iconUrl: 'flags/40pix/MN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MR = L.icon({iconUrl: 'flags/40pix/MR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MT = L.icon({iconUrl: 'flags/40pix/MT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MU = L.icon({iconUrl: 'flags/40pix/MU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MV = L.icon({iconUrl: 'flags/40pix/MV.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MW = L.icon({iconUrl: 'flags/40pix/MW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MX = L.icon({iconUrl: 'flags/40pix/MX.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MY = L.icon({iconUrl: 'flags/40pix/MY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+MZ = L.icon({iconUrl: 'flags/40pix/MZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NA = L.icon({iconUrl: 'flags/40pix/NA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NE = L.icon({iconUrl: 'flags/40pix/NE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NG = L.icon({iconUrl: 'flags/40pix/NG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NI = L.icon({iconUrl: 'flags/40pix/NI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NL = L.icon({iconUrl: 'flags/40pix/NL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NO = L.icon({iconUrl: 'flags/40pix/NO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NP = L.icon({iconUrl: 'flags/40pix/NP.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NR = L.icon({iconUrl: 'flags/40pix/NR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NU = L.icon({iconUrl: 'flags/40pix/NU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+NZ = L.icon({iconUrl: 'flags/40pix/NZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+OM = L.icon({iconUrl: 'flags/40pix/OM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PA = L.icon({iconUrl: 'flags/40pix/PA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PE = L.icon({iconUrl: 'flags/40pix/PE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PG = L.icon({iconUrl: 'flags/40pix/PG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PH = L.icon({iconUrl: 'flags/40pix/PH.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PK = L.icon({iconUrl: 'flags/40pix/PK.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PL = L.icon({iconUrl: 'flags/40pix/PL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PR = L.icon({iconUrl: 'flags/40pix/PR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PT = L.icon({iconUrl: 'flags/40pix/PT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PW = L.icon({iconUrl: 'flags/40pix/PW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+PY = L.icon({iconUrl: 'flags/40pix/PY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+QA = L.icon({iconUrl: 'flags/40pix/QA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+RO = L.icon({iconUrl: 'flags/40pix/RO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+RS = L.icon({iconUrl: 'flags/40pix/RS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+RU = L.icon({iconUrl: 'flags/40pix/RU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+RW = L.icon({iconUrl: 'flags/40pix/RW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SA = L.icon({iconUrl: 'flags/40pix/SA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SB = L.icon({iconUrl: 'flags/40pix/SB.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SC = L.icon({iconUrl: 'flags/40pix/SC.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SD = L.icon({iconUrl: 'flags/40pix/SD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SE = L.icon({iconUrl: 'flags/40pix/SE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SG = L.icon({iconUrl: 'flags/40pix/SG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SI = L.icon({iconUrl: 'flags/40pix/SI.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SK = L.icon({iconUrl: 'flags/40pix/SK.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SL = L.icon({iconUrl: 'flags/40pix/SL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SM = L.icon({iconUrl: 'flags/40pix/SM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SN = L.icon({iconUrl: 'flags/40pix/SN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SO = L.icon({iconUrl: 'flags/40pix/SO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SR = L.icon({iconUrl: 'flags/40pix/SR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SS = L.icon({iconUrl: 'flags/40pix/SS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ST = L.icon({iconUrl: 'flags/40pix/ST.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SV = L.icon({iconUrl: 'flags/40pix/SV.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SY = L.icon({iconUrl: 'flags/40pix/SY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SZ = L.icon({iconUrl: 'flags/40pix/SZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TD = L.icon({iconUrl: 'flags/40pix/TD.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TG = L.icon({iconUrl: 'flags/40pix/TG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TH = L.icon({iconUrl: 'flags/40pix/TH.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TJ = L.icon({iconUrl: 'flags/40pix/TJ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TL = L.icon({iconUrl: 'flags/40pix/TL.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TM = L.icon({iconUrl: 'flags/40pix/TM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TN = L.icon({iconUrl: 'flags/40pix/TN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TO = L.icon({iconUrl: 'flags/40pix/TO.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TR = L.icon({iconUrl: 'flags/40pix/TR.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TT = L.icon({iconUrl: 'flags/40pix/TT.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TV = L.icon({iconUrl: 'flags/40pix/TV.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TW = L.icon({iconUrl: 'flags/40pix/TW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+TZ = L.icon({iconUrl: 'flags/40pix/TZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+UA = L.icon({iconUrl: 'flags/40pix/UA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+UG = L.icon({iconUrl: 'flags/40pix/UG.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+US = L.icon({iconUrl: 'flags/40pix/US.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+UY = L.icon({iconUrl: 'flags/40pix/UY.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+UZ = L.icon({iconUrl: 'flags/40pix/UZ.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+VA = L.icon({iconUrl: 'flags/40pix/VA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+VC = L.icon({iconUrl: 'flags/40pix/VC.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+VE = L.icon({iconUrl: 'flags/40pix/VE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+VN = L.icon({iconUrl: 'flags/40pix/VN.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+VU = L.icon({iconUrl: 'flags/40pix/VU.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+WS = L.icon({iconUrl: 'flags/40pix/WS.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+YE = L.icon({iconUrl: 'flags/40pix/YE.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ZA = L.icon({iconUrl: 'flags/40pix/ZA.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ZM = L.icon({iconUrl: 'flags/40pix/ZM.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+ZW = L.icon({iconUrl: 'flags/40pix/ZW.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+bd = L.icon({iconUrl: 'flags/40pix/bd.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+cj = L.icon({iconUrl: 'flags/40pix/cj.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+fk = L.icon({iconUrl: 'flags/40pix/fk.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+fo = L.icon({iconUrl: 'flags/40pix/fo.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+fp = L.icon({iconUrl: 'flags/40pix/fp.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+gi = L.icon({iconUrl: 'flags/40pix/gi.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+gl = L.icon({iconUrl: 'flags/40pix/gl.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+gk = L.icon({iconUrl: 'flags/40pix/gk.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+je = L.icon({iconUrl: 'flags/40pix/je.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+im = L.icon({iconUrl: 'flags/40pix/im.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+mh = L.icon({iconUrl: 'flags/40pix/mh.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+nf = L.icon({iconUrl: 'flags/40pix/nf.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+cq = L.icon({iconUrl: 'flags/40pix/cq.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+pc = L.icon({iconUrl: 'flags/40pix/pc.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+sh = L.icon({iconUrl: 'flags/40pix/sh.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+tk = L.icon({iconUrl: 'flags/40pix/tk.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+sx = L.icon({iconUrl: 'flags/40pix/sx.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+cuw = L.icon({iconUrl: 'flags/40pix/cuw.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+sxm = L.icon({iconUrl: 'flags/40pix/sxm.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+aq = L.icon({iconUrl: 'flags/40pix/aq.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Azores = L.icon({iconUrl: 'flags/40pix/Azores.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Madeira = L.icon({iconUrl: 'flags/40pix/Madeira.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+vi = L.icon({iconUrl: 'flags/40pix/vi.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+vq = L.icon({iconUrl: 'flags/40pix/vq.gif', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+tokelau = L.icon({iconUrl: 'flags/40pix/tokelau.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+HongKong = L.icon({iconUrl: 'flags/40pix/HongKong.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Macau = L.icon({iconUrl: 'flags/40pix/Macau.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Aland = L.icon({iconUrl: 'flags/40pix/Aland.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Ascension = L.icon({iconUrl: 'flags/40pix/Ascension.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Canary = L.icon({iconUrl: 'flags/40pix/Canary.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Guadeloupe = L.icon({iconUrl: 'flags/40pix/Guadeloupe.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Reunion = L.icon({iconUrl: 'flags/40pix/Reunion.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+Saint_Barthelemy = L.icon({iconUrl: 'flags/40pix/Saint_Barthelemy.png', iconAnchor: [20, 35], popupAnchor: [0, -33]}),
+SaintPierreMiquelon = L.icon({iconUrl: 'flags/40pix/SaintPierreMiquelon.png', iconAnchor: [20, 35], popupAnchor: [0, -33]})
+var Point = L.layerGroup();
+L.marker([42.5063174,1.5218355], {icon: AD}).bindPopup("<span class='CountryName'>アンドラ<br>Andorra</span>").addTo(Point),
+L.marker([24.453884,54.3773438], {icon: AE}).bindPopup("<span class='CountryName'>アラブ首長国連邦<br>UAE</span>").addTo(Point),
+L.marker([34.5553494,69.207486], {icon: AF}).bindPopup("<span class='CountryName'>アフガニスタン<br>Afghanistan</span>").addTo(Point),
+L.marker([17.1274104,-61.846772], {icon: AG}).bindPopup("<span class='CountryName'>アンティグア・バーブーダ<br>Antigua and Barbuda</span>").addTo(Point),
+L.marker([18.227222, -63.048889], {icon: AI}).bindPopup("<span class='CountryName'>イギリス領アンギラ<br>Anguilla</span>").addTo(Point),
+L.marker([41.3275459,19.8186982], {icon: AL}).bindPopup("<span class='CountryName'>アルバニア<br>Albania</span>").addTo(Point),
+L.marker([40.1791857,44.4991029], {icon: AM}).bindPopup("<span class='CountryName'>アルメニア<br>Armenia</span>").addTo(Point),
+L.marker([-8.8399876,13.2894368], {icon: AO}).bindPopup("<span class='CountryName'>アンゴラ<br>Angola</span>").addTo(Point),
+L.marker([-34.6036844,-58.3815591], {icon: AR}).bindPopup("<span class='CountryName'>アルゼンチン<br>Argentine</span>").addTo(Point),
+L.marker([48.2081743,16.3738189], {icon: AT}).bindPopup("<span class='CountryName'>オーストリア<br>Austria</span>").addTo(Point),
+L.marker([-35.308129,149.124402], {icon: AU}).bindPopup("<span class='CountryName'>オーストラリア<br>CAustralia</span>").addTo(Point),
+L.marker([12.5, -69.966667], {icon: AW}).bindPopup("<span class='CountryName'>オランダ領アルバ<br>Aruba</span>").addTo(Point),
+L.marker([40.4092617,49.8670924], {icon: AZ}).bindPopup("<span class='CountryName'>アゼルバイジャン<br>Azerbaijan</span>").addTo(Point),
+L.marker([43.8562586,18.4130763], {icon: BA}).bindPopup("<span class='CountryName'>ボスニア・ヘルツェゴビナ<br>Bosnia and Herzegovina</span>").addTo(Point),
+L.marker([13.0968511,-59.6144819], {icon: BB}).bindPopup("<span class='CountryName'>バルバドス<br>Barbados</span>").addTo(Point),
+L.marker([23.810332,90.4125181], {icon: BD}).bindPopup("<span class='CountryName'>バングラデシュ<br>Bangladesh</span>").addTo(Point),
+L.marker([50.8503463,4.3517211], {icon: BE}).bindPopup("<span class='CountryName'>ベルギー<br>Belgium</span>").addTo(Point),
+L.marker([12.3714277,-1.5196603], {icon: BF}).bindPopup("<span class='CountryName'>ブルキナファソ<br>Burkina Faso</span>").addTo(Point),
+L.marker([42.6977082,23.3218675], {icon: BG}).bindPopup("<span class='CountryName'>ブルガリア<br>Bulgaria</span>").addTo(Point),
+L.marker([26.2285161,50.5860497], {icon: BH}).bindPopup("<span class='CountryName'>バーレーン<br>Bahrain</span>").addTo(Point),
+L.marker([-3.361378,29.3598782], {icon: BI}).bindPopup("<span class='CountryName'>ブルンジ<br>Burundi</span>").addTo(Point),
+L.marker([6.4968574,2.6288523], {icon: BJ}).bindPopup("<span class='CountryName'>ベナン<br>Benin</span>").addTo(Point),
+L.marker([4.9030522,114.939821], {icon: BN}).bindPopup("<span class='CountryName'>ブルネイ<br>Brunei</span>").addTo(Point),
+L.marker([-16.489689,-68.1192936], {icon: BO}).bindPopup("<span class='CountryName'>ボリビア<br>Bolivia</span>").addTo(Point),
+L.marker([-15.794392,-47.882004], {icon: BR}).bindPopup("<span class='CountryName'>ブラジル<br>Brazil</span>").addTo(Point),
+L.marker([25.0479835,-77.355413], {icon: BS}).bindPopup("<span class='CountryName'>バハマ<br>Bahamas</span>").addTo(Point),
+L.marker([27.4727924,89.6392863], {icon: BT}).bindPopup("<span class='CountryName'>ブータン<br>Bhutan</span>").addTo(Point),
+L.marker([-24.6282079,25.9231471], {icon: BW}).bindPopup("<span class='CountryName'>ボツワナ<br>Botswana</span>").addTo(Point),
+L.marker([53.9045398,27.5615244], {icon: BY}).bindPopup("<span class='CountryName'>ベラルーシ<br>Belarus</span>").addTo(Point),
+L.marker([17.2510114,-88.7590201], {icon: BZ}).bindPopup("<span class='CountryName'>ベリーズ<br>Belize</span>").addTo(Point),
+L.marker([45.4215296,-75.6971931], {icon: CA}).bindPopup("<span class='CountryName'>カナダ<br>Canada</span>").addTo(Point),
+L.marker([-4.4419311,15.2662931], {icon: CD}).bindPopup("<span class='CountryName'>コンゴ民主共和国<br>Democratic Republic of the Congo</span>").addTo(Point),
+L.marker([4.3946735,18.5581899], {icon: CF}).bindPopup("<span class='CountryName'>中央アフリカ<br>Central African</span>").addTo(Point),
+L.marker([-4.2633597,15.2428853], {icon: CG}).bindPopup("<span class='CountryName'>コンゴ共和国<br>Republic of Congo</span>").addTo(Point),
+L.marker([46.9479739,7.4474468], {icon: CH}).bindPopup("<span class='CountryName'>スイス<br>Switzerland</span>").addTo(Point),
+L.marker([6.8276228,-5.2893433], {icon: CI}).bindPopup("<span class='CountryName'>コートジボワール<br>Cote d'Ivoire</span>").addTo(Point),
+L.marker([-21.2129007,-159.7823059], {icon: CK}).bindPopup("<span class='CountryName'>クック諸島<br>Cook Islands</span>").addTo(Point),
+L.marker([-33.4488897,-70.6692655], {icon: CL}).bindPopup("<span class='CountryName'>チリ<br>Chile</span>").addTo(Point),
+L.marker([3.8480325,11.5020752], {icon: CM}).bindPopup("<span class='CountryName'>カメルーン<br>Cameroon</span>").addTo(Point),
+L.marker([39.9041999,116.4073963], {icon: CN}).bindPopup("<span class='CountryName'>中国［中華人民共和国］<br>China</span>").addTo(Point),
+L.marker([4.7109886,-74.072092], {icon: CO}).bindPopup("<span class='CountryName'>コロンビア<br>Colombia</span>").addTo(Point),
+L.marker([9.9280694,-84.0907246], {icon: CR}).bindPopup("<span class='CountryName'>コスタリカ<br>Costa Rica</span>").addTo(Point),
+L.marker([23.1135925,-82.3665956], {icon: CU}).bindPopup("<span class='CountryName'>キューバ<br>Cuba</span>").addTo(Point),
+L.marker([14.93305,-23.5133267], {icon: CV}).bindPopup("<span class='CountryName'>カボベルデ<br>Cape Verde</span>").addTo(Point),
+L.marker([35.1855659,33.3822764], {icon: CY}).bindPopup("<span class='CountryName'>キプロス<br>Cyprus</span>").addTo(Point),
+L.marker([50.0755381,14.4378005], {icon: CZ}).bindPopup("<span class='CountryName'>チェコ<br>Czech Republic</span>").addTo(Point),
+L.marker([52.5200066,13.404954], {icon: DE}).bindPopup("<span class='CountryName'>ドイツ<br>Germany</span>").addTo(Point),
+L.marker([11.5720765,43.1456475], {icon: DJ}).bindPopup("<span class='CountryName'>ジブチ<br>Djibouti</span>").addTo(Point),
+L.marker([55.6760968,12.5683372], {icon: DK}).bindPopup("<span class='CountryName'>デンマーク<br>Denmark</span>").addTo(Point),
+L.marker([15.3091676,-61.3793554], {icon: DM}).bindPopup("<span class='CountryName'>ドミニカ国<br>Dominica</span>").addTo(Point),
+L.marker([18.4860575,-69.9312117], {icon: DO}).bindPopup("<span class='CountryName'>ドミニカ共和国<br>Dominican Republic</span>").addTo(Point),
+L.marker([36.753768,3.0587561], {icon: DZ}).bindPopup("<span class='CountryName'>アルジェリア<br>Algeria</span>").addTo(Point),
+L.marker([-0.1806532,-78.4678382], {icon: EC}).bindPopup("<span class='CountryName'>エクアドル<br>Ecuador</span>").addTo(Point),
+L.marker([59.4369608,24.7535747], {icon: EE}).bindPopup("<span class='CountryName'>エストニア<br>Estonia</span>").addTo(Point),
+L.marker([30.0444196,31.2357116], {icon: EG}).bindPopup("<span class='CountryName'>エジプト<br>Egypt</span>").addTo(Point),
+L.marker([15.3228767,38.9250517], {icon: ER}).bindPopup("<span class='CountryName'>エリトリア<br>Eritrea</span>").addTo(Point),
+L.marker([40.4167754,-3.7037902], {icon: ES}).bindPopup("<span class='CountryName'>スペイン<br>Spain</span>").addTo(Point),
+L.marker([8.9806034,38.7577605], {icon: ET}).bindPopup("<span class='CountryName'>エチオピア<br>Ethiopia</span>").addTo(Point),
+L.marker([60.1698557,24.9383791], {icon: FI}).bindPopup("<span class='CountryName'>フィンランド<br>Finland</span>").addTo(Point),
+L.marker([-18.1248086,178.4500789], {icon: FJ}).bindPopup("<span class='CountryName'>フィジー諸島<br>Fiji</span>").addTo(Point),
+L.marker([6.9147118,158.1610274], {icon: FM}).bindPopup("<span class='CountryName'>ミクロネシア<br>Micronesia</span>").addTo(Point),
+L.marker([48.856614,2.3522219], {icon: FR}).bindPopup("<span class='CountryName'>フランス<br>French</span>").addTo(Point),
+L.marker([0.4161976,9.4672676], {icon: GA}).bindPopup("<span class='CountryName'>ガボン<br>Gabon</span>").addTo(Point),
+L.marker([51.5073509,-0.1277583], {icon: GB}).bindPopup("<span class='CountryName'>イギリス［英国］<br>United Kingdom</span>").addTo(Point),
+L.marker([12.0560975,-61.7487996], {icon: GD}).bindPopup("<span class='CountryName'>グレナダ<br>Grenada</span>").addTo(Point),
+L.marker([41.7151377,44.827096], {icon: GE}).bindPopup("<span class='CountryName'>ジョージア<br>Georgia</span>").addTo(Point),
+L.marker([5.6037168,-0.1869644], {icon: GH}).bindPopup("<span class='CountryName'>ガーナ<br>Ghana</span>").addTo(Point),
+L.marker([13.4548761,-16.5790323], {icon: GM}).bindPopup("<span class='CountryName'>ガンビア<br>Gambia</span>").addTo(Point),
+L.marker([9.6411855,-13.5784012], {icon: GN}).bindPopup("<span class='CountryName'>ギニア<br>Guinea</span>").addTo(Point),
+L.marker([3.7504118,8.7371039], {icon: GQ}).bindPopup("<span class='CountryName'>赤道ギニア<br>Equatorial Guinea</span>").addTo(Point),
+L.marker([37.9838096,23.7275388], {icon: GR}).bindPopup("<span class='CountryName'>ギリシャ<br>Greece</span>").addTo(Point),
+L.marker([14.6349149,-90.5068824], {icon: GT}).bindPopup("<span class='CountryName'>グアテマラ<br>Guatemala</span>").addTo(Point),
+L.marker([11.8816553,-15.6177942], {icon: GW}).bindPopup("<span class='CountryName'>ギニアビサウ<br>Guinea-Bissau</span>").addTo(Point),
+L.marker([6.8012793,-58.1551255], {icon: GY}).bindPopup("<span class='CountryName'>ガイアナ<br>Guyana</span>").addTo(Point),
+L.marker([14.0722751,-87.192136], {icon: HN}).bindPopup("<span class='CountryName'>ホンジュラス<br>Honduras</span>").addTo(Point),
+L.marker([45.8150108,15.9819189], {icon: HR}).bindPopup("<span class='CountryName'>クロアチア<br>Croatia</span>").addTo(Point),
+L.marker([18.594395,-72.3074326], {icon: HT}).bindPopup("<span class='CountryName'>ハイチ<br>Haiti</span>").addTo(Point),
+L.marker([47.497912,19.040235], {icon: HU}).bindPopup("<span class='CountryName'>ハンガリー<br>Hungary</span>").addTo(Point),
+L.marker([-6.2087634,106.845599], {icon: ID}).bindPopup("<span class='CountryName'>インドネシア<br>Indonesia</span>").addTo(Point),
+L.marker([53.3498053,-6.2603097], {icon: IE}).bindPopup("<span class='CountryName'>アイルランド<br>Ireland</span>").addTo(Point),
+L.marker([31.768319,35.21371], {icon: IL}).bindPopup("<span class='CountryName'>イスラエル<br>Israel</span>").addTo(Point),
+L.marker([28.6139391,77.2090212], {icon: IN}).bindPopup("<span class='CountryName'>インド<br>India</span>").addTo(Point),
+L.marker([33.3128057,44.3614875], {icon: IQ}).bindPopup("<span class='CountryName'>イラク<br>Iraq</span>").addTo(Point),
+L.marker([35.6891975,51.3889736], {icon: IR}).bindPopup("<span class='CountryName'>イラン<br>Iran</span>").addTo(Point),
+L.marker([64.1265206,-21.8174392], {icon: IS}).bindPopup("<span class='CountryName'>アイスランド<br>Iceland</span>").addTo(Point),
+L.marker([18.0178743,-76.8099041], {icon: JM}).bindPopup("<span class='CountryName'>ジャマイカ<br>Jamaica</span>").addTo(Point),
+L.marker([31.9453666,35.9283716], {icon: JO}).bindPopup("<span class='CountryName'>ヨルダン<br>Jordan</span>").addTo(Point),
+L.marker([35.6896342,139.6921007], {icon: JP}).bindPopup("<span class='CountryName'>日本<br>Japan</span>").addTo(Point),
+L.marker([-1.2920659,36.8219462], {icon: KE}).bindPopup("<span class='CountryName'>ケニア<br>Kenya</span>").addTo(Point),
+L.marker([42.8746212,74.5697617], {icon: KG}).bindPopup("<span class='CountryName'>キルギス<br>Kyrgyzstan</span>").addTo(Point),
+L.marker([11.5563738,104.9282099], {icon: KH}).bindPopup("<span class='CountryName'>カンボジア<br>Cambodia</span>").addTo(Point),
+L.marker([1.4518171,172.9716617], {icon: KI}).bindPopup("<span class='CountryName'>キリバス<br>Kiribati</span>").addTo(Point),
+L.marker([-11.7172157,43.2473146], {icon: KM}).bindPopup("<span class='CountryName'>コモロ<br>Comoros</span>").addTo(Point),
+L.marker([17.3026058,-62.7176924], {icon: KN}).bindPopup("<span class='CountryName'>セントクリストファー・ネビス<br>Saint Kitts and Nevis</span>").addTo(Point),
+L.marker([39.0392193,125.7625241], {icon: KP}).bindPopup("<span class='CountryName'>北朝鮮［朝鮮民主主義人民共和国］<br>North Korea</span>").addTo(Point),
+L.marker([37.552361,126.991432], {icon: KR}).bindPopup("<span class='CountryName'>韓国［大韓民国］<br>South Korea</span>").addTo(Point),
+L.marker([42.6629138,21.1655028], {icon: KS}).bindPopup("<span class='CountryName'>コソボ<br>Kosovo</span>").addTo(Point),
+L.marker([29.375859,47.9774052], {icon: KW}).bindPopup("<span class='CountryName'>クウェート<br>Kuwait</span>").addTo(Point),
+L.marker([51.1605227,71.4703558], {icon: KZ}).bindPopup("<span class='CountryName'>カザフスタン<br>Kazakhstan</span>").addTo(Point),
+L.marker([17.9757058,102.6331035], {icon: LA}).bindPopup("<span class='CountryName'>ラオス<br>Laos</span>").addTo(Point),
+L.marker([33.8937913,35.5017767], {icon: LB}).bindPopup("<span class='CountryName'>レバノン<br>Lebanon</span>").addTo(Point),
+L.marker([14.0101094,-60.9874687], {icon: LC}).bindPopup("<span class='CountryName'>セントルシア<br>Saint Lucia</span>").addTo(Point),
+L.marker([47.1410303,9.5209277], {icon: LI}).bindPopup("<span class='CountryName'>リヒテンシュタイン<br>Liechtenstein</span>").addTo(Point),
+L.marker([6.8867616,79.9187142], {icon: LK}).bindPopup("<span class='CountryName'>スリランカ<br>Sri Lanka</span>").addTo(Point),
+L.marker([6.2907432,-10.7605239], {icon: LR}).bindPopup("<span class='CountryName'>リベリア<br>Liberia</span>").addTo(Point),
+L.marker([-29.31, 27.48], {icon: LS}).bindPopup("<span class='CountryName'>レソト<br>Lesotho</span>").addTo(Point),
+L.marker([54.6871555,25.2796514], {icon: LT}).bindPopup("<span class='CountryName'>リトアニア<br>Lithuania</span>").addTo(Point),
+L.marker([49.611621,6.1319346], {icon: LU}).bindPopup("<span class='CountryName'>ルクセンブルク<br>Luxembourg</span>").addTo(Point),
+L.marker([56.9496487,24.1051865], {icon: LV}).bindPopup("<span class='CountryName'>ラトビア<br>Latvia</span>").addTo(Point),
+L.marker([32.8872094,13.1913383], {icon: LY}).bindPopup("<span class='CountryName'>リビア<br>Libya</span>").addTo(Point),
+L.marker([33.9715904,-6.8498129], {icon: MA}).bindPopup("<span class='CountryName'>モロッコ<br>Morocco</span>").addTo(Point),
+L.marker([43.737247,7.420681], {icon: MC}).bindPopup("<span class='CountryName'>モナコ<br>Monaco</span>").addTo(Point),
+L.marker([47.0104529,28.8638102], {icon: MD}).bindPopup("<span class='CountryName'>モルドバ<br>Moldova</span>").addTo(Point),
+L.marker([42.4304196,19.2593642], {icon: ME}).bindPopup("<span class='CountryName'>モンテネグロ<br>Montenegro</span>").addTo(Point),
+L.marker([-18.8791902,47.5079055], {icon: MG}).bindPopup("<span class='CountryName'>マダガスカル<br>Madagascar</span>").addTo(Point),
+L.marker([7.1164214,171.1857736], {icon: MH}).bindPopup("<span class='CountryName'>マーシャル諸島<br>Marshall Islands</span>").addTo(Point),
+L.marker([41.9973462,21.4279956], {icon: MK}).bindPopup("<span class='CountryName'>北マケドニア<br>North Macedonia</span>").addTo(Point),
+L.marker([12.6392316,-8.0028892], {icon: ML}).bindPopup("<span class='CountryName'>マリ<br>Mali</span>").addTo(Point),
+L.marker([19.7633057,96.0785104], {icon: MM}).bindPopup("<span class='CountryName'>ミャンマー<br>Myanmar</span>").addTo(Point),
+L.marker([47.8863988,106.9057439], {icon: MN}).bindPopup("<span class='CountryName'>モンゴル<br>Mongolia</span>").addTo(Point),
+L.marker([18.0735299,-15.9582372], {icon: MR}).bindPopup("<span class='CountryName'>モーリタニア<br>Mauritania</span>").addTo(Point),
+L.marker([35.8989085,14.5145528], {icon: MT}).bindPopup("<span class='CountryName'>マルタ<br>Malta</span>").addTo(Point),
+L.marker([-20.1608912,57.5012222], {icon: MU}).bindPopup("<span class='CountryName'>モーリシャス<br>Mauritius</span>").addTo(Point),
+L.marker([4.1754959,73.5093474], {icon: MV}).bindPopup("<span class='CountryName'>モルディブ<br>Maldives</span>").addTo(Point),
+L.marker([-13.9626121,33.7741195], {icon: MW}).bindPopup("<span class='CountryName'>マラウイ<br>Malawi</span>").addTo(Point),
+L.marker([19.4326077,-99.133208], {icon: MX}).bindPopup("<span class='CountryName'>メキシコ<br>Mexico</span>").addTo(Point),
+L.marker([3.139003,101.686855], {icon: MY}).bindPopup("<span class='CountryName'>マレーシア<br>Malaysia</span>").addTo(Point),
+L.marker([-25.969248,32.5731746], {icon: MZ}).bindPopup("<span class='CountryName'>モザンビーク<br>Mozambique</span>").addTo(Point),
+L.marker([-22.5608807,17.0657549], {icon: NA}).bindPopup("<span class='CountryName'>ナミビア<br>Namibia</span>").addTo(Point),
+L.marker([13.5115963,2.1253854], {icon: NE}).bindPopup("<span class='CountryName'>ニジェール<br>Niger</span>").addTo(Point),
+L.marker([9.0764785,7.398574], {icon: NG}).bindPopup("<span class='CountryName'>ナイジェリア<br>Nigeria</span>").addTo(Point),
+L.marker([12.1149926,-86.2361744], {icon: NI}).bindPopup("<span class='CountryName'>ニカラグア<br>Nicaragua</span>").addTo(Point),
+L.marker([52.3702157,4.8951679], {icon: NL}).bindPopup("<span class='CountryName'>オランダ<br>Netherlands</span>").addTo(Point),
+L.marker([59.9138688,10.7522454], {icon: NO}).bindPopup("<span class='CountryName'>ノルウェー<br>Norway</span>").addTo(Point),
+L.marker([27.7172453,85.3239605], {icon: NP}).bindPopup("<span class='CountryName'>ネパール<br>Nepal</span>").addTo(Point),
+L.marker([-0.5466857,166.9210913], {icon: NR}).bindPopup("<span class='CountryName'>ナウル<br>Nauru</span>").addTo(Point),
+L.marker([-19.0553711,-169.9178709], {icon: NU}).bindPopup("<span class='CountryName'>ニウエ<br>Niue</span>").addTo(Point),
+L.marker([-41.2864603,174.776236], {icon: NZ}).bindPopup("<span class='CountryName'>ニュージーランド<br>New Zealand</span>").addTo(Point),
+L.marker([23.58589,58.4059227], {icon: OM}).bindPopup("<span class='CountryName'>オマーン<br>Oman</span>").addTo(Point),
+L.marker([8.9823792,-79.5198696], {icon: PA}).bindPopup("<span class='CountryName'>パナマ<br>Panama</span>").addTo(Point),
+L.marker([-12.0463731,-77.042754], {icon: PE}).bindPopup("<span class='CountryName'>ペルー<br>Peru</span>").addTo(Point),
+L.marker([-9.4438004,147.1802671], {icon: PG}).bindPopup("<span class='CountryName'>パプアニューギニア<br>Papua New Guinea</span>").addTo(Point),
+L.marker([14.5995124,120.9842195], {icon: PH}).bindPopup("<span class='CountryName'>フィリピン<br>Philippines</span>").addTo(Point),
+L.marker([33.6844202,73.0478848], {icon: PK}).bindPopup("<span class='CountryName'>パキスタン<br>Pakistan</span>").addTo(Point),
+L.marker([52.2296756,21.0122287], {icon: PL}).bindPopup("<span class='CountryName'>ポーランド<br>Poland</span>").addTo(Point),
+L.marker([18.2659306,-66.5469081], {icon: PR}).bindPopup("<span class='CountryName'>アメリカ領プエルトリコ<br>Puerto Rico</span>").addTo(Point),
+L.marker([38.7222524,-9.1393366], {icon: PT}).bindPopup("<span class='CountryName'>ポルトガル<br>Portugal</span>").addTo(Point),
+L.marker([7.4951158,134.6336896], {icon: PW}).bindPopup("<span class='CountryName'>パラオ<br>Palau</span>").addTo(Point),
+L.marker([-25.2637399,-57.575926], {icon: PY}).bindPopup("<span class='CountryName'>パラグアイ<br>Paraguay</span>").addTo(Point),
+L.marker([25.2854473,51.5310398], {icon: QA}).bindPopup("<span class='CountryName'>カタール<br>Qatar</span>").addTo(Point),
+L.marker([44.4267674,26.1025384], {icon: RO}).bindPopup("<span class='CountryName'>ルーマニア<br>Romania</span>").addTo(Point),
+L.marker([44.786568,20.4489216], {icon: RS}).bindPopup("<span class='CountryName'>セルビア<br>Serbia</span>").addTo(Point),
+L.marker([55.755826,37.6172999], {icon: RU}).bindPopup("<span class='CountryName'>ロシア<br>Russia</span>").addTo(Point),
+L.marker([-1.9705786,30.1044288], {icon: RW}).bindPopup("<span class='CountryName'>ルワンダ<br>Rwanda</span>").addTo(Point),
+L.marker([24.7135517,46.6752957], {icon: SA}).bindPopup("<span class='CountryName'>サウジアラビア<br>Saudi Arabia</span>").addTo(Point),
+L.marker([-9.4456381,159.9728999], {icon: SB}).bindPopup("<span class='CountryName'>ソロモン諸島<br>Solomon Islands</span>").addTo(Point),
+L.marker([-4.619143,55.4513149], {icon: SC}).bindPopup("<span class='CountryName'>セーシェル<br>Seychelles</span>").addTo(Point),
+L.marker([15.5006544,32.5598994], {icon: SD}).bindPopup("<span class='CountryName'>スーダン<br>Sudan</span>").addTo(Point),
+L.marker([59.3293235,18.0685808], {icon: SE}).bindPopup("<span class='CountryName'>スウェーデン<br>Sweden</span>").addTo(Point),
+L.marker([1.355429,103.867722], {icon: SG}).bindPopup("<span class='CountryName'>シンガポール<br>Singapore</span>").addTo(Point),
+L.marker([46.0569465,14.5057515], {icon: SI}).bindPopup("<span class='CountryName'>スロベニア<br>Slovenia</span>").addTo(Point),
+L.marker([48.1485965,17.1077478], {icon: SK}).bindPopup("<span class='CountryName'>スロバキア<br>Slovakia</span>").addTo(Point),
+L.marker([8.4656765,-13.2317225], {icon: SL}).bindPopup("<span class='CountryName'>シエラレオネ<br>Sierra Leone</span>").addTo(Point),
+L.marker([43.9355907,12.4472806], {icon: SM}).bindPopup("<span class='CountryName'>サンマリノ<br>San Marino</span>").addTo(Point),
+L.marker([14.716677,-17.4676861], {icon: SN}).bindPopup("<span class='CountryName'>セネガル<br>Senegal</span>").addTo(Point),
+L.marker([2.0469343,45.3181623], {icon: SO}).bindPopup("<span class='CountryName'>ソマリア<br>Somali</span>").addTo(Point),
+L.marker([5.8520355,-55.2038278], {icon: SR}).bindPopup("<span class='CountryName'>スリナム<br>Suriname</span>").addTo(Point),
+L.marker([4.859363,31.57125], {icon: SS}).bindPopup("<span class='CountryName'>南スーダン<br>South Sudan</span>").addTo(Point),
+L.marker([0.3301924,6.733343], {icon: ST}).bindPopup("<span class='CountryName'>サントメ・プリンシペ<br>Sao Tome and Principe</span>").addTo(Point),
+L.marker([13.6929403,-89.2181911], {icon: SV}).bindPopup("<span class='CountryName'>エルサルバドル<br>El Salvador</span>").addTo(Point),
+L.marker([33.5138073,36.2765279], {icon: SY}).bindPopup("<span class='CountryName'>シリア<br>Syria</span>").addTo(Point),
+L.marker([-26.3054482,31.1366715], {icon: SZ}).bindPopup("<span class='CountryName'>エスワティニ<br>Eswatini</span>").addTo(Point),
+L.marker([12.1348457,15.0557415], {icon: TD}).bindPopup("<span class='CountryName'>チャド<br>Chad</span>").addTo(Point),
+L.marker([6.1724969,1.2313618], {icon: TG}).bindPopup("<span class='CountryName'>トーゴ<br>Togo</span>").addTo(Point),
+L.marker([13.7563309,100.5017651], {icon: TH}).bindPopup("<span class='CountryName'>タイ<br>Thailand</span>").addTo(Point),
+L.marker([38.5597722,68.7870384], {icon: TJ}).bindPopup("<span class='CountryName'>タジキスタン<br>Tajikistan</span>").addTo(Point),
+L.marker([-8.5568557,125.5603143], {icon: TL}).bindPopup("<span class='CountryName'>東ティモール<br>East Timor</span>").addTo(Point),
+L.marker([37.9600766,58.3260629], {icon: TM}).bindPopup("<span class='CountryName'>トルクメニスタン<br>Turkmenistan</span>").addTo(Point),
+L.marker([36.8064948,10.1815316], {icon: TN}).bindPopup("<span class='CountryName'>チュニジア<br>Tunisia</span>").addTo(Point),
+L.marker([-21.1393418,-175.204947], {icon: TO}).bindPopup("<span class='CountryName'>トンガ<br>Tonga</span>").addTo(Point),
+L.marker([39.9333635,32.8597419], {icon: TR}).bindPopup("<span class='CountryName'>トルコ<br>Turkey</span>").addTo(Point),
+L.marker([10.6549013,-61.5019256], {icon: TT}).bindPopup("<span class='CountryName'>トリニダード・トバゴ<br>Trinidad and Tobago</span>").addTo(Point),
+L.marker([-8.5211471,179.1961926], {icon: TV}).bindPopup("<span class='CountryName'>ツバル<br>Tuvalu</span>").addTo(Point),
+L.marker([25.0329694,121.5654177], {icon: TW}).bindPopup("<span class='CountryName'>台湾［中華民国］<br>Taiwan</span>").addTo(Point),
+L.marker([-6.162959,35.7516069], {icon: TZ}).bindPopup("<span class='CountryName'>タンザニア<br>Tanzania</span>").addTo(Point),
+L.marker([50.4501,30.5234], {icon: UA}).bindPopup("<span class='CountryName'>ウクライナ<br>Ukraine</span>").addTo(Point),
+L.marker([0.3475964,32.5825197], {icon: UG}).bindPopup("<span class='CountryName'>ウガンダ<br>Uganda</span>").addTo(Point),
+L.marker([38.895083,-77.036546], {icon: US}).bindPopup("<span class='CountryName'>アメリカ［米国］<br>United States</span>").addTo(Point),
+L.marker([-34.9011127,-56.1645314], {icon: UY}).bindPopup("<span class='CountryName'>ウルグアイ<br>Uruguay</span>").addTo(Point),
+L.marker([41.2994958,69.2400734], {icon: UZ}).bindPopup("<span class='CountryName'>ウズベキスタン<br>Uzbekistan</span>").addTo(Point),
+L.marker([41.902916,12.453389], {icon: VA}).bindPopup("<span class='CountryName'>バチカン<br>Vatican City</span>").addTo(Point),
+L.marker([41.9027835,12.4963655], {icon: IT}).bindPopup("<span class='CountryName'>イタリア<br>Italy</span>").addTo(Point),
+L.marker([13.1600249,-61.2248157], {icon: VC}).bindPopup("<span class='CountryName'>セントビンセント・グレナディーン<br>Saint Vincent and the Grenadines</span>").addTo(Point),
+L.marker([10.4805937,-66.9036063], {icon: VE}).bindPopup("<span class='CountryName'>ベネズエラ<br>Venezuela</span>").addTo(Point),
+L.marker([21.0277644,105.8341598], {icon: VN}).bindPopup("<span class='CountryName'>ベトナム<br>Viet Nam</span>").addTo(Point),
+L.marker([-17.7332512,168.3273245], {icon: VU}).bindPopup("<span class='CountryName'>バヌアツ<br>Vanuatu</span>").addTo(Point),
+L.marker([-13.8506958,-171.7513551], {icon: WS}).bindPopup("<span class='CountryName'>サモア<br>Samoa</span>").addTo(Point),
+L.marker([15.3694451,44.1910066], {icon: YE}).bindPopup("<span class='CountryName'>イエメン<br>Yemen</span>").addTo(Point),
+L.marker([-25.745, 28.190278], {icon: ZA}).bindPopup("<span class='CountryName'>南アフリカ共和国<br>South Africa</span>").addTo(Point),
+L.marker([-15.3875259,28.3228165], {icon: ZM}).bindPopup("<span class='CountryName'>ザンビア<br>Zambia</span>").addTo(Point),
+L.marker([-17.8251657,31.03351], {icon: ZW}).bindPopup("<span class='CountryName'>ジンバブエ<br>Zimbabwe</span>").addTo(Point),
+L.marker([32.3, -64.783333], {icon: bd}).bindPopup("<span class='CountryName'>イギリス領バミューダ諸島<br>Bermuda</span>").addTo(Point),
+L.marker([19.303333,-81.4476721], {icon: cj}).bindPopup("<span class='CountryName'>イギリス領ケイマン諸島<br>Cayman Islands</span>").addTo(Point),
+L.marker([-51.7, -57.85], {icon: fk}).bindPopup("<span class='CountryName'>フォークランド諸島<br>Falkland Islands</span>").addTo(Point),
+L.marker([62,-7], {icon: fo}).bindPopup("<span class='CountryName'>デンマーク自治領フェロー諸島<br>Faroe Islands</span>").addTo(Point),
+L.marker([-17.541917, -149.566472], {icon: fp}).bindPopup("<span class='CountryName'>フランス領ポリネシア<br>French Polynesia</span>").addTo(Point),
+L.marker([36.116667, -5.35], {icon: gi}).bindPopup("<span class='CountryName'>ジブラルタル<br>Gibraltar</span>").addTo(Point),
+L.marker([64.166667, -51.75], {icon: gl}).bindPopup("<span class='CountryName'>グリーンランド<br>Greenland</span>").addTo(Point),
+L.marker([49.4555, -2.5368], {icon: gk}).bindPopup("<span class='CountryName'>イギリス王室属領ガーンジー<br>Guernsey</span>").addTo(Point),
+L.marker([49.183333, -2.1], {icon: je}).bindPopup("<span class='CountryName'>イギリス王室属領ジャージー<br>Jersey</span>").addTo(Point),
+L.marker([54.14521, -4.48172], {icon: im}).bindPopup("<span class='CountryName'>マン島<br>Isle of Man</span>").addTo(Point),
+L.marker([16.75, -62.2], {icon: mh}).bindPopup("<span class='CountryName'>モントセラト<br>Montserrat</span>").addTo(Point),
+L.marker([-29.05,167.9666667], {icon: nf}).bindPopup("<span class='CountryName'>オーストラリア領ノーフォーク島<br>Norfolk Island</span>").addTo(Point),
+L.marker([15.180833, 145.755833], {icon: cq}).bindPopup("<span class='CountryName'>北マリアナ諸島<br>Northern Mariana Islands</span>").addTo(Point),
+L.marker([-25.066667, -130.1], {icon: pc}).bindPopup("<span class='CountryName'>ピトケアン諸島<br>Pitcairn Islands</span>").addTo(Point),
+L.marker([-15.929702, -5.714211], {icon: sh}).bindPopup("<span class='CountryName'>イギリス領セントヘレナ<br>Saint Helena</span>").addTo(Point),
+L.marker([21.883333, -71.783333], {icon: tk}).bindPopup("<span class='CountryName'>イギリス領タークスカイコス諸島<br>Turks and Caicos Islands</span>").addTo(Point),
+L.marker([-54.283333, -36.5], {icon: sx}).bindPopup("<span class='CountryName'>サウスジョージア・サウスサンドウィッチ諸島<br>South Georgia and the South Sandwich Islands</span>").addTo(Point),
+L.marker([12.183333, -68.983333], {icon: cuw}).bindPopup("<span class='CountryName'>キュラソー島<br>Curacao</span>").addTo(Point),
+L.marker([18.0237, -63.0458], {icon: sxm}).bindPopup("<span class='CountryName'>シント・マールテン<br>Sint Maarten</span>").addTo(Point),
+L.marker([-14.279444, -170.700556], {icon: aq}).bindPopup("<span class='CountryName'>アメリカ領サモア<br>American Samoa</span>").addTo(Point),
+L.marker([37.741111, -25.680556], {icon: Azores}).bindPopup("<span class='CountryName'>ポルトガル領アゾレス諸島<br>Azores</span>").addTo(Point),
+L.marker([32.65, -16.916667], {icon: Madeira}).bindPopup("<span class='CountryName'>ポルトガル領マデイラ諸島<br>Madeira</span>").addTo(Point),
+L.marker([18.431389, -64.623056], {icon: vi}).bindPopup("<span class='CountryName'>イギリス領バージン諸島<br>British Virgin Islands</span>").addTo(Point),
+L.marker([18.35, -64.95], {icon: vq}).bindPopup("<span class='CountryName'>アメリカ領バージン諸島<br>United States Virgin Islands</span>").addTo(Point)
+L.marker([-9.1666917,-171.8185933], {icon: tokelau}).bindPopup("<span class='CountryName'>ニュージーランド領トケラウ<br>Tokelau</span>").addTo(Point),
+L.marker([22.267, 114.188], {icon: HongKong}).bindPopup("<span class='CountryName'>香港<br>Hong Kong</span>").addTo(Point),
+L.marker([22.166667, 113.55], {icon: Macau}).bindPopup("<span class='CountryName'>マカオ<br>Macau、澳門</span>").addTo(Point),
+L.marker([60.241174,20.122833], {icon: Aland}).bindPopup("<span class='CountryName'>オーランド諸島（フィンランド）<br>Aland Islands</span>").addTo(Point),
+L.marker([-7.943976,-14.369259], {icon: Ascension}).bindPopup("<span class='CountryName'>アセンション島（英）<br>Ascension Island</span>").addTo(Point),
+L.marker([28.530652,-15.746444], {icon: Canary}).bindPopup("<span class='CountryName'>カナリア諸島 (スペイン)<br>Canary Islands</span>").addTo(Point),
+L.marker([16.262141,-61.569443], {icon: Guadeloupe}).bindPopup("<span class='CountryName'>グアドループ（仏）<br>Guadeloupe</span>").addTo(Point),
+L.marker([-21.130962,55.526560], {icon: Reunion}).bindPopup("<span class='CountryName'>レユニオン (仏)<br>MRe'union</span>").addTo(Point),
+L.marker([17.900342,-62.827377], {icon: Saint_Barthelemy}).bindPopup("<span class='CountryName'>サンバルテルミー島 (仏)<br>Saint Barthelemy</span>").addTo(Point),
+L.marker([46.817918,-56.235580], {icon: SaintPierreMiquelon}).bindPopup("<span class='CountryName'>サンピエール・ミクロン島 (仏)<br>Saint Pierre and Miquelon</span>").addTo(Point)
+
+
+//var map = L.map('map', {center: [-2.811371,39.726563], zoom: 2, layers: [esri_worldStreet, Point]});
+//var map = L.map('map').setView([38, 138], 2);
+//var map = L.map('map');
+
+
+var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	maxZoom: 18,
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+
+//	tileLayer.addTo(map);
+
+
+var map = L.map('map', {center: [23,65], zoom: 3, layers: [tileLayer, Point]});
+
+var osmGeocoder = new L.Control.OSMGeocoder({ position: "topright", placeholder: '国名',text: '検索'});
+map.addControl(osmGeocoder);
+
+
+/*
+	var curMarker = null;	// 現在地マーカー
+	function onLocationFound(e) {
+		var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
+		L.marker(e.latlng, {icon: centerIcon}).addTo(map);
+	}
+	function onLocationError(e) {
+		alert('位置情報を取得できませんでした。' + e.message);
+	}
+	map.on('locationfound', onLocationFound);
+	map.on('locationerror', onLocationError);
+	map.locate({setView: true, maxZoom: 16, timeout: 20000});
+*/
+
+
+// 住所検索
+/*
+var osmGeocoder = new L.Control.OSMGeocoder({
+	collapsed: false,
+	text: '検索',
+	placeholder: '地点名を入力してください。',
+	callback: function (results) {
+		var coords = L.latLng(results[0].lat,results[0].lon);
+		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
+		L.marker(coords, {icon: foundIcon}).addTo(map);
+		map.setView(coords,17);
+	//	var bbox = results[0].boundingbox,
+	//	first = new L.LatLng(bbox[0], bbox[2]),
+	//	second = new L.LatLng(bbox[1], bbox[3]),
+	//	bounds = new L.LatLngBounds([first, second]);
+	//	this._map.fitBounds(bounds);
+	}
+});
+map.addControl(osmGeocoder);
+*/
+
+// フルスクリーンボタン
+map.addControl(new L.Control.Fullscreen({
+	title: {
+		'false': '最大化',
+		'true': '元に戻す'
+	}
+}));
+var Basic_Map = new Array();
+Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+});
+Basic_Map[ 1 ] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+Basic_Map[ 2 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+var baseMap = {
+	'Google マップ': Basic_Map[ 0 ],
+	'OpenStreetMap': Basic_Map[ 1 ],
+	'国土地理院 標準地図': Basic_Map[ 2 ],
+	'国土地理院 写真': Basic_Map[ 3 ],
+	'Esri World Topo Map': Basic_Map[ 4 ]
+};
+var Overlay_Map = new Array();
+Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
+	opacity: 0.2, maxNativeZoom: 15,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 16,
+	attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+Overlay_Map[ 2 ] = L.tileLayer('https://gbank.gsj.jp/seamless/v2/api/1.2.1/tiles/{z}/{y}/{x}.png?layer=glfs', {
+	opacity: 0.4, maxNativeZoom: 13,
+	attribution: '日本シームレス地質図V2: GSJ/AIST'
+});
+Overlay_Map[ 3 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	opacity: 0.2,
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+Overlay_Map[ 4 ] = L.tileLayer('https://tile.openweathermap.org/map/precipitation/{z}/{x}/{y}.png?appid=d39b8f3b06fd87bdf447a70ede5b990e', {
+	opacity: 0.5,
+	attribution: '<a href="https://openweathermap.org/">OpenWeather</a>'
+});
+Overlay_Map[ 5 ] = L.tileLayer('https://tile.openweathermap.org/map/clouds/{z}/{x}/{y}.png?appid=d39b8f3b06fd87bdf447a70ede5b990e', {
+	opacity: 1.0,
+	attribution: '<a href="https://openweathermap.org/">OpenWeather</a>'
+});
+Overlay_Map[ 6 ] = L.tileLayer('https://tile.openweathermap.org/map/pressure_cntr/{z}/{x}/{y}.png?appid=d39b8f3b06fd87bdf447a70ede5b990e', {
+	opacity: 1.0,
+	attribution: '<a href="https://openweathermap.org/">OpenWeather</a>'
+});
+Overlay_Map[ 7 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：洪水浸水想定区域（想定最大規模）'
+});
+Overlay_Map[ 8 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png', {
+	opacity: 0.3, maxNativeZoom: 17,
+	attribution: '国土地理院：浸水継続時間（想定最大規模）'
+});
+Overlay_Map[ 9 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：高潮浸水想定区域'
+});
+Overlay_Map[ 10 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：津波浸水想定'
+});
+Overlay_Map[ 11 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（土石流）'
+});
+Overlay_Map[ 12 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（急傾斜地の崩壊）'
+});
+Overlay_Map[ 13 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png', {
+	opacity: 0.5, maxNativeZoom: 17,
+	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
+});
+var overlay = {
+	'国土地理院 色別標高図': Overlay_Map[ 0 ],
+	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
+	'産総研 地質図': Overlay_Map[ 2 ],
+	'Esri 衛星画像': Overlay_Map[ 3 ],
+	'OpenWeatherMap 降水量': Overlay_Map[ 4 ],
+	'OpenWeatherMap 雲': Overlay_Map[ 5 ],
+	'OpenWeatherMap 気圧図': Overlay_Map[ 6 ],
+	'ハザードマップ 洪水浸水想定区域': Overlay_Map[ 7 ],
+	'ハザードマップ 浸水継続時間': Overlay_Map[ 8 ],
+	'ハザードマップ 高潮浸水想定区域': Overlay_Map[ 9 ],
+	'ハザードマップ 津波浸水想定': Overlay_Map[ 10 ],
+	'ハザードマップ 土石流': Overlay_Map[ 11 ],
+	'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 12 ],
+	'ハザードマップ 地すべり': Overlay_Map[ 13 ],
+
+	'国旗': Point
+
+};
+L.control.layers(baseMap, overlay).addTo(map);
+// 現在地表示ボタン
+var watch_id = 0;
+var curMarker = null;	// 現在地マーカー
+var currentWatchBtn = null;
+/*
+	L.easyButton({		// 現在地表示ボタン
+		states: [{
+			stateName: 'current-watch',
+			icon:	'fas fa-map-marker-alt',
+			title:	 '現在地',
+			onClick: function(btn, map) {
+				currentWatch();
+				btn.state('current-watch-reset');
+				currentWatchBtn = btn;
+			}
+		}, {
+			stateName: 'current-watch-reset',
+			icon:	'fa fa-user',
+			title:	 '現在地オフ',
+			onClick: function(btn, map) {
+				currentWatchReset();
+				btn.state('current-watch');
+			}
+		}]
+	}).addTo( map );
+*/
+L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表示ボタン
+	currentWatchReset();
+	currentWatch();
+}).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	currentWatchReset();
+}).addTo(map);
+// ルート（経路）検索ボタン
+var route_mode = true;
+/* -----------------------------------------------
+	L.easyButton({
+		states: [{
+			stateName: 'route-off',
+			icon:	'fa-walking',
+			title:	 '経路検索オフ',
+			onClick: function(btn, map) {
+				posMarkerRemove();
+				startMarkerRemove();
+				routeControlReset();
+				route_mode = false;
+				btn.state('route-on');
+			}
+		}, {
+			stateName: 'route-on',
+			icon:	'fa fa-times',
+			title:	 '経路検索',
+			onClick: function(btn, map) {
+				posMarkerRemove();
+				startMarkerRemove();
+				routeControlReset();
+				route_mode = true;
+				btn.state('route-off');
+			}
+		}]
+	}).addTo( map );
+----------------------------------------------- */
+L.easyButton('fa-walking', function(btn, easyMap) {
+	posMarkerRemove();
+	startMarkerRemove();
+	routeControlReset();
+	route_mode = true;
+	weather_mode = false;
+	btn.state('route-off');
+}).addTo(map);
+var weather_mode = false;
+L.easyButton('fa-cloud-sun', function(btn, easyMap) {
+	posMarkerRemove();
+	startMarkerRemove();
+	routeControlReset();
+	route_mode = false;
+	weather_mode = true;
+}).addTo(map);
+L.easyButton('fa fa-times', function(btn, easyMap) {
+	posMarkerRemove();
+	startMarkerRemove();
+	routeControlReset();
+	route_mode = false;
+	weather_mode = false;
+}).addTo(map);
+// クリック処理
+map.on('click', onMapClick);
+function onMapClick(e) {
+	if (route_mode) {
+		routeProc(e);
+	} else {
+		currentPop(e);
+	}
+}
+// クリックした地点の緯度・経度、標高を表示 | OpenWeatherMapから天気情報取得
+var posMarker = null;
+function currentPop(e) {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	if (weather_mode) {
+		// OpenWeatherMapから天気情報取得
+		// https://openweathermap.org/
+		var src = 'https://api.openweathermap.org/data/2.5/onecall?lat=' + lat + '&lon=' + lng + '&units=metric&lang=ja&appid=d39b8f3b06fd87bdf447a70ede5b990e';
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var data = JSON.parse(text);
+			var week_date = ['', '', ''];
+			var week_icon = ['', '', ''];
+			var week = ['', '', ''];
+			for (i=0; i<3; i++) {
+				week_date[i] += get_date_string(data.daily[i].dt);
+				week_icon[i] += '<img src="https://openweathermap.org/img/w/' + data.daily[i].weather[0].icon + '.png">';
+				week_icon[i] += '<br>' + data.daily[i].weather[0].description;
+				week[i] = '気温：' + round_val(data.daily[i].temp.day) + ' ℃';
+				week[i] += '<br>最高：<span class="hi">' + round_val(data.daily[i].temp.max) + '</span> ℃';
+				week[i] += '<br>最低：<span class="lo">' + round_val(data.daily[i].temp.min) + '</span> ℃';
+				week[i] += '<br>気圧：' + data.daily[i].pressure + ' hPa';
+				week[i] += '<br>湿度：' + data.daily[i].humidity + ' %';
+				week[i] += '<br>風向：' + get_deg_string(data.daily[i].wind_deg);
+				week[i] += '<br>風速：' + data.daily[i].wind_speed + ' m/s';
+			}
+			var src = 'https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lng + '&units=metric&lang=ja&appid=d39b8f3b06fd87bdf447a70ede5b990e';
+			fetch(src)
+			.then((response) => {
+				return response.text();
+			})
+			.then((text) => {
+				var data = JSON.parse(text);
+				var pos_addr = '<p>－　' + data.name + '　－</p>';	// 地点名
+				var popHtml = pos_addr;
+/* ---
+					data.dt
+					data.weather[0].icon
+					data.weather[0].description;
+					data.main.temp
+					data.main.temp_max
+					data.main.temp_min
+					ata.main.pressure
+					data.main.humidity
+					data.wind.deg
+					data.wind.speed
+--- */
+				popHtml += '<table class="weather"><tr><th>' + week_date[0] + '</th><th>' + week_date[1] + '</th><th>' + week_date[2] + '</th></tr>';
+				popHtml += '<tr><th>' + week_icon[0] + '</th><th>' + week_icon[1] + '</th><th>' + week_icon[2] + '</th></tr>';
+				popHtml += '<tr><td>' + week[0] + '</td><td>' + week[1] + '</td><td>' + week[2] + '</td></tr></table>';
+				posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popHtml).openPopup();
+			})
+		})
+	} else {
+		// 地理院地図サーバから標高を求める
+		// http://maps.gsi.go.jp/development/elevation_s.html
+		var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
+		fetch(src)
+		.then((response) => {
+			return response.text();
+		})
+		.then((text) => {
+			var results = JSON.parse(text);
+			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
+			// 日本シームレス地質図V2
+			// https://gbank.gsj.jp/seamless/v2/api/1.2.1/
+			var src = 'https://gbank.gsj.jp/seamless/v2/api/1.2.1/legend.json?point=' + e.latlng.lat + ',' + e.latlng.lng;
+			fetch(src)
+			.then((response) => {
+				return response.text();
+			})
+			.then((text) => {
+				var data = JSON.parse(text);
+				var titulo = data.title;
+				popStr += '<br>地質：' + titulo;
+				posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+			})
+		})
+	}
+}
+var get_deg_string = function(deg) {
+	var r = '北';
+	if (deg>=11.25) r = '北北東';
+	if (deg>=33.75) r = '北東';
+	if (deg>=56.25) r = '東北東';
+	if (deg>=78.75) r = '東';
+	if (deg>=101.25) r = '東南東';
+	if (deg>=123.75) r = '南東';
+	if (deg>=146.25) r = '南南東';
+	if (deg>=168.75) r = '南';
+	if (deg>=191.25) r = '南南西';
+	if (deg>=213.75) r = '南西';
+	if (deg>=236.25) r = '西南西';
+	if (deg>=258.75) r = '西';
+	if (deg>=281.25) r = '西北西';
+	if (deg>=303.75) r = '北西';
+	if (deg>=326.25) r = '北北西';
+	return r+'の風';
+};
+var round_val = function(n) {
+	return Math.round(n*10)/10;
+};
+var get_date_string = function(dt) {
+	var date = new Date(dt*1000);
+	var week = ['日','月','火','水','木','金','土'];
+	var s = date.getMonth()+1+'月';
+	s += date.getDate()+'日';
+	s += '（'+week[date.getDay()]+'）';
+	return s;
+};
+function posMarkerRemove() {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+		posMarker = null;
+	}
+}
+function startMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
+	if (startMarker) {
+		map.removeLayer(startMarker);
+		startMarker = null;
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+		routeControl = null;
+	}
+}
+function endMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
+	}
+	routeControlReset();
+}
+function routeControlReset() {
+	if (endMarker) {
+		map.removeLayer(endMarker);
+		endMarker = null;
+	}
+	if (routeControl) {
+		map.removeControl(routeControl);
+		routeControl = null;
+	}
+}
+// クリックした地点2箇所の経路検索
+var dummyIcon = L.icon({
+	iconUrl: 'icon/10x10.png',
+	iconRetinaUrl: 'icon/10x10.png',
+	iconSize: [16, 27],
+	iconAnchor: [7, 27],
+	popupAnchor: [1, -22],
+});
+var iconRouteStart = L.icon({
+	iconUrl: 'icon/ltblue-dot.png',
+	iconRetinaUrl: 'icon/ltblue-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var iconRouteEnd = L.icon({
+	iconUrl: 'icon/red-dot.png',
+	iconRetinaUrl: 'icon/red-dot.png',
+	iconSize: [32, 32],
+	iconAnchor: [16, 30],
+	popupAnchor: [1, -22],
+});
+var startMarker = null;
+var endMarker = null;
+var startLatLng;
+var routeControl = null;
+function routeProc(e) {
+	if (posMarker) {
+		map.removeLayer(posMarker);
+	}
+	lat = e.latlng.lat;
+	lng = e.latlng.lng;
+	if (startMarker == null) {
+		startMarker = L.marker([lat, lng], {icon: iconRouteStart}).on('click', startMarkerRemove).addTo(map);
+		startLatLng = e.latlng;
+	} else {
+		if (endMarker) {
+			routeControlReset();
+		}
+		endMarker = L.marker([lat, lng], {icon: iconRouteEnd}).on('click', endMarkerRemove).addTo(map);
+		routingView(startLatLng, e.latlng);
+	}
+}
+function routingView(startLatLng, endLatLng) {
+	routeControl = L.Routing.control({
+		serviceUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
+		show: false,	// ルート詳細パネルを表示しない
+		lineOptions: {
+			styles: [
+				{color: 'black', opacity: 0.1, weight: 6},
+				{color: 'fuchsia', opacity: 0.4, weight: 5}
+			]
+		},
+		altLineOptions: {
+			styles: [
+				{color: 'black', opacity: 0.1, weight: 6},
+				{color: 'aqua', opacity: 0.5, weight: 5}
+			]
+		},
+		createMarker: function(i, wp, nWps) {
+			return L.marker(wp.latLng, {
+				icon: dummyIcon
+			});
+		},
+		waypoints: [
+			L.latLng(startLatLng),
+			L.latLng(endLatLng)
+		]
+	}).addTo(map);
+}
+var currentWatch_on = false;
+function currentWatch() {
+	function success(pos) {
+		var lat = pos.coords.latitude;
+		var lng = pos.coords.longitude;
+	//	map.setView([ lat,lng ]);
+		if (currentWatch_on == false) {
+			map.setView([ lat,lng ]);
+			currentWatch_on = true;
+		}
+		if (curMarker) {
+			map.removeLayer(curMarker);
+		}
+		var curIcon = L.icon({
+			iconUrl: 'icon/hiking.png',
+			iconRetinaUrl: 'icon/hiking.png',
+			iconAnchor: [15, 34]
+		});
+		curMarker = L.marker([lat, lng], {icon: curIcon}).addTo(map);
+	}
+	function error(err) {
+		alert('位置情報を取得できませんでした。' + err.message);
+	}
+	var options = {
+		enableHighAccuracy: true,
+		timeout: 5000,
+		maximumAge: 0
+	};
+//	navigator.geolocation.getCurrentPosition(success, error, options);
+	if (watch_id == 0) {
+		watch_id = navigator.geolocation.watchPosition(success, error, options); // 現在地情報を定期的に
+	}
+}
+function currentWatchReset() {
+	currentWatch_on = false;
+	if (watch_id > 0) {
+		navigator.geolocation.clearWatch(watch_id);
+		watch_id = 0;
+	}
+	if (curMarker) {
+		map.removeLayer(curMarker);
+		curMarker = null;
+	}
+}
+</script>
+</body>
+</html>
