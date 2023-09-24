@@ -146,17 +146,12 @@ Basic_Map[ 3 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto
 Basic_Map[ 4 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
 	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
 });
-Basic_Map[ 5 ] = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-	subdomains: ['mt0','mt1','mt2','mt3'],
-	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>",
-});
 var baseMap = {
 	'Google マップ': Basic_Map[ 0 ],
 	'OpenStreetMap': Basic_Map[ 1 ],
 	'国土地理院 標準地図': Basic_Map[ 2 ],
 	'国土地理院 写真': Basic_Map[ 3 ],
-	'Esri World Topo Map': Basic_Map[ 4 ],
-	'Google Map 航空写真': Basic_Map[ 5 ]
+	'Esri World Topo Map': Basic_Map[ 4 ]
 };
 var Overlay_Map = new Array();
 Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
