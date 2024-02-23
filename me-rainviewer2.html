@@ -54,7 +54,7 @@ var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}'
 	maxZoom: 18,
 	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
 });
-tileLayer.addTo(map);
+//tileLayer.addTo(map);
 var curMarker = null;	// 現在地マーカー
 // by https://kita-note.com/leaflet-tutorial-5
 function onLocationFound(e) {
@@ -184,6 +184,7 @@ var overlay = {
 	'ハザードマップ 地すべり': Overlay_Map[ 10 ]
 };
 L.control.layers(baseMap, overlay).addTo(map);
+Basic_Map[ 0 ].addTo(map);
 // 雨雲レーダー		// ### onMapClick()をオフに
 L.control.rainviewer({ 
 	position: 'topright',

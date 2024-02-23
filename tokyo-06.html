@@ -33,7 +33,7 @@ var map = L.map('map');
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
 });
-tileLayer.addTo(map);
+//	tileLayer.addTo(map);
 // ---------------------------
 var place = [
 	{
@@ -102,6 +102,7 @@ var baseMap = {
 	"Esri World Topo Map": Basic_Map[ 4 ]
 };
 L.control.layers(baseMap).addTo(map);
+Basic_Map[ 0 ].addTo(map);
 // 現在地表示ボタン
 var watch_id = 0;
 var curMarker = null;	// 現在地マーカー

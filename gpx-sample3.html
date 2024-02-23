@@ -48,7 +48,7 @@ var map = L.map('map');
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
 });
-tileLayer.addTo(map);
+//	tileLayer.addTo(map);
 var Basic_Map = new Array();
 Basic_Map[ 0 ] = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
@@ -74,6 +74,7 @@ var baseMap = {
 	'Esri World Topo Map': Basic_Map[ 4 ]
 };
 L.control.layers(baseMap).addTo(map);
+Basic_Map[ 0 ].addTo(map);
 // ---------------------------------------------------
 var gpxFile = 'gpx/2013_09_22_kurikoma.gpx';
 new L.GPX(gpxFile, {

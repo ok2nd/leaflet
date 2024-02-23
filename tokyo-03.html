@@ -25,10 +25,10 @@ body { margin:0; padding:0; }
 <div class="container"><div id="map"></div></div>
 <script>
 var map = L.map('map');
-var tileLayer = L.tileLayer('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	attribution: 'c <a href="//osm.org/copyright">OpenStreetMap</a> contributors, <a href="//creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
-});
-tileLayer.addTo(map);
+//	var tileLayer = L.tileLayer('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//	attribution: '<a href="//osm.org/copyright">OpenStreetMap</a> contributors, <a href="//creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
+//	});
+//	tileLayer.addTo(map);
 // ---------------------------
 var place = [
 	{
@@ -93,6 +93,7 @@ var baseMap = {
 	"Esri World Topo Map": Basic_Map[ 3 ]
 };
 L.control.layers(baseMap).addTo(map);
+Basic_Map[ 0 ].addTo(map);
 </script>
 </body>
 </html>
