@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Leaflet地図：Google Map,OpenStreetMap,国土地理院,Esri World Topo Map">
+<title>ZooPicker探鳥地：全国版マップ</title>
+<link rel="shortcut icon" href="favicon/earth.ico" type="image/ico">
+<link rel="icon" href="favicon/earth.ico" type="image/ico">
+<link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css">
+<link rel="stylesheet" href="css/easy-button.css">
+<script src="js/easy-button.js"></script>
+<link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
+<script src="js/Leaflet.fullscreen.min.js"></script>
+<script src="js/my-leaflet-place2map-plus-2.7.js"></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+.spot {
+	font-size: 16px;
+	font-weight: bold;
+}
+.divicon {
+	display: table-cell;
+	color: #f00;
+	background-color: #ff8;
+	opacity: 0.7;
+	white-space: nowrap;
+	font-size: 14px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="container"><div id="map"></div></div>
+<script>
+fetch('csv/zoopicker-all.csv')
+.then((response) => {
+	if(response.ok) { // ステータスがokならば
+		return response.text(); // レスポンスをテキストとして変換する
+	} else {
+		throw new Error();
+	}
+})
+.then((text) => {
+	csv2map(text);
+})
+function csv2map(csv) {
+	var place = Array();
+	line = csv.split("\n");
+	for (var i=0; i<line.length; ++i) {
+		data = line[i].split(',');
+		// 	csv: 場所, zoopicker, 緯度, 経度
+		if (data.length > 2) {
+			var popStr = '<span class="spot">' + data[0] + '</span><br>';
+			popStr += '<a href="' + data[1] + '" target="_blank">ZooPicker</a>';
+			place.push([data[0], data[2], data[3], popStr]);
+		}
+	}
+	place2map(place);	// place[0] = ['地名', 緯度, 経度, 'ポップアップ文字']
+}
+</script>
+</body>
+</html>
