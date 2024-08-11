@@ -35,8 +35,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 //	var preTime = 0;
 	var pointCnt = 0;
 	map = L.map('map');
-//	for (var i=0; i<(elements.length-1); i++) {
-	for (var i=0; i<(elements.length); i++) {
+	for (var i=0; i<(elements.length-1); i++) {
 		let pos = gpxParse(elements.item(i));
 		if (i == 0) {
 			var startTime = pos['time'].getTime();
@@ -88,6 +87,65 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		'国土地理院 写真': Basic_Map[ 3 ],
 		'Esri World Topo Map': Basic_Map[ 4 ]
 	};
+	var Overlay_Map = new Array();
+	Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
+		opacity: 0.2, maxNativeZoom: 15,
+		attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+	});
+	Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png', {
+		opacity: 0.3, maxNativeZoom: 16,
+		attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+	});
+	Overlay_Map[ 2 ] = L.tileLayer('https://gbank.gsj.jp/seamless/v2/api/1.2.1/tiles/{z}/{y}/{x}.png?layer=glfs', {
+		opacity: 0.4, maxNativeZoom: 13,
+		attribution: '日本シームレス地質図V2: GSJ/AIST'
+	});
+	Overlay_Map[ 3 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+		opacity: 0.2,
+		attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+	});
+	Overlay_Map[ 4 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：洪水浸水想定区域（想定最大規模）'
+	});
+	Overlay_Map[ 5 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png', {
+		opacity: 0.3, maxNativeZoom: 17,
+		attribution: '国土地理院：浸水継続時間（想定最大規模）'
+	});
+	Overlay_Map[ 6 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：高潮浸水想定区域'
+	});
+	Overlay_Map[ 7 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：津波浸水想定'
+	});
+	Overlay_Map[ 8 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（土石流）'
+	});
+	Overlay_Map[ 9 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（急傾斜地の崩壊）'
+	});
+	Overlay_Map[ 10 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（地すべり）'
+	});
+	var overlay = {
+		'国土地理院 色別標高図': Overlay_Map[ 0 ],
+		'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
+		'産総研 地質図': Overlay_Map[ 2 ],
+		'Esri 衛星画像': Overlay_Map[ 3 ],
+		'ハザードマップ 洪水浸水想定区域': Overlay_Map[ 4 ],
+		'ハザードマップ 浸水継続時間': Overlay_Map[ 5 ],
+		'ハザードマップ 高潮浸水想定区域': Overlay_Map[ 6 ],
+		'ハザードマップ 津波浸水想定': Overlay_Map[ 7 ],
+		'ハザードマップ 土石流': Overlay_Map[ 8 ],
+		'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 9 ],
+		'ハザードマップ 地すべり': Overlay_Map[ 10 ]
+	};
+	L.control.layers(baseMap, overlay).addTo(map);
 	// ---------------------------------------------------
 	map.addControl(new L.Control.Fullscreen({	// フルスクリーンボタン
 		title: {
@@ -96,7 +154,6 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		}
 	}));
 	// ---------------------------------------------------
-/*
 	L.easyButton({			// 現在地表示ボタン
 		states: [{
 			stateName: 'current-watch',
@@ -117,14 +174,6 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 			}
 		}]
 	}).addTo( map );
-*/
-	L.easyButton('fas fa-map-marker-alt', function(btn, easyMap) {	// 現在地表示ボタン
-		currentWatchReset();
-		currentWatch();
-	}).addTo(map);
-	L.easyButton('fa fa-times', function(btn, easyMap) {
-		currentWatchReset();
-	}).addTo(map);
 	L.easyButton('fa fa-reply-all', function(btn, easyMap) {	// マーカーすべて表示画面に戻るボタン
 		currentWatchReset();
 		if (currentWatchBtn) {
@@ -132,19 +181,6 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 			currentWatchBtn = null;
 		}
 		map.fitBounds(routeLatLng);
-	}).addTo(map);
-	L.easyButton('fa-walking', function(btn, easyMap) {
-		posMarkerRemove();
-		startMarkerRemove();
-		routeControlReset();
-		route_mode = true;
-		btn.state('route-off');
-	}).addTo(map);
-	L.easyButton('fa fa-times', function(btn, easyMap) {
-		posMarkerRemove();
-		startMarkerRemove();
-		routeControlReset();
-		route_mode = false;
 	}).addTo(map);
 	L.easyButton({			// グラフ表示/非表示切り替えボタン
 		states: [{
@@ -181,7 +217,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	var iconEnd = L.icon({
 		iconUrl: 'icon/red-dot.png',
 		iconRetinaUrl: 'icon/red-dot.png',
-			iconSize: [32, 32],
+		iconSize: [32, 32],
 		iconAnchor: [16, 30],
 		popupAnchor: [1, -22],
 	});
@@ -207,15 +243,15 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	timeLavel(end['lat'], end['lon'], end['time']);
 	// ---------------------------------------------------
 	var diffTime = time2str(end['time'].getTime() - start['time'].getTime());
-	var distTotalKm = Math.round(distTotal/1000 * 10) / 10;	// 小数第一位で四捨五入
+	var distTotalKm = Math.round(distTotal/1000 * 1000) / 1000;	// 小数第三位で四捨五入
 	var dist = distance(start['lat'], start['lon'], end['lat'], end['lon'], false);
-	var distKm = Math.round(dist/1000 * 10) / 10;	// 小数第一位で四捨五入
+	var distKm = Math.round(dist/1000 * 1000) / 1000;	// 小数第三位で四捨五入
 	panelText = '<span class="panelDate">' + start['dateStr'] + '</span><br>'
 			 + '<span class="panelPlace">' + title + '</span><br>'
-			 + '出発時間：' + start['timeStr'].slice(0, -3) + '<br>'
-			 + '到着時間：' + end['timeStr'].slice(0, -3) + '<br>'
-			 + '所要時間：' + diffTime.slice(0, -3) + '<br>'
-	//		 + '直線距離：' + distKm + ' km<br>'
+			 + '出発時間：' + start['timeStr'] + '<br>'
+			 + '到着時間：' + end['timeStr'] + '<br>'
+			 + '所要時間：' + diffTime + '<br>'
+			 + '直線距離：' + distKm + ' km<br>'
 			 + '移動距離：' + distTotalKm + ' km<br>'
 			 + '最高地点：' + Math.round(height_max) + ' m<br>'
 			 + '最低地点：' + Math.round(height_min) + ' m<br>';
@@ -226,7 +262,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		},
 		setContent: function(latlng) {
 			latlng = latlng.wrap()
-			this._div.innerHTML = '<div class="right-panel">' + panelText + '</div>';
+			this._div.innerHTML = '<pre class="panel">' + panelText + '</pre>';
 			return this;
 		}
 	});
@@ -235,163 +271,51 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	}
 	const dmy = L.latLng(34.69464402144777, 135.19480347633365);	// 何故か必要 ???
 	L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
-	L.control.layers(baseMap).addTo(map);
-//	var subtitle = start['timeStr'] + '～' + end['timeStr'] + '　所要時間:' + diffTime
-	var subtitle = '所要時間:' + diffTime.substr(0,5)
+	var subtitle = start['timeStr'] + '～' + end['timeStr'] + '　所要時間:' + diffTime
 		+ '　距離:' + distTotalKm + 'km　最高地点:' + Math.round(height_max) + 'm　最低地点:' + Math.round(height_min) + 'm';
 	chartView(chartEle, start['dateStr'] + ' ' + title, subtitle);
 	return 0;
 }
-// ------------------------------------------
-var route_mode = true;
 function onMapClick(e) {
-	if (route_mode) {
-		routeProc(e);
-	} else {
-		currentPop(e);
-	}
-}
-// クリックした地点の緯度・経度、標高を表示
-var posMarker = null;
-function currentPop(e) {
-	if (posMarker) {
-		map.removeLayer(posMarker);
-	}
-	if (routeControl) {
-		map.removeControl(routeControl);
+	if (clickMarker) {
+		map.removeLayer(clickMarker);
 	}
 	lat = e.latlng.lat;
 	lng = e.latlng.lng;
 	// 地理院地図サーバから標高を求める
 	// http://maps.gsi.go.jp/development/elevation_s.html
-	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat;
+	var src = 'https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=' + lng + '&lat=' + lat ;
+/* ========================================
+	var req = new XMLHttpRequest();
+	req.onreadystatechange = function() {
+		if(req.readyState == 4 && req.status == 200) {
+			var json = req.responseText;
+			var results = JSON.parse(json);
+			var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
+			clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
+		}
+	};
+	req.open('GET', src, false);
+	req.send(null);
+======================================== */
 	fetch(src)
 	.then((response) => {
 		return response.text();
 	})
 	.then((text) => {	// text: json
 		var results = JSON.parse(text);
-		var popStr = '緯度：' + lat + '<br>経度：' + lng + '<br>標高：' + results.elevation + 'm';
 		var popStr = '<a href="http://maps.google.com/maps?q=' + lat + '%2C' + lng + '" target="_blank">' + '緯度：' + lat + '<br>経度：' + lng + '</a><br>標高：' + '' + results.elevation + 'm';
-		posMarker = L.marker(e.latlng).on('click', posMarkerRemove).addTo(map).bindPopup(popStr).openPopup();
+		clickMarker = L.marker(e.latlng).on('click', onMarkerClick).addTo(map).bindPopup(popStr).openPopup();
 	})
 }
-function posMarkerRemove() {
-	if (posMarker) {
-		map.removeLayer(posMarker);
-		posMarker = null;
-	}
+function onMarkerClick(e) {
+	map.removeLayer(clickMarker);
 }
-function startMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
-	if (startMarker) {
-		map.removeLayer(startMarker);
-		startMarker = null;
-	}
-	if (routeControl) {
-		map.removeControl(routeControl);
-		routeControl = null;
-	}
-}
-function endMarkerRemove() {		// Routing.controlが動作していると、ここには飛ばない
-	if (endMarker) {
-		map.removeLayer(endMarker);
-		endMarker = null;
-	}
-	routeControlReset();
-}
-function routeControlReset() {
-	if (endMarker) {
-		map.removeLayer(endMarker);
-		endMarker = null;
-	}
-	if (routeControl) {
-		map.removeControl(routeControl);
-		routeControl = null;
-	}
-}
-// クリックした地点2箇所の経路検索
-var dummyIcon = L.icon({
-	iconUrl: 'icon/10x10.png',
-	iconRetinaUrl: 'icon/10x10.png',
-	iconSize: [16, 27],
-	iconAnchor: [7, 27],
-	popupAnchor: [1, -22],
-});
-var iconRouteStart = L.icon({
-	iconUrl: 'icon/green-dot.png',
-	iconRetinaUrl: 'icon/green-dot.png',
-	iconSize: [32, 32],
-	iconAnchor: [16, 30],
-	popupAnchor: [1, -22],
-});
-var iconRouteEnd = L.icon({
-	iconUrl: 'icon/orange-dot.png',
-	iconRetinaUrl: 'icon/orange-dot.png',
-	iconSize: [32, 32],
-	iconAnchor: [16, 30],
-	popupAnchor: [1, -22],
-});
-var startMarker = null;
-var endMarker = null;
-var startLatLng;
-var routeControl = null;
-function routeProc(e) {
-	if (posMarker) {
-		map.removeLayer(posMarker);
-	}
-	lat = e.latlng.lat;
-	lng = e.latlng.lng;
-	if (startMarker == null) {
-		startMarker = L.marker([lat, lng], {icon: iconRouteStart}).on('click', startMarkerRemove).addTo(map);
-		startLatLng = e.latlng;
-	} else {
-		if (endMarker) {
-			routeControlReset();
-		}
-		endMarker = L.marker([lat, lng], {icon: iconRouteEnd}).on('click', endMarkerRemove).addTo(map);
-		routingView(startLatLng, e.latlng);
-	}
-}
-function routingView(startLatLng, endLatLng) {
-	routeControl = L.Routing.control({
-		serviceUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
-		show: false,	// ルート詳細パネルを表示しない
-		collapsible: true,	// hide/show panel routing
-	//	routeWhileDragging: true,
-	//	routeDragInterval: 500,
-		lineOptions: {
-			styles: [
-				{color: 'black', opacity: 0.1, weight: 6},
-				{color: 'fuchsia', opacity: 0.4, weight: 5}
-			]
-		},
-		altLineOptions: {
-			styles: [
-				{color: 'black', opacity: 0.1, weight: 6},
-				{color: 'aqua', opacity: 0.5, weight: 5}
-			]
-		},
-		createMarker: function(i, wp, nWps) {
-			return L.marker(wp.latLng, {
-				icon: dummyIcon
-			});
-		},
-		waypoints: [
-			L.latLng(startLatLng),
-			L.latLng(endLatLng)
-		]
-	}).addTo(map);
-}
-// ------------------------------------------
-var currentWatch_on = false;
 function currentWatch() {
 	function success(pos) {
 		var lat = pos.coords.latitude;
 		var lng = pos.coords.longitude;
-		if (currentWatch_on == false) {
-			map.setView([ lat,lng ]);
-			currentWatch_on = true;
-		}
+		map.setView([ lat,lng ]);
 		if (curMarker) {
 			map.removeLayer(curMarker);
 		}
@@ -415,7 +339,6 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
-	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
 		watch_id = 0;
@@ -498,8 +421,7 @@ chart = new Highcharts.Chart({
 	title: {
 		text:  title,
 		style: {
-			fontWeight: 'bold',
-			fontSize: '14px;'
+			fontWeight: 'bold'
 		}
 	},
 	subtitle: {

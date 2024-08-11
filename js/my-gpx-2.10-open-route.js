@@ -35,7 +35,6 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 //	var preTime = 0;
 	var pointCnt = 0;
 	map = L.map('map');
-//	for (var i=0; i<(elements.length-1); i++) {
 	for (var i=0; i<(elements.length); i++) {
 		let pos = gpxParse(elements.item(i));
 		if (i == 0) {
@@ -127,6 +126,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	}).addTo(map);
 	L.easyButton('fa fa-reply-all', function(btn, easyMap) {	// マーカーすべて表示画面に戻るボタン
 		currentWatchReset();
+		document.getElementById('panelInfo').style.display = "block";	// パネル表示
 		if (currentWatchBtn) {
 			currentWatchBtn.state('current-watch');
 			currentWatchBtn = null;
@@ -226,7 +226,7 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 		},
 		setContent: function(latlng) {
 			latlng = latlng.wrap()
-			this._div.innerHTML = '<div class="right-panel">' + panelText + '</div>';
+			this._div.innerHTML = '<div id="panelInfo" class="right-panel">' + panelText + '</div>';
 			return this;
 		}
 	});
@@ -235,7 +235,65 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	}
 	const dmy = L.latLng(34.69464402144777, 135.19480347633365);	// 何故か必要 ???
 	L.customControl({position: 'topright'}).addTo(map).setContent(dmy);
-	L.control.layers(baseMap).addTo(map);
+	var Overlay_Map = new Array();
+	Overlay_Map[ 0 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
+		opacity: 0.2, maxNativeZoom: 15,
+		attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+	});
+	Overlay_Map[ 1 ] = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png', {
+		opacity: 0.3, maxNativeZoom: 16,
+		attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+	});
+	Overlay_Map[ 2 ] = L.tileLayer('https://gbank.gsj.jp/seamless/v2/api/1.2.1/tiles/{z}/{y}/{x}.png?layer=glfs', {
+		opacity: 0.4, maxNativeZoom: 13,
+		attribution: '日本シームレス地質図V2: GSJ/AIST'
+	});
+	Overlay_Map[ 3 ] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+		opacity: 0.2,
+		attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+	});
+	Overlay_Map[ 4 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：洪水浸水想定区域（想定最大規模）'
+	});
+	Overlay_Map[ 5 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png', {
+		opacity: 0.3, maxNativeZoom: 17,
+		attribution: '国土地理院：浸水継続時間（想定最大規模）'
+	});
+	Overlay_Map[ 6 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：高潮浸水想定区域'
+	});
+	Overlay_Map[ 7 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：津波浸水想定'
+	});
+	Overlay_Map[ 8 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（土石流）'
+	});
+	Overlay_Map[ 9 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（急傾斜地の崩壊）'
+	});
+	Overlay_Map[ 10 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png', {
+		opacity: 0.5, maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（地すべり）'
+	});
+	var overlay = {
+		'国土地理院 色別標高図': Overlay_Map[ 0 ],
+		'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
+		'産総研 地質図': Overlay_Map[ 2 ],
+		'Esri 衛星画像': Overlay_Map[ 3 ],
+		'ハザードマップ 洪水浸水想定区域': Overlay_Map[ 4 ],
+		'ハザードマップ 浸水継続時間': Overlay_Map[ 5 ],
+		'ハザードマップ 高潮浸水想定区域': Overlay_Map[ 6 ],
+		'ハザードマップ 津波浸水想定': Overlay_Map[ 7 ],
+		'ハザードマップ 土石流': Overlay_Map[ 8 ],
+		'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 9 ],
+		'ハザードマップ 地すべり': Overlay_Map[ 10 ]
+	};
+	L.control.layers(baseMap, overlay).addTo(map);
 //	var subtitle = start['timeStr'] + '～' + end['timeStr'] + '　所要時間:' + diffTime
 	var subtitle = '所要時間:' + diffTime.substr(0,5)
 		+ '　距離:' + distTotalKm + 'km　最高地点:' + Math.round(height_max) + 'm　最低地点:' + Math.round(height_min) + 'm';
@@ -415,6 +473,7 @@ function currentWatch() {
 	}
 }
 function currentWatchReset() {
+	document.getElementById('panelInfo').style.display = "none";	// パネル非表示
 	currentWatch_on = false;
 	if (watch_id > 0) {
 		navigator.geolocation.clearWatch(watch_id);
