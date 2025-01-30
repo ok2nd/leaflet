@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNESCO世界遺産マップ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// 地図の初期化
+var map = L.map('map').setView([0, 0], 2); // 初期表示位置 (世界全体)
+// OpenStreetMapレイヤーを追加
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+// ローカルの UNESCO XML データを取得
+fetch('whc.unesco.org-ja-list.xml')  // サーバー側に配置されたXMLファイル
+	.then(response => response.text())
+	.then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+	.then(xml => {
+		let rows = xml.getElementsByTagName("row");
+		for (let row of rows) {
+			let name = row.getElementsByTagName("site")[0]?.textContent || "名称不明";
+			let lat = row.getElementsByTagName("latitude")[0]?.textContent;
+			let lon = row.getElementsByTagName("longitude")[0]?.textContent;
+			let country = row.getElementsByTagName("states")[0]?.textContent || "国名不明";
+			let urlElement = row.getElementsByTagName("http_url")[0];
+			let url = urlElement ? urlElement.textContent : "(URLなし)";
+			let description = row.getElementsByTagName("short_description")[0]?.textContent || "説明なし";
+			let imageUrl = row.getElementsByTagName("image_url")[0]?.textContent || "";
+			// 緯度・経度がある場合のみ表示
+			if (lat && lon) {
+				let popupContent = `
+					<b>${name}</b><br>
+					<i>${country}</i><br><br>
+					${description}<br><br>
+					${imageUrl ? `<img src="${imageUrl}" width="80"><br>` : ""}
+					<a href="${url}" target="_blank">${url !== "(URLなし)" ? "詳細を見る" : "URLなし"}</a>
+				`;
+				L.marker([parseFloat(lat), parseFloat(lon)])
+					.addTo(map)
+					.bindPopup(popupContent);
+			}
+		}
+	})
+	.catch(error => console.error('データ取得エラー:', error));
+</script>
+</body>
+</html>
