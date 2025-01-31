@@ -14,19 +14,11 @@ body { margin:0; padding:0; }
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-// カスタムアイコン
-// https://github.com/pointhi/leaflet-color-markers
-var markerIcon = L.icon({
-	iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-	iconSize: [20, 32], // 小さめのサイズ (デフォルト: [25, 41])
-	iconAnchor: [10, 32], // アンカー調整 (アイコンの底が正しく位置するように)
-	popupAnchor: [1, -30] // ポップアップの位置調整
-});
-var map = L.map('map').setView([0, 0], 2);
+var map = L.map('map').setView([0, 0], 2); // 初期表示位置 (世界全体)
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
-fetch('whc.unesco.org-ja-list.xml')
+fetch('whc.unesco.org-ja-list.xml')  // from https://whc.unesco.org/ja/list/xml
 	.then(response => response.text())
 	.then(str => new window.DOMParser().parseFromString(str, "text/xml"))
 	.then(xml => {
@@ -40,6 +32,7 @@ fetch('whc.unesco.org-ja-list.xml')
 			let url = urlElement ? urlElement.textContent : "(URLなし)";
 			let description = row.getElementsByTagName("short_description")[0]?.textContent || "説明なし";
 			let imageUrl = row.getElementsByTagName("image_url")[0]?.textContent || "";
+			// 緯度・経度がある場合のみ表示
 			if (lat && lon) {
 				let popupContent = `
 					<b>${name}</b><br>
@@ -48,7 +41,7 @@ fetch('whc.unesco.org-ja-list.xml')
 					${imageUrl ? `<img src="${imageUrl}" width="80"><br>` : ""}
 					<a href="${url}" target="_blank">${url !== "(URLなし)" ? "詳細を見る" : "URLなし"}</a>
 				`;
-				L.marker([parseFloat(lat), parseFloat(lon)], { icon: markerIcon }) // カスタムアイコンを適用
+				L.marker([parseFloat(lat), parseFloat(lon)])
 					.addTo(map)
 					.bindPopup(popupContent);
 			}

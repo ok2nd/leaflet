@@ -13,19 +13,31 @@ body { margin:0; padding:0; }
 <body>
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <script>
 // カスタムアイコン
 // https://github.com/pointhi/leaflet-color-markers
-var markerIcon = L.icon({
-	iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-	iconSize: [20, 32], // 小さめのサイズ (デフォルト: [25, 41])
-	iconAnchor: [10, 32], // アンカー調整 (アイコンの底が正しく位置するように)
-	popupAnchor: [1, -30] // ポップアップの位置調整
+
+//https://github.com/coryasilva/Leaflet.ExtraMarkers
+
+var worldHeritageIcon = L.icon({
+    iconUrl: 'images/worldheritagesite.png', // ローカルサーバー上のアイコンパス
+    iconSize: [32, 37],      // アイコンサイズ（適宜調整）
+    iconAnchor: [15, 30],    // アイコンの基準点
+    popupAnchor: [0, -30]    // ポップアップの位置
 });
+
+
+
+// 地図の初期化
 var map = L.map('map').setView([0, 0], 2);
+
+// OpenStreetMapレイヤーを追加
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
+
+// ローカルの UNESCO XML データを取得
 fetch('whc.unesco.org-ja-list.xml')
 	.then(response => response.text())
 	.then(str => new window.DOMParser().parseFromString(str, "text/xml"))
@@ -40,6 +52,7 @@ fetch('whc.unesco.org-ja-list.xml')
 			let url = urlElement ? urlElement.textContent : "(URLなし)";
 			let description = row.getElementsByTagName("short_description")[0]?.textContent || "説明なし";
 			let imageUrl = row.getElementsByTagName("image_url")[0]?.textContent || "";
+
 			if (lat && lon) {
 				let popupContent = `
 					<b>${name}</b><br>
@@ -48,7 +61,7 @@ fetch('whc.unesco.org-ja-list.xml')
 					${imageUrl ? `<img src="${imageUrl}" width="80"><br>` : ""}
 					<a href="${url}" target="_blank">${url !== "(URLなし)" ? "詳細を見る" : "URLなし"}</a>
 				`;
-				L.marker([parseFloat(lat), parseFloat(lon)], { icon: markerIcon }) // カスタムアイコンを適用
+				L.marker([parseFloat(lat), parseFloat(lon)], { icon: worldHeritageIcon }) // カスタムアイコンを適用
 					.addTo(map)
 					.bindPopup(popupContent);
 			}
