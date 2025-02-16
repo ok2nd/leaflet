@@ -174,13 +174,9 @@ function placeMarker(place, myIcon) {
 			html: '<div class="divicon">' + place[i][0] + '</div>',
 			iconSize: [0,0]
 		});
-
 		var popStr = '<a href="http://www.google.com/search?q=' + encodeURI(place[i][0]) + '" target="_blank">' + place[i][0] + '</a>';
-
 		// iconMarkers.addLayer(L.marker([place[i][1], place[i][2]], {icon: myIcon}).addTo(map).bindPopup(place[i][3]));
-
 		iconMarkers.addLayer(L.marker([place[i][1], place[i][2]], {icon: myIcon}).addTo(map).bindPopup(popStr));
-
 		L.marker([place[i][1], place[i][2]], {icon: divIcon}).addTo(map);
 	}
 }
