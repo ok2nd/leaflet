@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大阪駅中心の地図 - 半径1km円</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+body, html {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+#map {
+	height: 100vh;
+	width: 100vw;
+}
+.info-panel {
+	display: none;		/* 非表示 */
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background: white;
+	padding: 15px;
+	border-radius: 8px;
+	box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+	z-index: 1000;
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	max-width: 200px;
+}
+.info-panel h3 {
+	margin: 0 0 10px 0;
+	color: #333;
+	font-size: 16px;
+}
+.info-panel p {
+	margin: 5px 0;
+	color: #666;
+}
+.facility-popup {
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	min-width: 200px;
+}
+.facility-popup h4 {
+	margin: 0 0 8px 0;
+	color: #2c5aa0;
+	font-size: 16px;
+}
+.facility-popup .distance {
+	color: #666;
+	font-size: 12px;
+}
+.facility-popup .status {
+	font-weight: bold;
+	font-size: 12px;
+}
+.facility-label {
+	background: none;
+	border: none;
+}
+.label-text {
+	background: rgba(255, 255, 255, 0.9);
+	padding: 2px 6px;
+	border-radius: 3px;
+	border: 1px solid #ccc;
+	font-family: Arial, sans-serif;
+	font-size: 12px;
+	color: #333;
+	white-space: nowrap;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="info-panel">
+<h3>大阪駅</h3>
+<p>半径1km圏内</p>
+<p>座標: 34.7024, 135.4959</p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+	const centerPoint = [34.7024, 135.4959];
+	const map = L.map('map').setView(centerPoint, 15);
+
+	// 商業施設データ
+	const facilities = [
+		{name: '大阪ステーションシティ', lat: 34.703277, lng: 135.496525},
+		{name: 'LUCUA 大阪', lat: 34.702911, lng: 135.495896},
+		{name: 'グランフロント大阪', lat: 34.703866, lng: 135.494921},
+		{name: '阪急うめだ本店', lat: 34.702677, lng: 135.500057},
+		{name: '阪神梅田本店', lat: 34.699967, lng: 135.497537},
+		{name: '大丸梅田店', lat: 34.701358, lng: 135.496357},
+		{name: 'ヨドバシ梅田', lat: 34.7041862, lng: 135.4963787},
+		{name: 'ハービスPLAZA', lat: 34.699279, lng: 135.494272},
+		{name: 'ハービスPLAZA ENT', lat: 34.6984946, lng: 135.4927566},
+		{name: 'ヒルトンプラザイースト', lat: 34.700181, lng: 135.4962},
+		{name: 'NU茶屋町', lat: 34.707088, lng: 135.49967},
+		{name: 'HEP FIVE', lat: 34.703956, lng: 135.500049},
+		{name: 'EST', lat: 34.705027, lng: 135.501006},
+		{name: 'ALBi大阪', lat: 34.702061, lng: 135.494639},
+		{name: '阪急三番街', lat: 34.704622, lng: 135.500078},
+		{name: 'ホワイティうめだ', lat: 34.701043, lng: 135.498976},
+		{name: 'ディアモール大阪', lat: 34.699894, lng: 135.497654},
+		{name: 'エキマルシェ大阪', lat: 34.701546, lng: 135.495886},
+		{name: '大阪駅前第一ビル', lat: 34.699499, lng: 135.495822},
+		{name: '大阪駅前第二ビル', lat: 34.699196, lng: 135.496522},
+		{name: '大阪駅前第三ビル', lat: 34.698777, lng: 135.497233},
+		{name: '大阪駅前第四ビル', lat: 34.698377, lng: 135.497933},
+		{name: '天神橋筋商店街', lat: 34.709322, lng: 135.506553},
+		{name: '北新地', lat: 34.6975, lng: 135.4975},
+		{name: '西天満', lat: 34.7005, lng: 135.5019},
+		{name: '中崎町', lat: 34.706746, lng: 135.503432}
+	];
+
+//	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//		attribution: 'c <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+//		maxZoom: 19
+//	}).addTo(map);
+	L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+	}).addTo(map);
+
+	// 大阪駅のマーカー（赤色）
+	const stationIcon = L.icon({
+		iconUrl: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41"><path fill="#FF0000" d="M12.5 0C5.6 0 0 5.6 0 12.5c0 7.4 12.5 28.5 12.5 28.5s12.5-21.1 12.5-28.5C25 5.6 19.4 0 12.5 0zm0 17.5c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"/></svg>'),
+		iconSize: [25, 41],
+		iconAnchor: [12, 41],
+		popupAnchor: [1, -34]
+	});
+	const stationMarker = L.marker(centerPoint, {icon: stationIcon}).addTo(map);
+	stationMarker.bindPopup('<div class="facility-popup"><h4>大阪駅</h4><p>JR大阪駅の中心地点</p></div>');
+
+	// 商業施設のマーカー（青色）
+	const facilityIcon = L.icon({
+		iconUrl: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41"><path fill="#2196F3" d="M12.5 0C5.6 0 0 5.6 0 12.5c0 7.4 12.5 28.5 12.5 28.5s12.5-21.1 12.5-28.5C25 5.6 19.4 0 12.5 0zm0 17.5c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"/></svg>'),
+		iconSize: [20, 33],
+		iconAnchor: [10, 33],
+		popupAnchor: [1, -28]
+	});
+
+	// 各商業施設のマーカーを追加
+	facilities.forEach(facility => {
+		const facilityPoint = [facility.lat, facility.lng];
+		const distance = Math.round(L.latLng(centerPoint).distanceTo(L.latLng(facilityPoint)));
+		const isWithinRange = distance <= 1000;
+		
+		const marker = L.marker(facilityPoint, {icon: facilityIcon}).addTo(map);
+		
+		// 施設名ラベルを追加
+		const label = L.divIcon({
+			className: 'facility-label',
+			html: `<div class="label-text">${facility.name}</div>`,
+			iconSize: [150, 20],
+			iconAnchor: [-25, 15]
+		});
+		L.marker(facilityPoint, {icon: label}).addTo(map);
+		
+		const popupContent = `
+			<div class="facility-popup">
+				<h4>${facility.name}</h4>
+				<p class="distance">大阪駅から ${distance}m</p>
+				<p class="status" style="color: ${isWithinRange ? 'green' : 'red'};">
+					${isWithinRange ? '1km圏内' : '1km圏外'}
+				</p>
+			</div>
+		`;
+		
+		marker.bindPopup(popupContent);
+	});
+
+	// 1km圏の円
+	const circle = L.circle(centerPoint, {
+		color: '#FF6B6B',	// 境界線の色（赤系）
+		weight: 3,		// 境界線の太さ
+		opacity: 0.8,		// 境界線の透明度
+		fillColor: '#FF6B6B',	// 塗りつぶし色
+		fillOpacity: 0.2,	// 塗りつぶしの透明度
+		radius: 1000		// 半径1km（1000メートル）
+	}).addTo(map);
+	circle.bindPopup('大阪駅から半径1kmの範囲');
+
+	// 地図の表示範囲を設定
+	map.fitBounds(circle.getBounds(), {
+		padding: [20, 20]  // 余白を追加
+	});
+
+	// 地図クリック時の処理
+	map.on('click', function(e) {
+		const clickedPoint = e.latlng;
+		const distance = map.distance(centerPoint, clickedPoint);
+		if (distance <= 1000) {
+			L.popup()
+				.setLatLng(clickedPoint)
+				.setContent(`
+					<b>大阪駅から ${Math.round(distance)}m</b><br>
+					<span style="color: green;">1km圏内です</span>
+				`)
+				.openOn(map);
+		} else {
+			L.popup()
+				.setLatLng(clickedPoint)
+				.setContent(`
+					<b>大阪駅から ${Math.round(distance)}m</b><br>
+					<span style="color: red;">1km圏外です</span>
+				`)
+				.openOn(map);
+		}
+	});
+</script>
+</body>
+</html>
