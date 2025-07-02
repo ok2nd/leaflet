@@ -99,7 +99,6 @@ ALBi大阪,34.701000,135.494000
 大阪駅前第二ビル,34.698600,135.496200
 大阪駅前第三ビル,34.698400,135.496600
 大阪駅前第四ビル,34.698200,135.497000`;
-
 function parseCSV(csvText) {
 	const lines = csvText.trim().split('\n');
 	return lines.map(line => {
@@ -111,9 +110,34 @@ function parseCSV(csvText) {
 		};
 	});
 }
-L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
-	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
-}).addTo(map);
+//	L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+//		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+//	}).addTo(map);
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var KokudoChiriin= L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+var KokudoChiriinSatellite = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
+});
+var EsriMap = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
+});
+GoogleMap.addTo(map);
+var baseMap = {
+	"Google マップ": GoogleMap,
+	"OpenStreetMap": OpenStreetMap,
+	"国土地理院 標準地図": KokudoChiriin,
+	"国土地理院 写真": KokudoChiriinSatellite,
+	"Esri World Topo Map": EsriMap
+};
+L.control.layers(baseMap).addTo(map);
 const marker = L.marker(centerPoint).addTo(map);
 marker.bindPopup('<b>大阪駅</b><br>JR大阪駅の中心地点').openPopup();
 const circle = L.circle(centerPoint, {
