@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>距離測定マップ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            min-width: 200px;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 8px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+        .distance-display {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #495057;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="control-panel">
+        <div class="control-group">
+            <label for="radius">半径 (km):</label>
+            <input type="number" id="radius" step="0.1" value="1.0" min="0.1" max="1000">
+        </div>
+        
+        <div class="control-group">
+            <button onclick="clearCircle()">クリア</button>
+        </div>
+        
+        <div id="distance-display" class="distance-display" style="display: none;">
+            <strong>距離:</strong> <span id="distance-value">-</span>
+        </div>
+        
+        <div id="status" class="status">
+            地図上をクリックして円を描画してください
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        let map;
+        let currentCircle = null;
+        let circleCenter = null;
+        let isCircleDrawn = false;
+
+        // 3桁カンマ区切りの数値フォーマット
+        function formatNumber(num) {
+            return num.toLocaleString('ja-JP', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 3
+            });
+        }
+
+        // 2点間の距離を計算（km）
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // 地球の半径（km）
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // 現在地を取得して地図を初期化
+        function initMap() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        createMap(lat, lon);
+                        document.getElementById('status').textContent = '現在地を取得しました。地図上をクリックして円を描画してください。';
+                    },
+                    function(error) {
+                        console.error('現在地の取得に失敗しました:', error);
+                        // 東京を中心とする
+                        createMap(35.6762, 139.6503);
+                        document.getElementById('status').textContent = '現在地を取得できませんでした。東京を中心に表示しています。';
+                    }
+                );
+            } else {
+                // 東京を中心とする
+                createMap(35.6762, 139.6503);
+                document.getElementById('status').textContent = '位置情報がサポートされていません。東京を中心に表示しています。';
+            }
+        }
+
+        // 地図を作成
+        function createMap(lat, lon) {
+            map = L.map('map').setView([lat, lon], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: 'c OpenStreetMap contributors'
+            }).addTo(map);
+
+            // 現在地マーカーを追加
+            L.marker([lat, lon]).addTo(map)
+                .bindPopup('現在地')
+                .openPopup();
+
+            // 地図クリックイベント
+            map.on('click', function(e) {
+                handleMapClick(e.latlng);
+            });
+        }
+
+        // 地図クリック処理
+        function handleMapClick(latlng) {
+            if (!isCircleDrawn) {
+                // 円を描画
+                drawCircle(latlng);
+            } else {
+                // 距離を計算して表示
+                calculateAndDisplayDistance(latlng);
+            }
+        }
+
+        // 円を描画
+        function drawCircle(latlng) {
+            const radius = parseFloat(document.getElementById('radius').value);
+            if (isNaN(radius) || radius <= 0) {
+                alert('有効な半径を入力してください。');
+                return;
+            }
+
+            // 既存の円を削除
+            if (currentCircle) {
+                map.removeLayer(currentCircle);
+            }
+
+            // 新しい円を描画
+            currentCircle = L.circle(latlng, {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.2,
+                radius: radius * 1000 // メートルに変換
+            }).addTo(map);
+
+            circleCenter = latlng;
+            isCircleDrawn = true;
+
+            // 円の中心にカスタムマーカーを追加（青い丸）
+            const centerIcon = L.divIcon({
+                html: '<div style="background-color: blue; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+                className: 'custom-center-marker'
+            });
+            
+            L.marker(latlng, {icon: centerIcon}).addTo(map)
+                .bindPopup(`円の中心<br>半径: ${formatNumber(radius)} km`)
+                .openPopup();
+
+            document.getElementById('status').textContent = '円を描画しました。地図上をクリックして距離を測定してください。';
+        }
+
+        // 距離を計算して表示
+        function calculateAndDisplayDistance(latlng) {
+            if (!circleCenter) return;
+
+            const distance = calculateDistance(
+                circleCenter.lat, circleCenter.lng,
+                latlng.lat, latlng.lng
+            );
+
+            // 距離を表示
+            document.getElementById('distance-value').textContent = formatNumber(distance) + ' km';
+            document.getElementById('distance-display').style.display = 'block';
+
+            // クリック位置にカスタムマーカーを追加（緑の三角）
+            const measureIcon = L.divIcon({
+                html: '<div style="background-color: green; width: 16px; height: 16px; transform: rotate(45deg); border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                className: 'custom-measure-marker'
+            });
+            
+            L.marker(latlng, {icon: measureIcon}).addTo(map)
+                .bindPopup(`距離: ${formatNumber(distance)} km`)
+                .openPopup();
+        }
+
+        // 円をクリア
+        function clearCircle() {
+            if (currentCircle) {
+                map.removeLayer(currentCircle);
+                currentCircle = null;
+            }
+            
+            // すべてのマーカーを削除（現在地マーカー以外）
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.Marker && layer.getPopup() && 
+                    layer.getPopup().getContent() !== '現在地') {
+                    map.removeLayer(layer);
+                }
+                // カスタムマーカーも削除
+                if (layer instanceof L.Marker && layer.options.icon && 
+                    (layer.options.icon.options.className === 'custom-center-marker' || 
+                     layer.options.icon.options.className === 'custom-measure-marker')) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            circleCenter = null;
+            isCircleDrawn = false;
+            document.getElementById('distance-display').style.display = 'none';
+            document.getElementById('status').textContent = '地図上をクリックして円を描画してください。';
+        }
+
+        // 初期化
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
