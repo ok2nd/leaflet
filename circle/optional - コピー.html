@@ -240,8 +240,9 @@ function drawCircle(latlng) {
 		iconAnchor: [8, 8],
 		className: 'custom-center-marker'
 	});
+	
 	L.marker(latlng, {icon: centerIcon}).addTo(map)
-		.bindPopup(`円の中心<br>半径: ${formatNumber(radius)} km<br>緯度: ${latlng.lat.toFixed(6)}<br>経度: ${latlng.lng.toFixed(6)}`)
+		.bindPopup(`円の中心<br>半径: ${formatNumber(radius)} km`)
 		.openPopup();
 	document.getElementById('status').textContent = '円を描画しました。地図上をクリックして距離を測定してください。';
 }
@@ -262,9 +263,10 @@ function calculateAndDisplayDistance(latlng) {
 		iconAnchor: [10, 10],
 		className: 'custom-measure-marker'
 	});
+	
 	L.marker(latlng, {icon: measureIcon}).addTo(map)
-		.bindPopup(`距離: ${formatNumber(distance)} km<br>緯度: ${latlng.lat.toFixed(6)}<br>経度: ${latlng.lng.toFixed(6)}`)
-	.openPopup();
+		.bindPopup(`距離: ${formatNumber(distance)} km`)
+		.openPopup();
 }
 // 円をクリア
 function clearCircle() {
