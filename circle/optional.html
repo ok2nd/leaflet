@@ -15,6 +15,39 @@ body {
 	height: 100vh;
 	width: 100%;
 }
+.toggle-button {
+	position: fixed;
+	top: 5px;
+	right: 5px;
+	z-index: 1001;
+	background: #007bff;
+	color: white;
+	border: none;
+	border-radius: 2px;
+	padding: 2px 6px;
+	cursor: pointer;
+	font-size: 10px;
+	width: 60px;
+	height: 30px;
+	display: inline-block;
+	box-sizing: border-box;
+}
+button:not(.toggle-button) {
+	width: 100%;
+	padding: 8px;
+	background-color: #e74c3c;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 14px;
+}
+.toggle-button:hover {
+	background: #0056b3;
+}
+.control-panel.hidden {
+	display: none;
+}
 .control-panel {
 	position: absolute;
 	top: 10px;
@@ -85,6 +118,7 @@ button:hover {
 </head>
 <body>
 <div id="map"></div>
+<button id="toggle-panel" class="toggle-button" onclick="togglePanel()">隠す</button>
 <div class="control-panel">
 	<div class="control-group">
 		<label for="map-type">地図タイプ:</label>
@@ -295,6 +329,19 @@ function clearCircle() {
 window.onload = function() {
 	initMap();
 };
+// コントロールパネルの表示/非表示切り替え
+function togglePanel() {
+	const panel = document.querySelector('.control-panel');
+	const button = document.getElementById('toggle-panel');
+	
+	if (panel.classList.contains('hidden')) {
+		panel.classList.remove('hidden');
+		button.textContent = '隠す';
+	} else {
+		panel.classList.add('hidden');
+		button.textContent = '表示';
+	}
+}
 </script>
 </body>
 </html>
