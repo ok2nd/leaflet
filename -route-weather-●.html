@@ -75,25 +75,31 @@ body { margin:0; padding:0; }
 <body>
 <div class="container"><div id="map"></div></div>
 <script>
-var map = L.map('map').setView([36.0, 138.0], 5);
+var map = L.map('map');
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
 	maxZoom: 18,
 	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
 });
-tileLayer.addTo(map);
+//tileLayer.addTo(map);
 var curMarker = null;	// 現在地マーカー
 function onLocationFound(e) {
+/*
+	var centerIconPlus = L.divIcon({
+		html: '<div class="fa fa-plus center-icon-plus"></div>',
+		iconSize: null,
+		iconAnchor: [9, 11]
+	});
+	L.marker(e.latlng, {icon: centerIconPlus}).addTo(map);
+*/
 	var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
 	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
-	map.setView(e.latlng, 16); 
 }
 function onLocationError(e) {
 	alert('位置情報を取得できませんでした。' + e.message);
 }
 map.on('locationfound', onLocationFound);
 map.on('locationerror', onLocationError);
-// map.locate({setView: true, maxZoom: 16, timeout: 20000});
-map.locate({setView: false, timeout: 20000});
+map.locate({setView: true, maxZoom: 16, timeout: 20000});
 // 住所検索
 // ジオコーダーの初期化
 var geocoder = L.Control.geocoder({
