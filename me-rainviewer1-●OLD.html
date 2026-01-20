@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leaflet：現在地＆RainViewer 雨雲 (2)</title>
+<title>Leaflet：現在地＆RainViewer 雨雲 (1)</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.6.3/css/all.css"/>
@@ -12,10 +12,9 @@
 <script src="js/easy-button.js"></script>
 <link rel="stylesheet" href="css/leaflet.fullscreen.css"/>
 <script src="js/Leaflet.fullscreen.min.js"></script>
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-<script src="js/leaflet.rainviewer.js"></script><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.js -->
-<link rel="stylesheet" type="text/css" href="css/leaflet.rainviewer.css"><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.css -->
+<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
+<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
+<script src="//code.jquery.com/jquery-3.5.1.js"></script>
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; right:0; left:0; }
@@ -82,44 +81,18 @@ map.on('locationfound', onLocationFound);
 map.on('locationerror', onLocationError);
 map.locate({setView: true, maxZoom: 16, timeout: 20000});
 // 住所検索
-/* OSMGeocoder 廃止
-	var osmGeocoder = new L.Control.OSMGeocoder({
-		collapsed: false,
-		text: '検索',
-		placeholder: '地点名を入力してください。',
-		callback: function (results) {
-			var coords = L.latLng(results[0].lat,results[0].lon);
-			var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
-			L.marker(coords, {icon: foundIcon}).addTo(map);
-			map.setView(coords,17);
-		}
-	});
-	map.addControl(osmGeocoder);
-*/
-// ジオコーダーの初期化
-var geocoder = L.Control.geocoder({
-	defaultMarkGeocode: false, // デフォルトのマーカー表示を無効化
+var osmGeocoder = new L.Control.OSMGeocoder({
 	collapsed: false,
+	text: '検索',
 	placeholder: '地点名を入力してください。',
-	// 注: 旧プラグインの 'text' 属性に相当するものは現在の標準にはありませんが、
-	// 必要に応じてCSSでボタンの外見を調整可能です。
-})
-.on('markgeocode', function(e) {
-	// 検索結果を取得
-	var result = e.geocode;
-	var coords = result.center; // L.latLng オブジェクトが返されます
-
-	// カスタムアイコンの作成
-	var foundIcon = L.divIcon({ 
-		className: 'found-icon', 
-		iconAnchor: [8, 8] 
-	});
-
-	// マーカーを追加して移動
-	L.marker(coords, { icon: foundIcon }).addTo(map);
-	map.setView(coords, 17);
-})
-.addTo(map);
+	callback: function (results) {
+		var coords = L.latLng(results[0].lat,results[0].lon);
+		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
+		L.marker(coords, {icon: foundIcon}).addTo(map);
+		map.setView(coords,17);
+	}
+});
+map.addControl(osmGeocoder);
 // フルスクリーンボタン
 map.addControl(new L.Control.Fullscreen({
 	title: {
@@ -196,6 +169,26 @@ Overlay_Map[ 10 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisu
 	opacity: 0.5, maxNativeZoom: 17,
 	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
 });
+//
+//	https://stackoverflow.com/questions/57898711/how-i-make-animation-for-radar-raster-like-a-rainviewer-on-mapbox
+//	https://tilecache.rainviewer.com/api/maps.json
+//	ex. [1625969400,1625970000,1625970600,1625971200,1625971800,1625972400,1625973000,1625973600,1625974200,1625974800,1625975400,1625976000,1625976600]
+//
+function getRainViewer(address) {
+	var result = $.ajax({
+		type: 'GET',
+		url: 'https://tilecache.rainviewer.com/api/maps.json',
+		async: false	// *** 同期通信 ***
+	}).responseText;
+	return result;
+}
+let json = getRainViewer();
+let results = JSON.parse(json);
+let time = results[results.length - 1];
+Overlay_Map[ 11 ] = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + time + '/256/{z}/{x}/{y}/2/1_1.png', {
+	opacity: 0.5,
+	attribution: 'Contains public sector information licensed under the Open Government Licence | Radar By <a target="_top" rel="noopener" href="https://jmwforecast.com">JMWForecast Limited</a>'
+});
 var overlay = {
 	'国土地理院 色別標高図': Overlay_Map[ 0 ],
 	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
@@ -207,21 +200,11 @@ var overlay = {
 	'ハザードマップ 津波浸水想定': Overlay_Map[ 7 ],
 	'ハザードマップ 土石流': Overlay_Map[ 8 ],
 	'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 9 ],
-	'ハザードマップ 地すべり': Overlay_Map[ 10 ]
+	'ハザードマップ 地すべり': Overlay_Map[ 10 ],
+	'RainViewer 雨雲': Overlay_Map[ 11 ]
 };
 L.control.layers(baseMap, overlay).addTo(map);
 Basic_Map[ 0 ].addTo(map);
-// 雨雲レーダー		// ### onMapClick()をオフに
-L.control.rainviewer({ 
-	position: 'topright',
-	nextButtonText: '>',
-	playStopButtonText: '開始/停止',
-	prevButtonText: '<',
-	positionSliderLabelText: '時間',
-	opacitySliderLabelText: '透明度',
-	animationInterval: 500,
-	opacity: 0.5
-}).addTo(map);
 // 現在地表示ボタン
 var watch_id = 0;
 var curMarker = null;	// 現在地マーカー
@@ -256,8 +239,7 @@ L.easyButton('fa fa-times', function(btn, easyMap) {
 	currentWatchReset();
 }).addTo(map);
 // クリックした地点の緯度・経度、標高を表示
-// ↓↓↓ 雨雲レーダー（L.control.rainviewer()）クリックでonMapClick()が反応してしまうので、コメントアウト。
-// map.on('click', onMapClick);
+map.on('click', onMapClick);
 var clickMarker = null;
 function onMapClick(e) {
 	if (clickMarker) {
