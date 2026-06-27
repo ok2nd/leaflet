@@ -6,8 +6,6 @@
   <title>Leaflet：現在地＆住所検索＋マーカー編集</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -108,6 +106,35 @@
     /* カーソル */
     #map.add-mode { cursor: crosshair; }
 
+    /* 左サイドボタン（easy-button風：独立した角丸ボタン） */
+    #side-controls {
+      position: absolute;
+      left: 10px;
+      top: 80px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .side-btn {
+      width: 34px;
+      height: 34px;
+      background: #fff;
+      border: 2px solid rgba(0,0,0,0.2);
+      background-clip: padding-box;
+      border-radius: 4px;
+      box-shadow: none;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      text-decoration: none;
+    }
+    .side-btn:hover { background: #f4f4f4; }
+    .side-btn:active { background: #e8e8e8; }
+
     /* KMLファイル名モーダル */
     #kml-modal-overlay {
       display: none;
@@ -167,6 +194,13 @@
   <input type="file" id="kml-file-input" accept=".kml,application/vnd.google-earth.kml+xml,application/xml,text/xml" style="display:none">
 </div>
 
+<!-- 左サイドボタン -->
+<div id="side-controls">
+  <button class="side-btn" id="btn-locate" title="現在地を表示（継続追跡）"><svg viewBox="0 0 24 24" width="16" height="16" fill="#333"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></button>
+  <button class="side-btn" id="btn-locate-stop" title="現在地追跡を停止">✕</button>
+  <button class="side-btn" id="btn-fit-markers" title="マーカー全体を表示">↩</button>
+</div>
+
 <!-- KMLファイル名入力モーダル -->
 <div id="kml-modal-overlay">
   <div id="kml-modal">
@@ -183,7 +217,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
 <script>
 // =====================
 //  地図初期化
@@ -427,26 +460,26 @@ function stopWatch() {
   if (locateCircle) { map.removeLayer(locateCircle); locateCircle = null; }
 }
 
-// =====================
-//  easyButton：現在地・停止・全体表示
-// =====================
-L.easyButton('fas fa-map-marker-alt', function() {
+document.getElementById('btn-locate').addEventListener('click', () => {
   stopWatch();
   startWatch();
-}, '現在地を表示（継続追跡）').addTo(map);
+});
 
-L.easyButton('fa fa-times', function() {
+document.getElementById('btn-locate-stop').addEventListener('click', () => {
   stopWatch();
-}, '現在地追跡を停止').addTo(map);
+});
 
-L.easyButton('fa fa-reply-all', function() {
+// =====================
+//  マーカー全体表示ボタン
+// =====================
+document.getElementById('btn-fit-markers').addEventListener('click', () => {
   if (markers.length === 0) {
     alert('マーカーがありません。');
     return;
   }
   const bounds = markers.map(m => [m.lat, m.lng]);
   map.fitBounds(bounds, { padding: [50, 50] });
-}, 'マーカー全体を表示').addTo(map);
+});
 
 // =====================
 //  KML エクスポート（ファイル名指定モーダル）
