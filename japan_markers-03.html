@@ -237,9 +237,9 @@ const gsiTile = L.tileLayer(
 osmTile.addTo(map);
 L.control.layers({
   'OpenStreetMap': osmTile,
-  'Google マップ': googleRoadTile,
-  '衛星': googleSatTile,
-/*  'Google マップ（ハイブリッド）': googleHybridTile, */
+  'Google マップ（道路）': googleRoadTile,
+  'Google マップ（衛星）': googleSatTile,
+  'Google マップ（ハイブリッド）': googleHybridTile,
   '地理院タイル': gsiTile
 }).addTo(map);
 
