@@ -47,11 +47,6 @@
       color: white;
     }
     #btn-download-kml:hover { background: #1b4332; }
-    #btn-upload-kml {
-      background: #1a5276;
-      color: white;
-    }
-    #btn-upload-kml:hover { background: #103a52; }
     #btn-add-mode:hover { background: #9d0208; }
     #mode-label {
       display: flex;
@@ -190,8 +185,6 @@
   <button id="btn-add-mode" title="クリックしてマーカー追加モードを切替">📍 マーカー追加</button>
   <span id="mode-label">オフ</span>
   <button id="btn-download-kml" title="KMLファイルをダウンロード">⬇ KML保存</button>
-  <button id="btn-upload-kml" title="KMLファイルをアップロード">⬆ KMLアップロード</button>
-  <input type="file" id="kml-file-input" accept=".kml,application/vnd.google-earth.kml+xml,application/xml,text/xml" style="display:none">
 </div>
 
 <!-- 左サイドボタン -->
@@ -559,36 +552,6 @@ ${placemarks}
 function xmlEscape(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
-
-// =====================
-//  KML インポート（ローカルファイルアップロード）
-// =====================
-const btnUploadKML = document.getElementById('btn-upload-kml');
-const kmlFileInput = document.getElementById('kml-file-input');
-
-btnUploadKML.addEventListener('click', () => {
-  kmlFileInput.value = ''; // 同じファイルを再選択しても発火するようにリセット
-  kmlFileInput.click();
-});
-
-kmlFileInput.addEventListener('change', () => {
-  const file = kmlFileInput.files && kmlFileInput.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      parseAndLoadKML(reader.result);
-    } catch (err) {
-      console.error(err);
-      alert('KMLの読み込みに失敗しました: ' + err.message);
-    }
-  };
-  reader.onerror = () => {
-    alert('ファイルの読み込みに失敗しました。');
-  };
-  reader.readAsText(file, 'UTF-8');
-});
 
 // =====================
 //  KML インポート（URLパラメータ kml=xxx）
