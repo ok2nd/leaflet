@@ -393,44 +393,6 @@ let locateMarker = null;
 let locateCircle = null;
 let watchId = null;
 let firstFix = false;
-const LOCATE_INTERVAL_MS = 5000; // 検索間隔（5秒）
-
-function updateLocateMarker(pos) {
-  const lat = pos.coords.latitude;
-  const lng = pos.coords.longitude;
-  const acc = pos.coords.accuracy;
-
-  if (!firstFix) {
-    map.setView([lat, lng], 15);
-    firstFix = true;
-  }
-
-  if (locateMarker) { map.removeLayer(locateMarker); }
-  if (locateCircle) { map.removeLayer(locateCircle); }
-
-  locateCircle = L.circle([lat, lng], {
-    radius: acc,
-    color: '#1a73e8',
-    fillColor: '#1a73e8',
-    fillOpacity: 0.12,
-    weight: 1.5
-  }).addTo(map);
-
-  locateMarker = L.circleMarker([lat, lng], {
-    radius: 9,
-    color: 'white',
-    fillColor: '#1a73e8',
-    fillOpacity: 1,
-    weight: 2.5
-  }).bindPopup('現在地').addTo(map);
-}
-
-function pollLocation() {
-  navigator.geolocation.getCurrentPosition(updateLocateMarker, err => {
-    alert('現在地の取得に失敗しました: ' + err.message);
-    stopWatch();
-  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-}
 
 function startWatch() {
   if (!navigator.geolocation) {
@@ -440,13 +402,43 @@ function startWatch() {
   if (watchId !== null) return; // 既に追跡中
 
   firstFix = false;
-  pollLocation(); // 即座に1回取得
-  watchId = setInterval(pollLocation, LOCATE_INTERVAL_MS); // 以後5秒おき
+  watchId = navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const acc = pos.coords.accuracy;
+
+    if (!firstFix) {
+      map.setView([lat, lng], 15);
+      firstFix = true;
+    }
+
+    if (locateMarker) { map.removeLayer(locateMarker); }
+    if (locateCircle) { map.removeLayer(locateCircle); }
+
+    locateCircle = L.circle([lat, lng], {
+      radius: acc,
+      color: '#1a73e8',
+      fillColor: '#1a73e8',
+      fillOpacity: 0.12,
+      weight: 1.5
+    }).addTo(map);
+
+    locateMarker = L.circleMarker([lat, lng], {
+      radius: 9,
+      color: 'white',
+      fillColor: '#1a73e8',
+      fillOpacity: 1,
+      weight: 2.5
+    }).bindPopup('現在地').addTo(map);
+  }, err => {
+    alert('現在地の取得に失敗しました: ' + err.message);
+    stopWatch();
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 }
 
 function stopWatch() {
   if (watchId !== null) {
-    clearInterval(watchId);
+    navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
   if (locateMarker) { map.removeLayer(locateMarker); locateMarker = null; }
