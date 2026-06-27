@@ -35,26 +35,35 @@
       transition: all 0.2s;
     }
     #btn-add-mode {
-      background: #e85d04;
-      color: white;
-    }
-    #btn-add-mode.active {
-      background: #9d0208;
-      box-shadow: 0 0 0 3px rgba(232,93,4,0.4);
-    }
-    #btn-download-kml {
-      background: #2d6a4f;
-      color: white;
-    }
-    #btn-download-kml:hover { background: #1b4332; }
-    #btn-add-mode:hover { background: #9d0208; }
-    #mode-label {
+      width: 31px;
+      height: 31px;
+      padding: 0;
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      font-size: 15px;
       display: flex;
       align-items: center;
-      font-size: 12px;
-      color: #555;
-      margin-left: 4px;
+      justify-content: center;
+      box-shadow: none;
     }
+    #btn-add-mode.active {
+      background: #ffe8d6;
+      box-shadow: 0 0 0 2px #e85d04 inset;
+    }
+    #btn-download-kml {
+      width: 31px;
+      height: 31px;
+      padding: 0;
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: none;
+    }
+    #btn-download-kml:hover { background: #f0f0f0; }
+    #btn-add-mode:hover { background: #f0f0f0; }
 
     /* ポップアップ内スタイル */
     .marker-popup { min-width: 160px; }
@@ -112,13 +121,12 @@
       gap: 8px;
     }
     .side-btn {
-      width: 34px;
-      height: 34px;
+      width: 30px;
+      height: 30px;
       background: #fff;
-      border: 2px solid rgba(0,0,0,0.2);
-      background-clip: padding-box;
+      border: none;
       border-radius: 4px;
-      box-shadow: none;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.4);
       cursor: pointer;
       font-size: 14px;
       display: flex;
@@ -182,14 +190,13 @@
 <body>
 
 <div id="toolbar">
-  <button id="btn-add-mode" title="クリックしてマーカー追加モードを切替">📍 マーカー追加</button>
-  <span id="mode-label">オフ</span>
-  <button id="btn-download-kml" title="KMLファイルをダウンロード">⬇ KML保存</button>
+  <button id="btn-add-mode" title="クリックしてマーカー追加モードを切替">📍</button>
+  <button id="btn-download-kml" title="KMLファイルをダウンロード">⬇</button>
 </div>
 
 <!-- 左サイドボタン -->
 <div id="side-controls">
-  <button class="side-btn" id="btn-locate" title="現在地を表示（継続追跡）"><svg viewBox="0 0 24 24" width="16" height="16" fill="#333"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></button>
+  <button class="side-btn" id="btn-locate" title="現在地を表示（継続追跡）">📌</button>
   <button class="side-btn" id="btn-locate-stop" title="現在地追跡を停止">✕</button>
   <button class="side-btn" id="btn-fit-markers" title="マーカー全体を表示">↩</button>
 </div>
@@ -371,13 +378,12 @@ window.deleteMarker = function(id) {
 //  マーカー追加モード
 // =====================
 const btnAddMode = document.getElementById('btn-add-mode');
-const modeLabel = document.getElementById('mode-label');
 const mapEl = document.getElementById('map');
 
 btnAddMode.addEventListener('click', () => {
   addMode = !addMode;
   btnAddMode.classList.toggle('active', addMode);
-  modeLabel.textContent = addMode ? 'オン（地図をクリックで追加）' : 'オフ';
+  btnAddMode.title = addMode ? 'マーカー追加モード：オン（地図をクリックで追加）' : 'クリックしてマーカー追加モードを切替';
   mapEl.classList.toggle('add-mode', addMode);
 });
 
