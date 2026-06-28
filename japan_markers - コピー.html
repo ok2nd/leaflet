@@ -211,18 +211,13 @@ const gsiTile = L.tileLayer(
   'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
   { attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>', maxZoom: 18 }
 );
-const gsiPhotoTile = L.tileLayer(
-  'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
-  { attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>', maxZoom: 18 }
-);
 osmTile.addTo(map);
 L.control.layers({
   'OpenStreetMap': osmTile,
   'Google マップ': googleRoadTile,
-  'Google 衛星': googleSatTile,
+  '衛星': googleSatTile,
 /*  'Google マップ（ハイブリッド）': googleHybridTile, */
-  '地理院': gsiTile,
-  '地理院 写真': gsiPhotoTile
+  '地理院': gsiTile
 }).addTo(map);
 
 // ジオコーダー（住所検索）
