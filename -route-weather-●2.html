@@ -212,12 +212,7 @@ Overlay_Map[ 13 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisu
 	opacity: 0.5, maxNativeZoom: 17,
 	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
 });
-TopomapTileOverlay = L.tileLayer(
-	'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-	{ attribution: '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', opacity: 0.5, maxZoom: 18 }
-);
 var overlay = {
-	'OpenStreetMap 登山道': TopomapTileOverlay,
 	'国土地理院 色別標高図': Overlay_Map[ 0 ],
 	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
 	'産総研 地質図': Overlay_Map[ 2 ],
