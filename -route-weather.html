@@ -77,8 +77,8 @@ body { margin:0; padding:0; }
 <script>
 var map = L.map('map').setView([36.0, 138.0], 5);
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
-	maxZoom: 18,
-	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+	maxZoom: 18
+	/*,	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>' */
 });
 tileLayer.addTo(map);
 var curMarker = null;	// 現在地マーカー
