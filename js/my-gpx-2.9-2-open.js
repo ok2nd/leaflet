@@ -60,7 +60,8 @@ function gpx2map(gpxStr, resetBtn=false, title='', chartHeight=230, mapHeightMin
 	map.fitBounds(routeLatLng);
 	// ---------------------------------------------------
 	var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
-		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+/*		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+*/
 	});
 	tileLayer.addTo(map);
 	var Basic_Map = new Array();
