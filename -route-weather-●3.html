@@ -14,12 +14,8 @@
 <script src="js/Leaflet.fullscreen.min.js"></script>
 <link rel="stylesheet" href="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 <script src="//unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-<!--
-<link rel="stylesheet" href="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.css"/>
-<script src="//unpkg.com/leaflet-control-geocoder@2.3.0/dist/Control.Geocoder.js"></script>
--->
-<script src="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.js"></script>
-<link rel="stylesheet" href="//rawgit.com/k4r573n/leaflet-control-osm-geocoder/master/Control.OSMGeocoder.css">
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 <script src="js/leaflet.rainviewer.js"></script><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.js -->
 <link rel="stylesheet" type="text/css" href="css/leaflet.rainviewer.css"><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.css -->
 <style>
@@ -79,49 +75,50 @@ body { margin:0; padding:0; }
 <body>
 <div class="container"><div id="map"></div></div>
 <script>
-var map = L.map('map');
+var map = L.map('map').setView([36.0, 138.0], 5);
 var tileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
-	maxZoom: 18,
-	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+	maxZoom: 18
+	/*,	attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>' */
 });
-//tileLayer.addTo(map);
+tileLayer.addTo(map);
 var curMarker = null;	// 現在地マーカー
 function onLocationFound(e) {
-/*
-	var centerIconPlus = L.divIcon({
-		html: '<div class="fa fa-plus center-icon-plus"></div>',
-		iconSize: null,
-		iconAnchor: [9, 11]
-	});
-	L.marker(e.latlng, {icon: centerIconPlus}).addTo(map);
-*/
 	var centerIcon = L.divIcon({ className: 'center-icon', iconAnchor: [8, 8] });
 	L.marker(e.latlng, {icon: centerIcon}).addTo(map);
+	map.setView(e.latlng, 16); 
 }
 function onLocationError(e) {
 	alert('位置情報を取得できませんでした。' + e.message);
 }
 map.on('locationfound', onLocationFound);
 map.on('locationerror', onLocationError);
-map.locate({setView: true, maxZoom: 16, timeout: 20000});
+// map.locate({setView: true, maxZoom: 16, timeout: 20000});
+map.locate({setView: false, timeout: 20000});
 // 住所検索
-var osmGeocoder = new L.Control.OSMGeocoder({
+// ジオコーダーの初期化
+var geocoder = L.Control.geocoder({
+	defaultMarkGeocode: false, // デフォルトのマーカー表示を無効化
 	collapsed: false,
-	text: '検索',
 	placeholder: '地点名を入力してください。',
-	callback: function (results) {
-		var coords = L.latLng(results[0].lat,results[0].lon);
-		var foundIcon = L.divIcon({ className: 'found-icon', iconAnchor: [8, 8] });
-		L.marker(coords, {icon: foundIcon}).addTo(map);
-		map.setView(coords,17);
-	//	var bbox = results[0].boundingbox,
-	//	first = new L.LatLng(bbox[0], bbox[2]),
-	//	second = new L.LatLng(bbox[1], bbox[3]),
-	//	bounds = new L.LatLngBounds([first, second]);
-	//	this._map.fitBounds(bounds);
-	}
-});
-map.addControl(osmGeocoder);
+	// 注: 旧プラグインの 'text' 属性に相当するものは現在の標準にはありませんが、
+	// 必要に応じてCSSでボタンの外見を調整可能です。
+})
+.on('markgeocode', function(e) {
+	// 検索結果を取得
+	var result = e.geocode;
+	var coords = result.center; // L.latLng オブジェクトが返されます
+
+	// カスタムアイコンの作成
+	var foundIcon = L.divIcon({ 
+		className: 'found-icon', 
+		iconAnchor: [8, 8] 
+	});
+
+	// マーカーを追加して移動
+	L.marker(coords, { icon: foundIcon }).addTo(map);
+	map.setView(coords, 17);
+})
+.addTo(map);
 // フルスクリーンボタン
 map.addControl(new L.Control.Fullscreen({
 	title: {
@@ -215,7 +212,12 @@ Overlay_Map[ 13 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisu
 	opacity: 0.5, maxNativeZoom: 17,
 	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
 });
+TopomapTileOverlay = L.tileLayer(
+	'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+	{ attribution: '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', opacity: 0.5, maxZoom: 18 }
+);
 var overlay = {
+	'OpenStreetMap 登山道': TopomapTileOverlay,
 	'国土地理院 色別標高図': Overlay_Map[ 0 ],
 	'国土地理院 陰影起伏図': Overlay_Map[ 1 ],
 	'産総研 地質図': Overlay_Map[ 2 ],

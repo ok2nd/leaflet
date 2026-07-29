@@ -17,6 +17,7 @@
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 <script src="js/leaflet.rainviewer.js"></script><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.js -->
+<script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
 <link rel="stylesheet" type="text/css" href="css/leaflet.rainviewer.css"><!-- //mwasil.github.io/Leaflet.Rainviewer/leaflet.rainviewer.css -->
 <style>
 body { margin:0; padding:0; }
@@ -212,6 +213,36 @@ Overlay_Map[ 13 ] = L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_jisu
 	opacity: 0.5, maxNativeZoom: 17,
 	attribution: '国土地理院：土砂災害警戒区域（地すべり）'
 });
+// 活断層（主要活断層帯）：防災科学技術研究所 J-SHIS ベクトルタイル
+Overlay_Map[ 14 ] = L.vectorGrid.protobuf(
+	'https://www.j-shis.bosai.go.jp/map/xyz/major_fault/Y2022/MAX/{z}/{x}/{y}.mvt',
+	{
+		maxNativeZoom: 16,
+		minNativeZoom: 4,
+		vectorTileLayerStyles: {
+			major_fault: {
+				weight: 1,		// 太さ
+				color: '#e6001a',
+				opacity: 0.6,		// 線の濃さ
+				fillColor: '#e6001a',
+				fillOpacity: 0.1,	// 塗りつぶしの濃さ
+				fill: true		// 塗りつぶし
+			}
+		},
+		interactive: true,
+		attribution: '防災科学技術研究所（J-SHIS）：主要活断層帯ベクトルタイル'
+	}
+);
+// クリックで断層名をポップアップ表示（任意）
+Overlay_Map[ 14 ].on('click', function (e) {
+	var props = e.layer.properties;
+	if (props && props.LTENAME) {
+		L.popup()
+			.setLatLng(e.latlng)
+			.setContent(props.LTENAME)
+			.openOn(map);
+	}
+});
 TopomapTileOverlay = L.tileLayer(
 	'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 	{ attribution: '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', opacity: 0.5, maxZoom: 18 }
@@ -231,9 +262,31 @@ var overlay = {
 	'ハザードマップ 津波浸水想定': Overlay_Map[ 10 ],
 	'ハザードマップ 土石流': Overlay_Map[ 11 ],
 	'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 12 ],
-	'ハザードマップ 地すべり': Overlay_Map[ 13 ]
+	'ハザードマップ 地すべり': Overlay_Map[ 13 ],
+	'活断層（主要活断層帯：J-SHIS）': Overlay_Map[ 14 ] 
 };
 L.control.layers(baseMap, overlay).addTo(map);
+var faultLayerActive = false;
+map.on('overlayadd', function (e) {
+	if (e.layer === Overlay_Map[12]) {
+		faultLayerActive = true;
+	}
+});
+map.on('overlayremove', function (e) {
+	if (e.layer === Overlay_Map[12]) {
+		faultLayerActive = false;
+	}
+});
+Overlay_Map[ 14 ].on('click', function (e) {
+	L.DomEvent.stop(e);   // ← 追加：地図側のクリック処理に伝わらないようにする
+	var props = e.layer.properties;
+	if (props && props.LTENAME) {
+		L.popup()
+			.setLatLng(e.latlng)
+			.setContent(props.LTENAME)
+			.openOn(map);
+	}
+});
 Basic_Map[ 0 ].addTo(map);
 // 雨雲レーダー
 L.control.rainviewer({ 
@@ -334,6 +387,9 @@ L.easyButton('fa fa-times', function(btn, easyMap) {
 // クリック処理
 map.on('click', onMapClick);
 function onMapClick(e) {
+	if (faultLayerActive) {
+		return;   // 断層表示中は、地質情報のポップアップを出さない
+	}
 	if (route_mode) {
 		routeProc(e);
 	} else {
