@@ -214,27 +214,6 @@ var overlay = {
 	'活断層（主要活断層帯：J-SHIS）': Overlay_Map[ 11 ] 
 };
 L.control.layers(baseMap, overlay).addTo(map);
-var faultLayerActive = false;
-map.on('overlayadd', function (e) {
-	if (e.layer === Overlay_Map[12]) {
-		faultLayerActive = true;
-	}
-});
-map.on('overlayremove', function (e) {
-	if (e.layer === Overlay_Map[12]) {
-		faultLayerActive = false;
-	}
-});
-Overlay_Map[ 11 ].on('click', function (e) {
-	L.DomEvent.stop(e);   // ← 追加：地図側のクリック処理に伝わらないようにする
-	var props = e.layer.properties;
-	if (props && props.LTENAME) {
-		L.popup()
-			.setLatLng(e.latlng)
-			.setContent(props.LTENAME)
-			.openOn(map);
-	}
-});
 Basic_Map[ 0 ].addTo(map);
 // 現在地表示ボタン
 var watch_id = 0;
@@ -273,9 +252,6 @@ L.easyButton('fa fa-times', function(btn, easyMap) {
 map.on('click', onMapClick);
 var clickMarker = null;
 function onMapClick(e) {
-	if (faultLayerActive) {
-		return;   // 断層表示中は、地質情報のポップアップを出さない
-	}
 	if (clickMarker) {
 		map.removeLayer(clickMarker);
 	}
