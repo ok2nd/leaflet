@@ -71,19 +71,6 @@ body { margin:0; padding:0; }
 .lo {
 	color: #00f;
 }
-.shindo-badge {	/* 南海トラフ想定震度マーカー */
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 26px;
-	height: 26px;
-	border-radius: 50%;
-	border: 2px solid #fdfdfd;
-	box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
-	font-size: 12px;
-	font-weight: bold;
-	font-family: sans-serif;
-}
 </style>
 </head>
 <body>
@@ -256,52 +243,6 @@ Overlay_Map[ 14 ].on('click', function (e) {
 			.openOn(map);
 	}
 });
-// 南海トラフ巨大地震 想定震度マーカー（パネルでチェックした時のみ表示）
-var nankaiTroughLayer = L.layerGroup();	// 最初は地図に addTo しない＝非表示状態
-var shindoStyle = {	// 震度ごとの色・文字色・表示ラベル（JMA震度階級の配色に準拠）
-	'震度1':   { color: '#F2F2FF', text: '#000', label: '1'  },
-	'震度2':   { color: '#00AAFF', text: '#000', label: '2'  },
-	'震度3':   { color: '#00FF00', text: '#000', label: '3'  },
-	'震度4':   { color: '#FFFF00', text: '#000', label: '4'  },
-	'震度5弱': { color: '#FF9600', text: '#000', label: '5-' },
-	'震度5強': { color: '#FF6000', text: '#fff', label: '5+' },
-	'震度6弱': { color: '#FF0000', text: '#fff', label: '6-' },
-	'震度6強': { color: '#C00000', text: '#fff', label: '6+' },
-	'震度7':   { color: '#960099', text: '#fff', label: '7'  }
-};
-function loadNankaiTrough() {
-	fetch('csv/nankai-trough-earthquake.csv')
-	.then(function(res) {
-		return res.text();
-	})
-	.then(function(text) {
-		var lines = text.split(/\r?\n/).filter(function(line) {
-			return line.trim() !== '';
-		});
-		// 1行目はヘッダーなのでスキップ
-		// 列構成：全国地方公共団体コード,都道府県名,市区町村名,代表緯度,代表経度,南海トラフ巨大地震想定震度
-		for (var i = 1; i < lines.length; i++) {
-			var cols = lines[i].split(',');
-			if (cols.length < 6) { continue; }
-			var pref = cols[1];
-			var city = cols[2];
-			var lat = parseFloat(cols[3]);
-			var lng = parseFloat(cols[4]);
-			var shindo = cols[5].trim();
-			var style = shindoStyle[shindo];
-			if (!style || isNaN(lat) || isNaN(lng)) { continue; }
-			var html = '<div class="shindo-badge" style="background-color:' + style.color + ';color:' + style.text + ';">' + style.label + '</div>';
-			var icon = L.divIcon({ className: '', html: html, iconSize: [26, 26], iconAnchor: [13, 13] });
-			L.marker([lat, lng], { icon: icon })
-				.bindPopup(pref + city + '<br>南海トラフ巨大地震 想定震度：' + shindo)
-				.addTo(nankaiTroughLayer);
-		}
-	})
-	.catch(function(err) {
-		console.error('南海トラフ震度データの読み込みに失敗しました。', err);
-	});
-}
-loadNankaiTrough();	// ページ読み込み時に一度だけ取得（表示はレイヤーパネルのチェック操作に連動）
 TopomapTileOverlay = L.tileLayer(
 	'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 	{ attribution: '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', opacity: 0.5, maxZoom: 18 }
@@ -322,8 +263,7 @@ var overlay = {
 	'ハザードマップ 土石流': Overlay_Map[ 11 ],
 	'ハザードマップ 急傾斜地の崩壊': Overlay_Map[ 12 ],
 	'ハザードマップ 地すべり': Overlay_Map[ 13 ],
-	'活断層（主要活断層帯：J-SHIS）': Overlay_Map[ 14 ],
-	'南海トラフ巨大地震 想定震度': nankaiTroughLayer
+	'活断層（主要活断層帯：J-SHIS）': Overlay_Map[ 14 ] 
 };
 L.control.layers(baseMap, overlay).addTo(map);
 var faultLayerActive = false;
