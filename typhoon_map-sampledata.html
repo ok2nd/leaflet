@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台風進路予測マップ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+  :root{
+    --ink:#16202a;
+    --panel-bg: rgba(20,28,38,0.92);
+    --panel-border: rgba(255,255,255,0.08);
+    --accent-gale:#f4c542;
+    --accent-storm:#e0473a;
+    --accent-line:#7fb3ff;
+    --text-light:#eef2f6;
+    --text-dim:#9fb0c0;
+  }
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    font-family:"Hiragino Sans","Yu Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#0e151c;
+  }
+  #map{
+    position:absolute; top:0; left:0; right:0; bottom:0;
+  }
+
+  /* Leaflet popup styling */
+  .leaflet-popup-content-wrapper{
+    background: var(--panel-bg);
+    color: var(--text-light);
+    border-radius:10px;
+    border:1px solid var(--panel-border);
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .leaflet-popup-tip{ background: var(--panel-bg); }
+  .leaflet-popup-content{ margin:14px 16px; font-size:13px; line-height:1.6; }
+  .popup-title{
+    font-size:14px; font-weight:700; margin-bottom:6px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .popup-badge{
+    display:inline-block; font-size:11px; padding:1px 7px; border-radius:999px;
+    font-weight:600; letter-spacing:.02em;
+  }
+  .popup-badge.gale{ background:rgba(244,197,66,0.18); color:var(--accent-gale); border:1px solid rgba(244,197,66,0.4);}
+  .popup-badge.storm{ background:rgba(224,71,58,0.18); color:var(--accent-storm); border:1px solid rgba(224,71,58,0.4);}
+  .popup-row{ display:flex; justify-content:space-between; gap:16px; padding:2px 0; }
+  .popup-row .k{ color:var(--text-dim); }
+  .popup-row .v{ font-weight:600; }
+  .popup-note{ margin-top:8px; font-size:11px; color:var(--text-dim); border-top:1px solid var(--panel-border); padding-top:6px;}
+
+  /* typhoon number label near current position */
+  .typhoon-label{
+    background: var(--panel-bg);
+    color:#fff;
+    border:1px solid var(--panel-border);
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:700;
+    white-space:nowrap;
+    box-shadow:0 4px 12px rgba(0,0,0,0.35);
+  }
+  .typhoon-label .sub{ font-weight:400; color:var(--text-dim); font-size:11px; margin-left:4px;}
+
+  /* datetime tooltip on forecast points */
+  .time-label{
+    background: rgba(14,21,28,0.85);
+    color: var(--text-light);
+    border:1px solid var(--panel-border);
+    padding:2px 6px;
+    border-radius:6px;
+    font-size:10.5px;
+    font-weight:600;
+    white-space:nowrap;
+    box-shadow:0 2px 6px rgba(0,0,0,0.3);
+  }
+  .time-label.forecast{ color: var(--text-dim); }
+
+  /* attribution bottom-left */
+  .source-attribution{
+    position:absolute;
+    left:10px; bottom:10px;
+    z-index:1000;
+    background: var(--panel-bg);
+    color: var(--text-dim);
+    border:1px solid var(--panel-border);
+    padding:6px 10px;
+    border-radius:8px;
+    font-size:11px;
+    line-height:1.5;
+    max-width:260px;
+    pointer-events:none;
+  }
+  .source-attribution b{ color: var(--text-light); }
+
+  /* layer switch control */
+  .leaflet-control-layers{
+    background: var(--panel-bg) !important;
+    color: var(--text-light) !important;
+    border:1px solid var(--panel-border) !important;
+    border-radius:10px !important;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4) !important;
+  }
+  .leaflet-control-layers-toggle{ filter: invert(1) brightness(1.6); }
+  .leaflet-control-layers label{ font-size:12.5px; }
+  .leaflet-control-layers-separator{ border-color: var(--panel-border) !important; }
+
+  /* legend panel top-left */
+  .legend-panel{
+    position:absolute;
+    top:10px; left:10px;
+    z-index:1000;
+    background: var(--panel-bg);
+    color: var(--text-light);
+    border:1px solid var(--panel-border);
+    padding:10px 14px;
+    border-radius:10px;
+    font-size:12px;
+    line-height:1.8;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .legend-panel .title{ font-weight:700; font-size:13.5px; margin-bottom:4px; }
+  .legend-item{ display:flex; align-items:center; gap:8px; }
+  .swatch{ width:14px; height:14px; border-radius:50%; flex:none; display:inline-block; }
+  .swatch.gale{ background:rgba(244,197,66,0.35); border:1.5px solid var(--accent-gale); }
+  .swatch.storm{ background:rgba(224,71,58,0.35); border:1.5px solid var(--accent-storm); }
+  .swatch.cone{ background:transparent; border:1.5px dashed var(--accent-line); }
+  .swatch.line{ width:16px; height:2px; border-radius:0; background:var(--accent-line); }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="legend-panel">
+  <div class="title">台風進路図の凡例</div>
+  <div class="legend-item"><span class="swatch storm"></span> 暴風域（風速25m/s以上）</div>
+  <div class="legend-item"><span class="swatch gale"></span> 強風域（風速15m/s以上）</div>
+  <div class="legend-item"><span class="swatch cone"></span> 予報円（進路の誤差範囲）</div>
+  <div class="legend-item"><span class="swatch line"></span> 予想進路</div>
+</div>
+
+<div class="source-attribution">
+  データ提供: <b>気象庁</b>（台風情報）<br>
+  地図タイル: <b>OpenStreetMap</b> contributors / <b>Google Maps</b>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+
+/* =========================================================================
+   台風データ
+   -------------------------------------------------------------------------
+   気象庁は台風の実況・予報を画像やHTMLページで公開していますが、ブラウザから
+   直接読み込めるCORS対応の公開JSON/XML APIを提供していないため、この
+   デモでは同じデータ構造のサンプルデータを使用しています。
+   実運用時は、気象庁の「台風情報」(XML/CSV) をサーバー側で取得・整形し、
+   下記と同じ形式のJSONとして配信するプロキシを用意し、fetch() で
+   読み込むように置き換えてください。
+   ========================================================================= */
+const typhoonData = {
+  number: "第12号",
+  name: "（サンプル）",
+  points: [
+    {
+      time: "8/11 09:00", status: "実況",
+      lat: 24.3, lng: 128.5,
+      pressure: 955, maxWind: 40, maxGust: 60,
+      stormRadius: 110, // km
+      galeRadius: 280,  // km
+      forecastRadius: null
+    },
+    {
+      time: "8/11 21:00", status: "予報 (12時間後)",
+      lat: 25.8, lng: 127.2,
+      pressure: 950, maxWind: 42, maxGust: 60,
+      stormRadius: 120,
+      galeRadius: 310,
+      forecastRadius: 75
+    },
+    {
+      time: "8/12 09:00", status: "予報 (24時間後)",
+      lat: 27.6, lng: 126.0,
+      pressure: 945, maxWind: 45, maxGust: 65,
+      stormRadius: 130,
+      galeRadius: 330,
+      forecastRadius: 120
+    },
+    {
+      time: "8/13 09:00", status: "予報 (48時間後)",
+      lat: 30.5, lng: 126.8,
+      pressure: 955, maxWind: 40, maxGust: 60,
+      stormRadius: 100,
+      galeRadius: 300,
+      forecastRadius: 210
+    },
+    {
+      time: "8/14 09:00", status: "予報 (72時間後)",
+      lat: 33.2, lng: 129.5,
+      pressure: 970, maxWind: 30, maxGust: 45,
+      stormRadius: 0,
+      galeRadius: 250,
+      forecastRadius: 300
+    }
+  ]
+};
+
+/* ========================================================================= */
+
+const map = L.map('map', {
+  zoomControl: true,
+  attributionControl: true
+}).setView([27.5, 128.0], 6);
+
+map.zoomControl.setPosition('bottomright');
+
+/* --- ベースレイヤー: OpenStreetMap / Google Maps 切替 --- */
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19
+});
+
+const googleRoadLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+  subdomains: ['mt0','mt1','mt2','mt3'],
+  attribution: '&copy; Google Maps',
+  maxZoom: 20
+});
+
+const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+  subdomains: ['mt0','mt1','mt2','mt3'],
+  attribution: '&copy; Google Maps',
+  maxZoom: 20
+});
+
+osmLayer.addTo(map);
+
+const baseLayers = {
+  "OpenStreetMap": osmLayer,
+  "Google マップ（road）": googleRoadLayer,
+  "Google マップ（航空写真）": googleSatLayer
+};
+L.control.layers(baseLayers, null, { position: 'topright', collapsed: false }).addTo(map);
+
+/* --- 描画用ヘルパー --- */
+function kmToMeters(km){ return km * 1000; }
+
+function windPopupHtml(pt, kind){
+  const badge = kind === 'storm'
+    ? '<span class="popup-badge storm">暴風域</span>'
+    : '<span class="popup-badge gale">強風域</span>';
+  return `
+    <div class="popup-title">${typhoonData.number} ${badge}</div>
+    <div class="popup-row"><span class="k">日時</span><span class="v">${pt.time}（${pt.status}）</span></div>
+    <div class="popup-row"><span class="k">中心気圧</span><span class="v">${pt.pressure} hPa</span></div>
+    <div class="popup-row"><span class="k">最大風速</span><span class="v">${pt.maxWind} m/s</span></div>
+    <div class="popup-row"><span class="k">最大瞬間風速</span><span class="v">${pt.maxGust} m/s</span></div>
+    <div class="popup-row"><span class="k">暴風域半径</span><span class="v">${pt.stormRadius > 0 ? pt.stormRadius + ' km' : 'なし'}</span></div>
+    <div class="popup-row"><span class="k">強風域半径</span><span class="v">${pt.galeRadius} km</span></div>
+    <div class="popup-note">出典: 気象庁 台風情報</div>
+  `;
+}
+
+const trackLatLngs = typhoonData.points.map(p => [p.lat, p.lng]);
+
+/* 進路の線 */
+L.polyline(trackLatLngs, {
+  color: '#7fb3ff',
+  weight: 2,
+  opacity: 0.85,
+  dashArray: '6 6'
+}).addTo(map);
+
+typhoonData.points.forEach((pt, idx) => {
+  const isCurrent = idx === 0;
+  const center = [pt.lat, pt.lng];
+
+  /* 予報円（誤差範囲） */
+  if (pt.forecastRadius) {
+    L.circle(center, {
+      radius: kmToMeters(pt.forecastRadius),
+      color: '#7fb3ff',
+      weight: 1.5,
+      dashArray: '4 4',
+      fillOpacity: 0.03,
+      opacity: 0.5,
+      interactive: false
+    }).addTo(map);
+  }
+
+  /* 強風域 */
+  if (pt.galeRadius > 0) {
+    L.circle(center, {
+      radius: kmToMeters(pt.galeRadius),
+      color: '#f4c542',
+      weight: 1.5,
+      fillColor: '#f4c542',
+      fillOpacity: 0.12,
+      opacity: 0.7
+    }).addTo(map).bindPopup(windPopupHtml(pt, 'gale'));
+  }
+
+  /* 暴風域 */
+  if (pt.stormRadius > 0) {
+    L.circle(center, {
+      radius: kmToMeters(pt.stormRadius),
+      color: '#e0473a',
+      weight: 1.5,
+      fillColor: '#e0473a',
+      fillOpacity: 0.18,
+      opacity: 0.85
+    }).addTo(map).bindPopup(windPopupHtml(pt, 'storm'));
+  }
+
+  /* 中心位置マーカー */
+  const centerIcon = L.divIcon({
+    className: '',
+    html: `<div style="
+        width:${isCurrent ? 14 : 9}px;height:${isCurrent ? 14 : 9}px;
+        border-radius:50%;
+        background:${isCurrent ? '#ff5b4d' : '#cbd9e8'};
+        border:2px solid #0e151c;
+        box-shadow:0 0 0 2px rgba(255,255,255,0.5);
+      "></div>`,
+    iconSize: [16,16],
+    iconAnchor: [8,8]
+  });
+  L.marker(center, { icon: centerIcon, interactive: false }).addTo(map);
+
+  /* 日時ラベル */
+  L.marker(center, {
+    icon: L.divIcon({
+      className: '',
+      html: `<div class="time-label ${isCurrent ? '' : 'forecast'}">${pt.time}</div>`,
+      iconSize: null,
+      iconAnchor: [-14, isCurrent ? -4 : -2]
+    }),
+    interactive: false
+  }).addTo(map);
+
+  /* 台風号数ラベル（現在位置のみ） */
+  if (isCurrent) {
+    L.marker(center, {
+      icon: L.divIcon({
+        className: '',
+        html: `<div class="typhoon-label">🌀 ${typhoonData.number}<span class="sub">${pt.status}</span></div>`,
+        iconSize: null,
+        iconAnchor: [-18, 22]
+      }),
+      interactive: false
+    }).addTo(map);
+  }
+});
+
+/* 全体が収まるように表示範囲を調整 */
+map.fitBounds(L.latLngBounds(trackLatLngs), { padding: [60, 60] });
+
+</script>
+</body>
+</html>
