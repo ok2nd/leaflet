@@ -58,7 +58,7 @@
         .time-flag-label {
             position: absolute;
             left: 5px;
-            color: #922b21;
+            color: #4453b8;
             padding: 0 2px;
             font-size: 11px;
             font-weight: bold;
@@ -139,13 +139,13 @@
             var map = L.map('map', {
                 center: [30.0, 138.0],
                 zoom: 5,
-                layers: [gsiTile]
+                layers: [osmTile]
             });
 
             var baseMaps = {
-                "地理院タイル": gsiTile,
                 "OpenStreetMap": osmTile,
-                "Google Maps": googleMapTile
+                "Google Maps": googleMapTile,
+                "地理院タイル": gsiTile
             };
             L.control.layers(baseMaps).addTo(map);
 
@@ -202,21 +202,206 @@
             // track1, track2... のように複数の経路セットが入るため、count(発達回数)が
             // 示す最新のセットを使う。
             // ------------------------------------------------------------------
-            function extractPastTrackCoords(trackRecord) {
-                if (!trackRecord) return { pre: [], main: [] };
-                var count = trackRecord.count || 1;
-                var t = trackRecord['track' + count] || trackRecord.track1;
-                if (!t) return { pre: [], main: [] };
+            function toCoord(p) {
+                if (!p) return null;
 
-                var pre = (t.preTyphoon || []).map(function (p) { return [p[0], p[1]]; });
-                var main = (t.typhoon || []).map(function (p) { return [p[0], p[1]]; });
-
-                // typhoon配列の先頭はpreTyphoonの末尾と重複することが多いため間引く
-                if (pre.length && main.length &&
-                    pre[pre.length - 1][0] === main[0][0] && pre[pre.length - 1][1] === main[0][1]) {
-                    main = main.slice(1);
+                if (Array.isArray(p) && p.length >= 2) {
+                    var lat1 = Number(p[0]);
+                    var lon1 = Number(p[1]);
+                    if (isFinite(lat1) && isFinite(lon1) &&
+                        lat1 >= -90 && lat1 <= 90 &&
+                        lon1 >= -180 && lon1 <= 180) {
+                        return [lat1, lon1];
+                    }
                 }
-                return { pre: pre, main: main };
+
+                if (p.deg && Array.isArray(p.deg) && p.deg.length >= 2) {
+                    var lat2 = Number(p.deg[0]);
+                    var lon2 = Number(p.deg[1]);
+                    if (isFinite(lat2) && isFinite(lon2) &&
+                        lat2 >= -90 && lat2 <= 90 &&
+                        lon2 >= -180 && lon2 <= 180) {
+                        return [lat2, lon2];
+                    }
+                }
+
+                if (typeof p === 'object') {
+                    var lat = p.lat !== undefined ? p.lat : p.latitude;
+                    var lon = p.lon !== undefined ? p.lon : p.longitude;
+                    if (lat !== undefined && lon !== undefined) {
+                        var lat3 = Number(lat);
+                        var lon3 = Number(lon);
+                        if (isFinite(lat3) && isFinite(lon3) &&
+                            lat3 >= -90 && lat3 <= 90 &&
+                            lon3 >= -180 && lon3 <= 180) {
+                            return [lat3, lon3];
+                        }
+                    }
+                }
+
+                return null;
+            }
+
+            function normalizeTrackArray(arr) {
+                if (!arr) return [];
+                if (Array.isArray(arr)) {
+                    return arr.map(toCoord).filter(function (p) { return p !== null; });
+                }
+                // {"0": [lat,lon], "1": [lat,lon]} のような形式にも対応
+                if (typeof arr === 'object') {
+                    return Object.keys(arr).map(function (k) { return toCoord(arr[k]); })
+                        .filter(function (p) { return p !== null; });
+                }
+                return [];
+            }
+
+            function recursivelyCollectCoords(obj, result) {
+                if (!obj || result.length > 2000) return;
+
+                var direct = toCoord(obj);
+                if (direct) {
+                    result.push(direct);
+                    return;
+                }
+
+                if (Array.isArray(obj)) {
+                    obj.forEach(function (v) {
+                        recursivelyCollectCoords(v, result);
+                    });
+                    return;
+                }
+
+                if (typeof obj === 'object') {
+                    Object.keys(obj).forEach(function (key) {
+                        // 識別子や日時などは座標ではないので除外
+                        if (/^(tropicalCyclone|count|name|validtime|part|category)$/i.test(key)) return;
+                        recursivelyCollectCoords(obj[key], result);
+                    });
+                }
+            }
+
+            function removeDuplicateConsecutive(coords) {
+                var out = [];
+                coords.forEach(function (p) {
+                    if (!out.length ||
+                        out[out.length - 1][0] !== p[0] ||
+                        out[out.length - 1][1] !== p[1]) {
+                        out.push(p);
+                    }
+                });
+                return out;
+            }
+
+            function extractCoordsFromObject(obj) {
+                var result = [];
+                recursivelyCollectCoords(obj, result);
+                return removeDuplicateConsecutive(result);
+            }
+
+            function extractOneTrack(track) {
+                if (!track) return { pre: [], main: [] };
+
+                // 明示的な区分がある場合
+                var pre = normalizeTrackArray(
+                    track.preTyphoon || track.pre || track.beforeTyphoon || []
+                );
+                var main = normalizeTrackArray(
+                    track.typhoon || track.main || track.afterTyphoon || []
+                );
+
+                if (pre.length + main.length >= 2) {
+                    return {
+                        pre: removeDuplicateConsecutive(pre),
+                        main: removeDuplicateConsecutive(main)
+                    };
+                }
+
+                // 構造が異なる場合も「このtrackだけ」を再帰的に抽出する。
+                // ★trackRecord全体を再帰検索してtrack1+track2を連結しない。
+                var all = extractCoordsFromObject(track);
+                return { pre: [], main: all };
+            }
+
+            function getTrackCandidates(trackRecord) {
+                if (!trackRecord) return [];
+
+                var candidates = [];
+                Object.keys(trackRecord).forEach(function (key) {
+                    if (/^track\d+$/i.test(key) && trackRecord[key]) {
+                        candidates.push({
+                            key: key,
+                            track: trackRecord[key]
+                        });
+                    }
+                });
+
+                // track1等がない古い/別形式にも対応
+                if (!candidates.length &&
+                    (trackRecord.preTyphoon || trackRecord.typhoon)) {
+                    candidates.push({
+                        key: 'root',
+                        track: trackRecord
+                    });
+                }
+
+                return candidates;
+            }
+
+            function extractPastTrackCoords(trackRecord, currentLatLng) {
+                if (!trackRecord) return {
+                    pre: [], main: [], trackKey: null
+                };
+
+                var candidates = getTrackCandidates(trackRecord);
+
+                if (!candidates.length) {
+                    return {
+                        pre: [], main: [], trackKey: null
+                    };
+                }
+
+                // 複数trackがある場合、現在位置に最も近い終点のtrackを選択。
+                // countをtrack番号として解釈しない。
+                var best = null;
+                var bestDistance = Infinity;
+
+                function distanceSq(a, b) {
+                    if (!a || !b) return Infinity;
+                    var dLat = a[0] - b[0];
+                    var dLon = (a[1] - b[1]) *
+                        Math.cos(a[0] * Math.PI / 180);
+                    return dLat * dLat + dLon * dLon;
+                }
+
+                candidates.forEach(function (candidate) {
+                    var extracted = extractOneTrack(candidate.track);
+                    var coords = extracted.pre.concat(extracted.main);
+                    if (coords.length < 2) return;
+
+                    var last = coords[coords.length - 1];
+                    var d = currentLatLng
+                        ? distanceSq(last, currentLatLng)
+                        : 0;
+
+                    if (best === null || d < bestDistance) {
+                        best = {
+                            key: candidate.key,
+                            pre: extracted.pre,
+                            main: extracted.main
+                        };
+                        bestDistance = d;
+                    }
+                });
+
+                if (!best) return {
+                    pre: [], main: [], trackKey: null
+                };
+
+                return {
+                    pre: best.pre,
+                    main: best.main,
+                    trackKey: best.key
+                };
             }
 
             // 予報円の日時ラベル用アイコン（引き出し線＋ラベル。背景地図を覆わない）
@@ -336,9 +521,16 @@
                 bounds.push(currentLatLng);
 
                 // --- 1. 発生地点から現在地までの経路（pastTracks.json） ---
-                var pastTrack = extractPastTrackCoords(pastTrackRecord);
+                var pastTrack = extractPastTrackCoords(pastTrackRecord, currentLatLng);
                 var preCoords = pastTrack.pre;    // 熱帯低気圧時代
                 var mainCoords = pastTrack.main;  // 台風昇格後
+
+                console.log(displayName + ' 過去経路:', {
+                    recordFound: !!pastTrackRecord,
+                    trackKey: pastTrack.trackKey,
+                    prePoints: preCoords.length,
+                    typhoonPoints: mainCoords.length
+                });
 
                 // 経路の終端が実況の現在地とズレている場合はつないでおく
                 if (mainCoords.length) {
@@ -419,7 +611,7 @@
 
                     var fMarker = L.circleMarker(ll, {
                         radius: 4,
-                        fillColor: '#e74c3c',
+                        fillColor: '#5b6ee1',
                         color: '#ffffff',
                         weight: 1.5,
                         fillOpacity: 1
@@ -442,10 +634,10 @@
                     if (r.probabilityCircleRadius && r.probabilityCircleRadius.km) {
                         L.circle(ll, {
                             radius: parseFloat(r.probabilityCircleRadius.km) * 1000,
-                            color: '#e74c3c',
+                            color: '#5b6ee1',
                             weight: 1.5,
                             dashArray: '4, 4',
-                            fillColor: '#e74c3c',
+                            fillColor: '#5b6ee1',
                             fillOpacity: 0.12
                         }).addTo(map);
                     }
@@ -466,8 +658,8 @@
 
                 if (forecastCoords.length > 1) {
                     L.polyline(forecastCoords, {
-                        color: '#e74c3c',
-                        weight: 3,
+                        color: '#5b6ee1',
+                        weight: 1.5,
                         dashArray: '6, 6',
                         opacity: 0.8
                     }).addTo(map);
@@ -521,16 +713,68 @@
             // ------------------------------------------------------------------
 
             // pastTracks.json（発生地点からの経路）を先に取得しておく
-            var pastTracksPromise = fetch('https://www.jma.go.jp/bosai/typhoon/data/pastTracks.json')
-                .then(function (res) { return res.json(); })
-                .then(function (list) {
+            var pastTracksPromise = fetch('https://www.jma.go.jp/bosai/typhoon/data/pastTracks.json', {
+                    cache: 'no-store'
+                })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('pastTracks.json HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (raw) {
                     var map2 = {};
-                    (list || []).forEach(function (rec) {
-                        if (rec && rec.tropicalCyclone) map2[rec.tropicalCyclone] = rec;
+                    var records = [];
+
+                    function addRecord(rec, key) {
+                        if (!rec || typeof rec !== 'object') return;
+                        records.push({ rec: rec, key: key || '' });
+
+                        var id = rec.tropicalCyclone;
+                        if (id !== undefined && id !== null) {
+                            map2[String(id)] = rec;
+                        }
+                        if (key) map2[String(key)] = rec;
+                    }
+
+                    if (Array.isArray(raw)) {
+                        raw.forEach(function (rec, i) {
+                            addRecord(rec, 'index' + i);
+                        });
+                    } else if (raw && typeof raw === 'object') {
+                        Object.keys(raw).forEach(function (key) {
+                            if (Array.isArray(raw[key])) {
+                                raw[key].forEach(function (rec, i) {
+                                    addRecord(rec, key + '[' + i + ']');
+                                });
+                            } else if (raw[key] && typeof raw[key] === 'object') {
+                                addRecord(raw[key], key);
+                            }
+                        });
+                    }
+
+                    // 取得したレコードから、コードを「ゆるく」照合する。
+                    // 例: TC2615 / 2615 / 台風15号 などの表記差に対応。
+                    map2._records = records;
+
+                    console.log('pastTracks.json:', raw);
+                    console.log('pastTracks records:', records.length);
+                    records.forEach(function (entry, i) {
+                        var tmp = extractPastTrackCoords(entry.rec);
+                        var all = [];
+                        recursivelyCollectCoords(entry.rec, all);
+                        console.log('pastTracks[' + i + ']',
+                            'tropicalCyclone=', entry.rec.tropicalCyclone,
+                            'typhoonNumber=', entry.rec.typhoonNumber,
+                            'keys=', Object.keys(entry.rec),
+                            'pre=', tmp.pre.length,
+                            'typhoon=', tmp.main.length,
+                            'recursiveCoords=', all.length);
                     });
                     return map2;
                 })
-                .catch(function () { return {}; });
+                .catch(function (err) {
+                    console.warn('pastTracks.json の取得/解析に失敗:', err);
+                    return {};
+                });
 
             fetch('https://www.jma.go.jp/bosai/typhoon/data/targetTc.json')
                 .then(function (res) { return res.json(); })
@@ -549,8 +793,71 @@
 
                             return fetch('https://www.jma.go.jp/bosai/typhoon/data/' + code + '/specifications.json')
                                 .then(function (r) { return r.json(); })
-                                .then(function (spec) { return { code: code, spec: spec, pastTrack: pastTracksMap[code] }; })
-                                .catch(function () { return null; });
+                                .then(function (spec) { return { code: code, spec: spec, pastTrack: (function () {
+                                        var title = Array.isArray(spec) ? spec[0] : null;
+                                        var number = title && title.typhoonNumber
+                                            ? String(title.typhoonNumber) : '';
+
+                                        function normalizeTyphoonNumber(v) {
+                                            var s = String(v || '').replace(/\D/g, '');
+                                            if (!s) return '';
+                                            // 2615 / 15 / 0015 → 15
+                                            return String(parseInt(s.slice(-2), 10));
+                                        }
+
+                                        var wantedNumber = normalizeTyphoonNumber(number);
+                                        var recs = pastTracksMap._records || [];
+
+                                        // ① 台風番号を照合。
+                                        // 今年の「台風15号」「台風16号」と pastTracks の
+                                        // 2615/2616 等の表記差を吸収する。
+                                        for (var i = 0; i < recs.length; i++) {
+                                            var rec = recs[i].rec;
+                                            if (!rec) continue;
+
+                                            var recNumber = normalizeTyphoonNumber(
+                                                rec.typhoonNumber
+                                            );
+
+                                            if (wantedNumber &&
+                                                recNumber === wantedNumber) {
+                                                console.log(
+                                                    '過去経路を台風番号で照合:',
+                                                    code,
+                                                    '台風番号=' + wantedNumber,
+                                                    'record=' + i
+                                                );
+                                                return rec;
+                                            }
+                                        }
+
+                                        // ② tropicalCyclone の完全一致
+                                        for (var j = 0; j < recs.length; j++) {
+                                            var rec2 = recs[j].rec;
+                                            if (rec2 &&
+                                                String(rec2.tropicalCyclone) === String(code)) {
+                                                console.log(
+                                                    '過去経路をtropicalCycloneで照合:',
+                                                    code,
+                                                    'record=' + j
+                                                );
+                                                return rec2;
+                                            }
+                                        }
+
+                                        // ★ここでは「近い台風」を勝手に選ばない。
+                                        // 間違った過去経路を表示するより、データなしとする。
+                                        console.warn(
+                                            '対応する過去経路レコードがありません:',
+                                            code,
+                                            '台風番号=' + wantedNumber
+                                        );
+                                        return null;
+                                    })() }; })
+                                .catch(function (err) {
+                                    console.error('specifications.json取得失敗:', code, err);
+                                    return null;
+                                });
                         });
 
                         Promise.all(promises).then(function (results) {
@@ -564,7 +871,8 @@
 
                             if (bounds.length > 0) {
                                 map.fitBounds(bounds, { padding: [50, 50] });
-                                statusEl.innerHTML = '台風データを表示中 (' + count + '件)';
+                                statusEl.innerHTML = '台風データを表示中 (' + count + '件)<br>' +
+                                '<span class="note">過去経路：台風番号が一致する気象庁 pastTracks.json の経路のみ表示</span>';
                             } else {
                                 statusEl.textContent = '表示できる台風座標データがありませんでした。';
                             }
