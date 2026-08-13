@@ -623,6 +623,13 @@
                     stormPopupEl.remove();
                     stormPopupEl = null;
                 }
+                document.removeEventListener('mousedown', onDocMouseDownForStormPopup, true);
+            }
+
+            function onDocMouseDownForStormPopup(e) {
+                if (stormPopupEl && stormPopupEl.contains(e.target)) return;
+                if (typhoonListPanelEl.contains(e.target)) return;
+                closeStormPopup();
             }
 
             function findStrongestPoint(sr) {
@@ -671,6 +678,7 @@
                 el.style.top = top + 'px';
 
                 stormPopupEl = el;
+                document.addEventListener('mousedown', onDocMouseDownForStormPopup, true);
             }
 
             // 「クリックした台風だけ表示」モードに切り替える

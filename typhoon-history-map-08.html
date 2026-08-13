@@ -199,25 +199,6 @@
             margin: 10px 12px;
         }
 
-        /* ------------------------------------------------------------- */
-        /* 台風一覧：台風名クリック時の最盛期情報ポップアップ */
-        /* ------------------------------------------------------------- */
-        .storm-popup {
-            position: fixed;
-            z-index: 2000;
-            background: #ffffff;
-            border-radius: 6px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-            padding: 8px 10px;
-            max-width: 240px;
-            font-family: inherit;
-        }
-        .storm-popup .storm-popup-note {
-            margin-top: 4px;
-            font-size: 10px;
-            color: #999;
-        }
-
         @media (max-width: 640px) {
             #typhoon-list-panel { width: 120px; max-height: 50vh; }
             #year-control, #status-panel, #legend-panel { font-size: 11px; }
@@ -603,8 +584,7 @@
                     bounds: bounds,
                     maxGrade: maxGrade,
                     firstPoint: pts[0],
-                    lastPoint: pts[pts.length - 1],
-                    points: pts
+                    lastPoint: pts[pts.length - 1]
                 };
             }
 
@@ -613,87 +593,11 @@
             // ------------------------------------------------------------------
             var allVisible = true;
 
-            // ------------------------------------------------------------------
-            // 台風名クリック時：最盛期（中心気圧が最も低い時点）の情報ポップアップ
-            // ------------------------------------------------------------------
-            var stormPopupEl = null;
-
-            function closeStormPopup() {
-                if (stormPopupEl) {
-                    stormPopupEl.remove();
-                    stormPopupEl = null;
-                }
-            }
-
-            function findStrongestPoint(sr) {
-                var best = null;
-                sr.points.forEach(function (p) {
-                    if (p.pressure && p.pressure > 0 && (!best || p.pressure < best.pressure)) {
-                        best = p;
-                    }
-                });
-                if (!best) {
-                    // 中心気圧のデータが無い場合は、階級（強さ）が最大の時点を代わりに使う
-                    var bestRank = -1;
-                    sr.points.forEach(function (p) {
-                        var r = intensityRank(p.grade);
-                        if (r > bestRank) { bestRank = r; best = p; }
-                    });
-                }
-                return best;
-            }
-
-            function showStormPopup(sr, anchorEl) {
-                closeStormPopup();
-                var p = findStrongestPoint(sr);
-                if (!p) return;
-
-                var el = document.createElement('div');
-                el.className = 'storm-popup';
-                el.innerHTML = popupHtml(sr.displayName, sr.number, p) +
-                    '<div class="storm-popup-note">※ 経路中で中心気圧が最も低かった時点（最盛期）の情報</div>';
-                document.body.appendChild(el);
-
-                var rect = anchorEl.getBoundingClientRect();
-                var panelRect = typhoonListPanelEl.getBoundingClientRect();
-                var width = el.offsetWidth;
-                var height = el.offsetHeight;
-
-                var left = panelRect.left - width - 10;
-                if (left < 4) left = Math.max(4, panelRect.right + 10);
-                if (left + width > window.innerWidth - 4) left = window.innerWidth - width - 4;
-
-                var top = rect.top;
-                if (top + height > window.innerHeight - 8) top = window.innerHeight - height - 8;
-                if (top < 4) top = 4;
-
-                el.style.left = left + 'px';
-                el.style.top = top + 'px';
-
-                stormPopupEl = el;
-            }
-
-            // 「クリックした台風だけ表示」モードに切り替える
-            function selectOnlyStorm(rowEntries, targetSr) {
-                allVisible = false;
-                toggleAllBtn.textContent = '全て表示';
-                rowEntries.forEach(function (entry) {
-                    var shouldShow = (entry.sr === targetSr);
-                    if (entry.checkbox.checked !== shouldShow) {
-                        entry.checkbox.checked = shouldShow;
-                        entry.checkbox.dispatchEvent(new Event('change'));
-                    }
-                });
-            }
-
             function buildListPanel(stormRenders) {
                 listBody.innerHTML = '';
                 listTitle.textContent = '一覧';
                 allVisible = true;
                 toggleAllBtn.textContent = '全て非表示';
-                closeStormPopup();
-
-                var rowEntries = [];
 
                 stormRenders.forEach(function (sr) {
                     var row = document.createElement('div');
@@ -726,14 +630,9 @@
                         '<span class="storm-period">' + period + '</span>';
                     row.appendChild(text);
 
-                    var entry = { row: row, checkbox: checkbox, sr: sr };
-                    rowEntries.push(entry);
-
                     row.addEventListener('click', function (e) {
                         if (e.target === checkbox) return;
                         map.fitBounds(sr.bounds, { padding: [40, 40], maxZoom: 8 });
-                        selectOnlyStorm(rowEntries, sr);
-                        showStormPopup(sr, row);
                     });
 
                     listBody.appendChild(row);
@@ -750,7 +649,6 @@
                     }
                 });
                 toggleAllBtn.textContent = allVisible ? '全て非表示' : '全て表示';
-                closeStormPopup();
             });
 
             // ------------------------------------------------------------------
@@ -763,7 +661,6 @@
                 typhoonRootGroup.clearLayers();
                 listBody.innerHTML = '';
                 listTitle.textContent = '一覧';
-                closeStormPopup();
             }
 
             function renderYear(year, storms) {
