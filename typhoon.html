@@ -103,6 +103,38 @@
             color: #888;
         }
 
+        /* 進路予測の提供元一覧（凡例） */
+        #source-legend {
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0,0,0,0.15);
+        }
+        #source-legend .legend-title {
+            font-weight: bold;
+            font-size: 11px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+        #source-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #333;
+            line-height: 1.6;
+        }
+        #source-legend .legend-swatch {
+            display: inline-block;
+            width: 18px;
+            height: 0;
+            border-top-width: 3px;
+            border-top-style: solid;
+            flex: 0 0 auto;
+        }
+        #source-legend .legend-swatch.dashed {
+            border-top-style: dashed;
+        }
+
         .leaflet-popup-content {
             margin: 10px 12px;
         }
@@ -111,11 +143,18 @@
 <body>
 
     <div id="map"></div>
-    <div id="status-panel">データを読み込み中...</div>
+    <div id="status-panel">
+        <div id="source-legend">
+            <div class="legend-title">進路予測の提供元</div>
+            <div class="legend-item"><span class="legend-swatch" style="border-top-color:#2c3e50;"></span>気象庁（JMA）</div>
+            <div class="legend-item"><span class="legend-swatch dashed" style="border-top-color:#16a085;"></span>交通部中央氣象署（台湾・CWA）</div>
+        </div>
+        <div id="status-text">データを読み込み中...</div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var statusEl = document.getElementById('status-panel');
+            var statusEl = document.getElementById('status-text');
 
             // ------------------------------------------------------------------
             // 地図タイルの設定
@@ -538,8 +577,81 @@
             }
 
             // ------------------------------------------------------------------
+            // 気象庁以外の進路予測：台湾 交通部中央氣象署 (CWA) の経路データ
+            //
+            // 無料の公開データAPI（登録不要で使えるデモ用キーが公式に案内されている）。
+            // 参照: https://opendata.cwa.gov.tw/dataset/all/W-C0034-005
+            // 追加分は要望どおり「経路の線」だけを描画し、丸印や吹き出しラベルは付けない。
+            // クリックすると簡単な吹き出し（どの台風／実況か予報か）だけ表示する。
+            // ------------------------------------------------------------------
+            var CWA_TRACK_API = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0034-005?Authorization=rdec-key-123-45678-011121314';
+            var CWA_LINE_COLOR = '#16a085';
+
+            function fetchAndRenderCwaTracks() {
+                return fetch(CWA_TRACK_API)
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var list = data && data.records && data.records.TropicalCyclones &&
+                            data.records.TropicalCyclones.TropicalCyclone;
+                        if (!list || !list.length) return;
+
+                        list.forEach(function (tc) {
+                            var analysisFixes = (tc.AnalysisData && tc.AnalysisData.Fix) || [];
+                            var forecastFixes = (tc.ForecastData && tc.ForecastData.Fix) || [];
+
+                            var toLatLng = function (f) {
+                                var lat = parseFloat(f.CoordinateLatitude);
+                                var lon = parseFloat(f.CoordinateLongitude);
+                                if (isNaN(lat) || isNaN(lon)) return null;
+                                return [lat, lon];
+                            };
+
+                            var pastCoords = analysisFixes.map(toLatLng).filter(Boolean);
+                            var futureCoords = forecastFixes.map(toLatLng).filter(Boolean);
+
+                            // 実況経路の最後の点と予報経路をつないで、線が途切れないようにする
+                            var forecastLine = pastCoords.length
+                                ? [pastCoords[pastCoords.length - 1]].concat(futureCoords)
+                                : futureCoords;
+
+                            var label = (tc.CwaTyphoonName ? tc.CwaTyphoonName + '／' : '') + (tc.TyphoonName || '');
+
+                            if (pastCoords.length > 1) {
+                                var pastLine = L.polyline(pastCoords, {
+                                    color: CWA_LINE_COLOR,
+                                    weight: 3,
+                                    opacity: 0.85
+                                }).addTo(map);
+                                pastLine.bindPopup('<div style="font-size:13px;"><b>' + label +
+                                    '</b><br>交通部中央氣象署（台湾）実況経路</div>');
+                                pastCoords.forEach(function (p) { bounds.push(p); });
+                            }
+
+                            if (forecastLine.length > 1) {
+                                var futureLine = L.polyline(forecastLine, {
+                                    color: CWA_LINE_COLOR,
+                                    weight: 3,
+                                    dashArray: '6, 6',
+                                    opacity: 0.85
+                                }).addTo(map);
+                                futureLine.bindPopup('<div style="font-size:13px;"><b>' + label +
+                                    '</b><br>交通部中央氣象署（台湾）予報経路</div>');
+                                futureCoords.forEach(function (p) { bounds.push(p); });
+                            }
+                        });
+                    })
+                    .catch(function (err) {
+                        // CORS制限やAPI仕様変更等で失敗しても、気象庁側の表示は継続させる
+                        console.error('CWA（台湾）データ取得失敗:', err);
+                    });
+            }
+
+            // ------------------------------------------------------------------
             // メイン処理
             // ------------------------------------------------------------------
+
+            // 気象庁以外の進路予測は気象庁のデータ取得と並行して読み込む
+            var cwaPromise = fetchAndRenderCwaTracks();
 
             // pastTracks.json（発生地点からの経路）を先に取得しておく
             var pastTracksPromise = fetch('https://www.jma.go.jp/bosai/typhoon/data/pastTracks.json')
@@ -557,7 +669,14 @@
                 .then(function (res) { return res.json(); })
                 .then(function (targetList) {
                     if (!targetList || !Array.isArray(targetList) || targetList.length === 0) {
-                        statusEl.innerHTML = '現在、日本周辺で発生している台風はありません。';
+                        cwaPromise.then(function () {
+                            if (bounds.length > 0) {
+                                map.fitBounds(bounds, { padding: [50, 50] });
+                                statusEl.innerHTML = '気象庁：発生中の台風はありません ／ 進路予測: 交通部中央氣象署（台湾）のみ表示中';
+                            } else {
+                                statusEl.innerHTML = '現在、日本周辺で発生している台風はありません。';
+                            }
+                        });
                         return;
                     }
 
@@ -583,18 +702,28 @@
                                 }
                             });
 
-                            if (bounds.length > 0) {
-                                map.fitBounds(bounds, { padding: [50, 50] });
-                                statusEl.innerHTML = '台風データを表示中 (' + count + '件)';
-                            } else {
-                                statusEl.textContent = '表示できる台風座標データがありませんでした。';
-                            }
+                            // 台湾CWAのデータも届くまで待ってから、地図範囲と状態表示を確定する
+                            cwaPromise.then(function () {
+                                if (bounds.length > 0) {
+                                    map.fitBounds(bounds, { padding: [50, 50] });
+                                    statusEl.innerHTML = '台風データを表示中 (' + count + '件) ／ 進路予測: 気象庁 + 交通部中央氣象署（台湾）';
+                                } else {
+                                    statusEl.textContent = '表示できる台風座標データがありませんでした。';
+                                }
+                            });
                         });
                     });
                 })
                 .catch(function (err) {
                     console.error('気象庁データ取得失敗:', err);
-                    statusEl.textContent = '気象庁データの取得に失敗しました。';
+                    cwaPromise.then(function () {
+                        if (bounds.length > 0) {
+                            map.fitBounds(bounds, { padding: [50, 50] });
+                            statusEl.innerHTML = '気象庁データの取得に失敗しました ／ 進路予測: 交通部中央氣象署（台湾）のみ表示中';
+                        } else {
+                            statusEl.textContent = '気象庁データの取得に失敗しました。';
+                        }
+                    });
                 });
         });
     </script>

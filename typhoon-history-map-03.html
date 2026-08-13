@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台風経路マップ（年別）</title>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", MeiYo, sans-serif;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 台風名ラベル（経路の起点付近に表示） */
+        .typhoon-name-label {
+            background: rgba(0, 0, 0, 0.82);
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-weight: bold;
+            font-size: 11px;
+            white-space: nowrap;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            cursor: pointer;
+        }
+
+        /* 上陸マーカーのラベル */
+        .landfall-label {
+            background: rgba(192, 57, 43, 0.95);
+            color: #ffffff;
+            border-radius: 3px;
+            padding: 1px 4px;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* 年選択コントロール（左上） */
+        /* ------------------------------------------------------------- */
+        #year-control {
+            position: absolute;
+            top: 70px;
+            left: 12px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 13px;
+            color: #2c3e50;
+        }
+        #year-control label {
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        #year-select {
+            font-size: 14px;
+            padding: 3px 4px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #year-select:disabled {
+            opacity: 0.6;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* 台風リストパネル（右上） */
+        /* ------------------------------------------------------------- */
+        #typhoon-list-panel {
+            position: absolute;
+            top: 70px;
+            right: 12px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            width: 230px;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #typhoon-list-header {
+            padding: 8px 10px 6px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #typhoon-list-header .toggle-all-btn {
+            font-size: 11px;
+            font-weight: normal;
+            color: #2980b9;
+            cursor: pointer;
+            border: 1px solid #2980b9;
+            border-radius: 3px;
+            padding: 1px 5px;
+            background: #fff;
+        }
+        #typhoon-list-body {
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .storm-row {
+            display: flex;
+            align-items: center;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: #333;
+            cursor: pointer;
+            line-height: 1.35;
+        }
+        .storm-row:hover {
+            background: #f0f4f8;
+        }
+        .storm-row input[type="checkbox"] {
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+        .storm-row .storm-max-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-right: 6px;
+            flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+        .storm-row .storm-text b {
+            color: #2c3e50;
+        }
+        .storm-row .storm-text .storm-period {
+            display: block;
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* 階級（強さ）凡例パネル（右下） */
+        /* ------------------------------------------------------------- */
+        #legend-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 12px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 8px 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 11px;
+            color: #333;
+        }
+        #legend-panel .legend-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .legend-row {
+            display: flex;
+            align-items: center;
+            margin: 2px 0;
+        }
+        .legend-swatch {
+            width: 18px;
+            height: 4px;
+            margin-right: 6px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* ステータス表示パネル（左下） */
+        /* ------------------------------------------------------------- */
+        #status-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 12px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 12px;
+            color: #333;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .leaflet-popup-content {
+            margin: 10px 12px;
+        }
+
+        @media (max-width: 640px) {
+            #typhoon-list-panel { width: 180px; max-height: 50vh; }
+            #year-control, #status-panel, #legend-panel { font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div id="year-control">
+        <label for="year-select">表示年:</label>
+        <select id="year-select"></select>
+    </div>
+
+    <div id="typhoon-list-panel">
+        <div id="typhoon-list-header">
+            <span id="typhoon-list-title">台風一覧</span>
+            <span class="toggle-all-btn" id="toggle-all-btn">全て非表示</span>
+        </div>
+        <div id="typhoon-list-body"></div>
+    </div>
+
+    <div id="legend-panel">
+        <div class="legend-title">階級（強さ）</div>
+        <div id="legend-body"></div>
+    </div>
+
+    <div id="status-panel">データを読み込み中...</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var statusEl = document.getElementById('status-panel');
+            var yearSelect = document.getElementById('year-select');
+            var listBody = document.getElementById('typhoon-list-body');
+            var listTitle = document.getElementById('typhoon-list-title');
+            var toggleAllBtn = document.getElementById('toggle-all-btn');
+            var legendBody = document.getElementById('legend-body');
+
+            // ------------------------------------------------------------------
+            // 地図タイルの設定
+            // ------------------------------------------------------------------
+            var gsiTile = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+                maxZoom: 18
+            });
+
+            var osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            });
+
+            var googleMapTile = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                attribution: '&copy; Google Maps',
+                maxZoom: 20
+            });
+
+            var map = L.map('map', {
+                center: [25.0, 140.0],
+                zoom: 4,
+                layers: [osmTile]
+            });
+
+            var baseMaps = {
+                "OpenStreetMap": osmTile,
+                "Google Maps": googleMapTile,
+                "地理院タイル": gsiTile
+            };
+            L.control.layers(baseMaps).addTo(map);
+
+            var typhoonRootGroup = L.layerGroup().addTo(map);
+
+            // ------------------------------------------------------------------
+            // 階級（強さ）の定義：気象庁 台風位置表CSVの「階級」列に対応
+            // ------------------------------------------------------------------
+            var GRADES = {
+                2: { label: '熱帯低気圧',             color: '#95a5a6', dash: '3,5', weight: 2 },
+                3: { label: '台風',                   color: '#2980b9', dash: null,  weight: 3 },
+                4: { label: '強い台風',               color: '#e67e22', dash: null,  weight: 4 },
+                5: { label: '非常に強い～猛烈な台風', color: '#e74c3c', dash: null,  weight: 5 },
+                6: { label: '温帯低気圧',             color: '#7f8c8d', dash: '2,6', weight: 2 },
+                7: { label: '責任領域外',             color: '#7f8c8d', dash: '2,6', weight: 2 }
+            };
+            function gradeInfo(g) {
+                return GRADES[g] || { label: '不明', color: '#7f8c8d', dash: '2,6', weight: 2 };
+            }
+
+            // 凡例を組み立て
+            [2, 3, 4, 5, 6].forEach(function (g) {
+                var info = gradeInfo(g);
+                var row = document.createElement('div');
+                row.className = 'legend-row';
+                var swatch = document.createElement('span');
+                swatch.className = 'legend-swatch';
+                if (info.dash) {
+                    swatch.style.backgroundImage = 'repeating-linear-gradient(90deg,' + info.color + ' 0 4px, transparent 4px 7px)';
+                } else {
+                    swatch.style.background = info.color;
+                }
+                row.appendChild(swatch);
+                var label = document.createElement('span');
+                label.textContent = info.label;
+                row.appendChild(label);
+                legendBody.appendChild(row);
+            });
+            (function () {
+                var row = document.createElement('div');
+                row.className = 'legend-row';
+                var swatch = document.createElement('span');
+                swatch.className = 'legend-swatch';
+                swatch.style.background = '#c0392b';
+                swatch.style.borderRadius = '50%';
+                swatch.style.width = '8px';
+                swatch.style.height = '8px';
+                row.appendChild(swatch);
+                var label = document.createElement('span');
+                label.textContent = '上陸地点';
+                row.appendChild(label);
+                legendBody.appendChild(row);
+            })();
+
+            // ------------------------------------------------------------------
+            // 年セレクトの組み立て（当年〜2001年）
+            // ------------------------------------------------------------------
+            var THIS_YEAR = new Date().getFullYear();
+            var MIN_YEAR = 2001; // 気象庁「台風位置表」CSVは2001年以降に対応
+            for (var y = THIS_YEAR; y >= MIN_YEAR; y--) {
+                var opt = document.createElement('option');
+                opt.value = String(y);
+                opt.textContent = y + '年';
+                yearSelect.appendChild(opt);
+            }
+
+            // ------------------------------------------------------------------
+            // ユーティリティ
+            // ------------------------------------------------------------------
+
+            // UTCの年月日時から、JST表記の文字列を作る（ブラウザのタイムゾーンに依存しない）
+            function formatJST(y, mo, d, h) {
+                var utcMs = Date.UTC(y, mo - 1, d, h, 0, 0);
+                var jstMs = utcMs + 9 * 60 * 60 * 1000;
+                var jd = new Date(jstMs);
+                var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+                return jd.getUTCFullYear() + '/' + pad(jd.getUTCMonth() + 1) + '/' + pad(jd.getUTCDate()) +
+                    ' ' + pad(jd.getUTCHours()) + ':00';
+            }
+            function shortJST(y, mo, d, h) {
+                var utcMs = Date.UTC(y, mo - 1, d, h, 0, 0);
+                var jstMs = utcMs + 9 * 60 * 60 * 1000;
+                var jd = new Date(jstMs);
+                return (jd.getUTCMonth() + 1) + '/' + jd.getUTCDate();
+            }
+
+            function knotToMs(kt) {
+                return Math.round(kt * 0.514444);
+            }
+            function nmToKm(nm) {
+                return Math.round(nm * 1.852);
+            }
+
+            var DIR_LABELS = { 1: '北東', 2: '東', 3: '南東', 4: '南', 5: '南西', 6: '西', 7: '北西', 8: '北', 9: '（全域）' };
+            function windAreaText(dirCode, longNm, shortNm) {
+                if (!longNm || longNm <= 0) return null;
+                if (dirCode === 9) {
+                    return '全域 半径約' + nmToKm(longNm) + 'km';
+                }
+                var dirLabel = DIR_LABELS[dirCode] || '';
+                return dirLabel + '方向に張り出し（長径約' + nmToKm(longNm) + 'km・短径約' + nmToKm(shortNm) + 'km）';
+            }
+
+            function popupHtml(displayName, tcNumber, p) {
+                var info = gradeInfo(p.grade);
+                var html = '<div style="font-size:13px; line-height:1.7; min-width:190px;">';
+                html += '<b style="font-size:15px; color:#2c3e50;">' + displayName + '</b>';
+                html += ' <span style="color:#999; font-size:11px;">(' + p.name + ')</span><br>';
+                html += '<span style="color:#7f8c8d;">' + formatJST(p.year, p.month, p.day, p.hour) + ' JST</span>';
+                html += '<hr style="margin:4px 0; border:0; border-top:1px solid #ccc;">';
+                html += '<b>階級:</b> ' + info.label + '<br>';
+                if (p.pressure) {
+                    html += '<b>中心気圧:</b> ' + p.pressure + ' hPa<br>';
+                }
+                if (p.windKt && p.windKt > 0) {
+                    html += '<b>最大風速:</b> ' + knotToMs(p.windKt) + ' m/s（' + p.windKt + 'kt）<br>';
+                }
+                var storm = windAreaText(p.storm50Dir, p.storm50Long, p.storm50Short);
+                if (storm) {
+                    html += '<b>暴風域:</b> ' + storm + '<br>';
+                }
+                var gale = windAreaText(p.gale30Dir, p.gale30Long, p.gale30Short);
+                if (gale) {
+                    html += '<b>強風域:</b> ' + gale + '<br>';
+                }
+                if (p.landfall) {
+                    html += '<b style="color:#c0392b;">この地点で上陸（または通過）</b><br>';
+                }
+                html += '</div>';
+                return html;
+            }
+
+            // ------------------------------------------------------------------
+            // CSVパース（気象庁 台風位置表 CSV形式）
+            // 列: 年,月,日,時(UTC),台風番号,台風名,階級,緯度,経度,中心気圧,
+            //     最大風速(kt),50KT長径方向,50KT長径(nm),50KT短径(nm),
+            //     30KT長径方向,30KT長径(nm),30KT短径(nm),上陸
+            // ------------------------------------------------------------------
+            function parseCsv(text) {
+                var lines = text.split(/\r?\n/);
+                var order = [];       // 台風番号の出現順
+                var byNumber = {};    // 台風番号 -> {name, points:[]}
+
+                for (var i = 1; i < lines.length; i++) { // 先頭行(ヘッダ)はスキップ
+                    var line = lines[i].trim();
+                    if (!line) continue;
+                    var cols = line.split(',');
+                    if (cols.length < 18) continue;
+
+                    var p = {
+                        year: parseInt(cols[0], 10),
+                        month: parseInt(cols[1], 10),
+                        day: parseInt(cols[2], 10),
+                        hour: parseInt(cols[3], 10),
+                        name: cols[5],
+                        grade: parseInt(cols[6], 10),
+                        lat: parseFloat(cols[7]),
+                        lon: parseFloat(cols[8]),
+                        pressure: parseInt(cols[9], 10),
+                        windKt: parseInt(cols[10], 10),
+                        storm50Dir: parseInt(cols[11], 10),
+                        storm50Long: parseInt(cols[12], 10),
+                        storm50Short: parseInt(cols[13], 10),
+                        gale30Dir: parseInt(cols[14], 10),
+                        gale30Long: parseInt(cols[15], 10),
+                        gale30Short: parseInt(cols[16], 10),
+                        landfall: parseInt(cols[17], 10) === 1
+                    };
+                    if (isNaN(p.lat) || isNaN(p.lon)) continue;
+
+                    var tcNumber = cols[4];
+                    if (!byNumber[tcNumber]) {
+                        byNumber[tcNumber] = { number: tcNumber, name: p.name, points: [] };
+                        order.push(tcNumber);
+                    }
+                    byNumber[tcNumber].points.push(p);
+                }
+
+                return order.map(function (num) { return byNumber[num]; });
+            }
+
+            function displayNameFor(tcNumber) {
+                var serial = tcNumber.length >= 2 ? tcNumber.slice(-2) : tcNumber;
+                return '台風' + parseInt(serial, 10) + '号';
+            }
+
+            // ------------------------------------------------------------------
+            // 1つの台風の描画
+            // ------------------------------------------------------------------
+            function renderStorm(storm) {
+                var group = L.layerGroup();
+                var pts = storm.points;
+                var latlngs = pts.map(function (p) { return [p.lat, p.lon]; });
+                var displayName = displayNameFor(storm.number);
+                var maxGrade = 0;
+                var bounds = L.latLngBounds(latlngs);
+
+                // 経路（階級ごとに色分けした線分）
+                for (var i = 0; i < pts.length; i++) {
+                    var g = pts[i].grade;
+                    if (g > maxGrade) maxGrade = g;
+                    var info = gradeInfo(g);
+
+                    if (i > 0) {
+                        L.polyline([latlngs[i - 1], latlngs[i]], {
+                            color: info.color,
+                            weight: info.weight,
+                            dashArray: info.dash,
+                            opacity: 0.85
+                        }).addTo(group);
+                    }
+
+                    var ptMarker = L.circleMarker(latlngs[i], {
+                        radius: 3,
+                        color: '#ffffff',
+                        weight: 1,
+                        fillColor: info.color,
+                        fillOpacity: 1
+                    });
+                    ptMarker.bindPopup(popupHtml(displayName, storm.number, pts[i]));
+                    ptMarker.addTo(group);
+
+                    if (pts[i].landfall) {
+                        var lf = L.circleMarker(latlngs[i], {
+                            radius: 6,
+                            color: '#ffffff',
+                            weight: 1.5,
+                            fillColor: '#c0392b',
+                            fillOpacity: 0.95
+                        });
+                        lf.bindPopup(popupHtml(displayName, storm.number, pts[i]));
+                        lf.bindTooltip('上陸', { permanent: false, direction: 'top', className: 'landfall-label' });
+                        lf.addTo(group);
+                    }
+                }
+
+                // 名前ラベル（起点付近に表示、クリックでその台風の範囲にズーム）
+                var nameLatLng = latlngs[0];
+                var nameMarker = L.circleMarker(nameLatLng, { radius: 0, opacity: 0, fillOpacity: 0 });
+                nameMarker.bindTooltip(displayName + ' ' + storm.name, {
+                    permanent: true,
+                    direction: 'right',
+                    offset: [4, 0],
+                    className: 'typhoon-name-label'
+                });
+                nameMarker.addTo(group);
+                nameMarker.on('add', function () {
+                    var tooltipEl = nameMarker.getTooltip() && nameMarker.getTooltip()._container;
+                    if (tooltipEl) {
+                        tooltipEl.onclick = function () {
+                            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
+                        };
+                    }
+                });
+
+                return {
+                    number: storm.number,
+                    name: storm.name,
+                    displayName: displayName,
+                    group: group,
+                    bounds: bounds,
+                    maxGrade: maxGrade,
+                    firstPoint: pts[0],
+                    lastPoint: pts[pts.length - 1]
+                };
+            }
+
+            // ------------------------------------------------------------------
+            // 台風リストパネルの構築
+            // ------------------------------------------------------------------
+            var allVisible = true;
+
+            function buildListPanel(stormRenders) {
+                listBody.innerHTML = '';
+                listTitle.textContent = '台風一覧（' + stormRenders.length + '件）';
+                allVisible = true;
+                toggleAllBtn.textContent = '全て非表示';
+
+                stormRenders.forEach(function (sr) {
+                    var row = document.createElement('div');
+                    row.className = 'storm-row';
+
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = true;
+                    checkbox.addEventListener('change', function () {
+                        if (checkbox.checked) {
+                            sr.group.addTo(typhoonRootGroup);
+                        } else {
+                            typhoonRootGroup.removeLayer(sr.group);
+                        }
+                    });
+                    row.appendChild(checkbox);
+
+                    var dot = document.createElement('span');
+                    dot.className = 'storm-max-dot';
+                    dot.style.background = gradeInfo(sr.maxGrade).color;
+                    row.appendChild(dot);
+
+                    var text = document.createElement('span');
+                    text.className = 'storm-text';
+                    var period = shortJST(sr.firstPoint.year, sr.firstPoint.month, sr.firstPoint.day, sr.firstPoint.hour) +
+                        '〜' + shortJST(sr.lastPoint.year, sr.lastPoint.month, sr.lastPoint.day, sr.lastPoint.hour);
+                    text.innerHTML = '<b>' + sr.displayName + '</b> ' + sr.name +
+                        '<span class="storm-period">' + period + '</span>';
+                    row.appendChild(text);
+
+                    row.addEventListener('click', function (e) {
+                        if (e.target === checkbox) return;
+                        map.fitBounds(sr.bounds, { padding: [40, 40], maxZoom: 8 });
+                    });
+
+                    listBody.appendChild(row);
+                });
+            }
+
+            toggleAllBtn.addEventListener('click', function () {
+                var checkboxes = listBody.querySelectorAll('input[type="checkbox"]');
+                allVisible = !allVisible;
+                checkboxes.forEach(function (cb) {
+                    if (cb.checked !== allVisible) {
+                        cb.checked = allVisible;
+                        cb.dispatchEvent(new Event('change'));
+                    }
+                });
+                toggleAllBtn.textContent = allVisible ? '全て非表示' : '全て表示';
+            });
+
+            // ------------------------------------------------------------------
+            // 年ごとのデータ取得・表示
+            // ------------------------------------------------------------------
+            var csvCache = {};
+            var currentRequestYear = null;
+
+            function clearMap() {
+                typhoonRootGroup.clearLayers();
+                listBody.innerHTML = '';
+                listTitle.textContent = '台風一覧';
+            }
+
+            function renderYear(year, storms) {
+                clearMap();
+
+                if (!storms.length) {
+                    statusEl.textContent = year + '年は台風位置表データがありません。';
+                    return;
+                }
+
+                var stormRenders = storms.map(renderStorm);
+                stormRenders.forEach(function (sr) { sr.group.addTo(typhoonRootGroup); });
+                buildListPanel(stormRenders);
+
+                var combined = null;
+                stormRenders.forEach(function (sr) {
+                    combined = combined ? combined.extend(sr.bounds) : L.latLngBounds(sr.bounds.getSouthWest(), sr.bounds.getNorthEast());
+                });
+                if (combined) {
+                    map.fitBounds(combined, { padding: [30, 30] });
+                }
+
+                statusEl.innerHTML = year + '年の台風経路を表示中（' + stormRenders.length + '件）' +
+                    '<br><span style="font-size:10px; color:#888;">出典: 気象庁 台風位置表</span>';
+            }
+
+            function loadYear(year) {
+                currentRequestYear = year;
+                yearSelect.disabled = true;
+                statusEl.textContent = year + '年のデータを読み込み中...';
+                clearMap();
+
+                if (csvCache[year]) {
+                    renderYear(year, csvCache[year]);
+                    yearSelect.disabled = false;
+                    return;
+                }
+
+                var url = 'https://www.data.jma.go.jp/typhoon/position_table/table' + year + '.csv';
+                fetch(url)
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.text();
+                    })
+                    .then(function (text) {
+                        var storms = parseCsv(text);
+                        csvCache[year] = storms;
+                        if (currentRequestYear !== year) return; // 途中で年が変更された場合は破棄
+                        renderYear(year, storms);
+                    })
+                    .catch(function (err) {
+                        console.error('台風位置表の取得に失敗:', err);
+                        if (currentRequestYear !== year) return;
+                        statusEl.textContent = year + '年のデータ取得に失敗しました。（気象庁サイトへのアクセスがブロックされている可能性があります）';
+                    })
+                    .finally(function () {
+                        if (currentRequestYear === year) yearSelect.disabled = false;
+                    });
+            }
+
+            yearSelect.addEventListener('change', function () {
+                loadYear(parseInt(yearSelect.value, 10));
+            });
+
+            // 初期表示：当年
+            yearSelect.value = String(THIS_YEAR);
+            loadYear(THIS_YEAR);
+        });
+    </script>
+</body>
+</html>

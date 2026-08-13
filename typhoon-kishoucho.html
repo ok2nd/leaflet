@@ -50,14 +50,13 @@
             position: absolute;
             left: 0;
             width: 1px;
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+            background: #ffffff;
         }
-        .time-flag-above .time-flag-line { bottom: 0; height: 52px; }
-        .time-flag-below .time-flag-line { top: 0; height: 52px; }
+        .time-flag-above .time-flag-line { bottom: 0; height: 52px; transform: rotate(15deg); transform-origin: bottom center; }
+        .time-flag-below .time-flag-line { top: 0; height: 52px; transform: rotate(-15deg); transform-origin: top center; }
         .time-flag-label {
             position: absolute;
-            left: 5px;
+            left: 14px;
             color: #4453b8;
             padding: 0 2px;
             font-size: 11px;
@@ -512,8 +511,30 @@
                     permanent: true,
                     direction: 'top',
                     offset: [0, -10],
-                    className: 'typhoon-name-label'
+                    className: 'typhoon-name-label',
+                    interactive: true
                 });
+
+                // 台風名表示枠（常時ラベル）をクリックしても詳細ポップアップを開けるようにする
+                var nameTooltip = currMarker.getTooltip();
+                if (nameTooltip && nameTooltip._container) {
+                    nameTooltip._container.style.cursor = 'pointer';
+                    nameTooltip._container.onclick = function (e) {
+                        e.stopPropagation();
+                        currMarker.openPopup();
+                    };
+                } else {
+                    currMarker.on('tooltipopen', function () {
+                        var tooltip = currMarker.getTooltip();
+                        if (tooltip && tooltip._container) {
+                            tooltip._container.style.cursor = 'pointer';
+                            tooltip._container.onclick = function (e) {
+                                e.stopPropagation();
+                                currMarker.openPopup();
+                            };
+                        }
+                    });
+                }
             }
 
             // ------------------------------------------------------------------
