@@ -343,8 +343,6 @@
                 });
 
                 // 通過点（詳細はクリックで表示、始点・終点は目立たせない小さいドット）
-                // 見た目のドットは小さいままにしつつ、クリックしやすいように
-                // 一回り大きい透明な円を重ねてクリック判定領域を広げる
                 points.forEach(function (p, idx) {
                     if (idx === 0 || idx === points.length - 1) return;
                     var windMs = (typeof p.wind === 'number') ? Math.round(p.wind * 0.5144 * 10) / 10 : null;
@@ -356,15 +354,6 @@
                         (p.pressure ? '<b>中心気圧:</b> ' + p.pressure + ' hPa<br>' : '') +
                         (windMs !== null ? '<b>最大風速:</b> ' + windMs + ' m/s（' + p.wind + ' kt）<br>' : '') +
                         '</div>';
-
-                    // クリック判定を広げるための透明な当たり判定円（見た目には出ない）
-                    L.circleMarker(p.latlng, {
-                        radius: 10,
-                        fillOpacity: 0.001,
-                        stroke: false
-                    }).addTo(map).bindPopup(html);
-
-                    // 実際に見える小さいドット
                     L.circleMarker(p.latlng, {
                         radius: 2.5,
                         fillColor: (p.cls || 0) < 3 ? '#95a5a6' : '#8e44ad',
@@ -526,13 +515,6 @@
                     forecastCoords.push(ll);
                     bounds.push(ll);
 
-                    // クリック判定を広げるための透明な当たり判定円（見た目には出ない）
-                    var hitCircle = L.circleMarker(ll, {
-                        radius: 12,
-                        fillOpacity: 0.001,
-                        stroke: false
-                    }).addTo(map);
-
                     var fMarker = L.circleMarker(ll, {
                         radius: 4,
                         fillColor: '#5b6ee1',
@@ -553,11 +535,10 @@
 
                     var stormFore = summarizeWarning(r.stormWarning);
                     setupPopup(fMarker, displayName, r, null, stormFore);
-                    setupPopup(hitCircle, displayName, r, null, stormFore);
 
-                    // 予報円（この円内をクリックしてもその時点の予測気圧・最大風速を表示）
+                    // 予報円
                     if (r.probabilityCircleRadius && r.probabilityCircleRadius.km) {
-                        var probCircle = L.circle(ll, {
+                        L.circle(ll, {
                             radius: parseFloat(r.probabilityCircleRadius.km) * 1000,
                             color: '#5b6ee1',
                             weight: 1.5,
@@ -565,7 +546,6 @@
                             fillColor: '#5b6ee1',
                             fillOpacity: 0.12
                         }).addTo(map);
-                        setupPopup(probCircle, displayName, r, null, stormFore);
                     }
 
                     // 暴風警戒域（予報時点）
@@ -596,15 +576,14 @@
                 var storm = summarizeWarning(currentReport.stormWarning);
 
                 if (gale) {
-                    // 強風域はクリックしても詳細を表示しない（台風名クリックのみで表示させる）
-                    L.circle(currentLatLng, {
+                    var galeCircle = L.circle(currentLatLng, {
                         radius: gale.radiusMeters,
                         color: '#f39c12',
                         weight: 2,
                         fillColor: '#f1c40f',
-                        fillOpacity: 0.22,
-                        interactive: false
+                        fillOpacity: 0.22
                     }).addTo(map);
+                    setupPopup(galeCircle, displayName, currentReport, gale, storm);
                 }
 
                 if (storm) {
