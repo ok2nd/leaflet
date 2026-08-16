@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>関西3府県 百貨店 2025年度売上高マップ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --osaka:#e8542a;
+    --kyoto:#2a7de1;
+    --hyogo:#2aa876;
+    --bg:#f7f5f0;
+    --ink:#1f2422;
+    --panel:#ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; background:var(--bg); font-family: "Hiragino Sans","Yu Gothic",-apple-system,sans-serif; color:var(--ink); }
+  #app { display:flex; flex-direction:column; height:100%; }
+  #map { flex:1; min-height:0; }
+  .store-label {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow:
+      -1px -1px 0 #fff, 1px -1px 0 #fff,
+      -1px 1px 0 #fff, 1px 1px 0 #fff,
+      -1px 0 0 #fff, 1px 0 0 #fff,
+      0 -1px 0 #fff, 0 1px 0 #fff;
+  }
+  .store-label::before { display:none; }
+  .store-label.pref-osaka { color: #b8360f; }
+  .store-label.pref-kyoto { color: #1a4fa0; }
+  .store-label.pref-hyogo { color: #187a52; }
+  .leaflet-control-layers { font-size: 13px; }
+  .leaflet-popup-content-wrapper { border-radius:10px; }
+  .popup h3 { margin:0 0 6px; font-size:14px; }
+  .popup table { border-collapse: collapse; font-size:12px; }
+  .popup td { padding:2px 6px 2px 0; vertical-align:top; color:#444; }
+  .popup td.val { color:#111; font-weight:600; text-align:right; }
+  .up { color:#c0392b; }
+  .down { color:#1e6fa6; }
+  .flat { color:#666; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+</div>
+
+<script>
+// 2025年度 売上高（億円）データ（府県, 店舗名, 市区町村, 売上高, 決算期, 前年比, 緯度, 経度）
+const stores = [
+  // 緯度経度はNAVITIME等の施設データベースで個別に検索・照合した値に基づく（2026年8月時点）
+  { pref:"大阪", name:"阪急うめだ本店",        city:"大阪市北区",   sales:3487.5, term:"2026年3月期", yoy:-4.5,  lat:34.702798, lng:135.498493 },
+  { pref:"大阪", name:"高島屋大阪店",          city:"大阪市中央区", sales:1799.3, term:"2026年2月期", yoy:-0.6,  lat:34.664663, lng:135.500887 },
+  { pref:"大阪", name:"あべのハルカス近鉄本店", city:"大阪市阿倍野区", sales:1313.5, term:"2026年2月期", yoy:5.7,  lat:34.646004, lng:135.513415 },
+  { pref:"大阪", name:"大丸心斎橋店",          city:"大阪市中央区", sales:1138.1, term:"2026年2月期", yoy:-1.3, lat:34.673168, lng:135.500942 },
+  { pref:"兵庫", name:"大丸神戸店",            city:"神戸市中央区", sales:1017.3, term:"2026年2月期", yoy:3.4,  lat:34.688735, lng:135.190508 },
+  { pref:"大阪", name:"阪神梅田本店",          city:"大阪市北区",   sales:749.5,  term:"2026年3月期", yoy:15.7, lat:34.700792, lng:135.498919 },
+  { pref:"京都", name:"高島屋京都店",          city:"京都市下京区", sales:1106.6, term:"2026年2月期", yoy:-0.8, lat:35.003075, lng:135.768344 },
+  { pref:"京都", name:"大丸京都店",            city:"京都市下京区", sales:736.8,  term:"2026年2月期", yoy:-6.5, lat:35.004387, lng:135.761956 },
+  { pref:"京都", name:"ジェイアール京都伊勢丹", city:"京都市下京区", sales:704.2,  term:"2026年3月期", yoy:null, note:"※", lat:34.985827, lng:135.757514 },
+  { pref:"兵庫", name:"神戸阪急",              city:"神戸市中央区", sales:430.6,  term:"2026年3月期", yoy:0.2,  lat:34.692862, lng:135.195427 },
+  { pref:"大阪", name:"高島屋堺店",            city:"堺市堺区",     sales:90.8,   term:"2026年2月期", yoy:-10.6,lat:34.574894, lng:135.485008 },
+  { pref:"大阪", name:"大丸梅田店",            city:"大阪市北区",   sales:626.3,  term:"2026年2月期", yoy:4.3,  lat:34.701934, lng:135.496630 },
+  { pref:"大阪", name:"高島屋泉北店",          city:"堺市南区",     sales:144.8,  term:"2026年2月期", yoy:-1.6, lat:34.501000, lng:135.509100 },
+  { pref:"大阪", name:"大丸高槻店",            city:"高槻市",       sales:54.7,   term:"2026年2月期", yoy:0.1,  lat:34.850535, lng:135.618188 },
+  { pref:"兵庫", name:"西宮阪急",              city:"西宮市",       sales:251.1,  term:"2026年3月期", yoy:1.3,  lat:34.743657, lng:135.359703 },
+  { pref:"兵庫", name:"高槻阪急スクエア",      city:"高槻市",       sales:255.8,  term:"2026年3月期", yoy:2.9,  lat:34.853430, lng:135.618340 },
+  { pref:"兵庫", name:"川西阪急スクエア",      city:"川西市",       sales:128.4,  term:"2026年3月期", yoy:3.9,  lat:34.831900, lng:135.415700 },
+  { pref:"兵庫", name:"大丸須磨店",            city:"神戸市須磨区", sales:63.4,   term:"2026年2月期", yoy:0.3,  lat:34.677956, lng:135.094396 },
+  { pref:"兵庫", name:"大丸芦屋店",            city:"芦屋市",       sales:43.8,   term:"2026年2月期", yoy:3.1,  lat:34.734627, lng:135.307578 },
+  { pref:"大阪", name:"千里阪急",              city:"豊中市",       sales:133.2,  term:"2026年3月期", yoy:-1.6, lat:34.809949, lng:135.496086 },
+  { pref:"兵庫", name:"宝塚阪急",              city:"宝塚市",       sales:72,     term:"2026年3月期", yoy:3.5,  lat:34.809705, lng:135.341983 },
+  { pref:"兵庫", name:"阪神・にしのみや",      city:"西宮市",       sales:43.1,   term:"2026年3月期", yoy:2.2,  lat:34.736867, lng:135.337789 },
+  { pref:"兵庫", name:"あまがさき阪神",        city:"尼崎市",       sales:32,     term:"2026年3月期", yoy:3.3,  lat:34.733511, lng:135.430644 },
+  { pref:"大阪", name:"上本町店",              city:"大阪市天王寺区", sales:199.7, term:"2026年2月期", yoy:-1.9, lat:34.665417, lng:135.519584 },
+  { pref:"大阪", name:"東大阪店",              city:"東大阪市",     sales:31.9,   term:"2026年2月期", yoy:3.4,  lat:34.664093, lng:135.563488 },
+];
+
+const prefColor = { "大阪":"#e8542a", "京都":"#2a7de1", "兵庫":"#2aa876" };
+const prefClass = { "大阪":"pref-osaka", "京都":"pref-kyoto", "兵庫":"pref-hyogo" };
+
+const map = L.map('map', { scrollWheelZoom: true }).setView([34.78, 135.45], 10);
+
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+const googleLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+  subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+  attribution: '&copy; Google Maps',
+  maxZoom: 20
+});
+
+L.control.layers({
+  'OpenStreetMap': osmLayer,
+  'Google マップ': googleLayer
+}, null, { collapsed: false, position: 'topright' }).addTo(map);
+
+// 面積が売上高に比例するよう半径をsqrtでスケーリング
+const maxSales = Math.max(...stores.map(s => s.sales));
+const minRadius = 5, maxRadius = 42;
+function radiusFor(sales) {
+  const scale = Math.sqrt(sales / maxSales);
+  return minRadius + scale * (maxRadius - minRadius);
+}
+
+const bounds = [];
+stores.forEach(s => {
+  const r = radiusFor(s.sales);
+  const marker = L.circleMarker([s.lat, s.lng], {
+    radius: r,
+    fillColor: prefColor[s.pref],
+    color: prefColor[s.pref],
+    weight: 1.5,
+    fillOpacity: 0.55,
+    opacity: 0.85
+  }).addTo(map);
+
+  let yoyText, yoyClass;
+  if (s.yoy === null) {
+    yoyText = "―";
+    yoyClass = "flat";
+  } else {
+    yoyText = (s.yoy > 0 ? "+" : "") + s.yoy.toFixed(1) + "%";
+    yoyClass = s.yoy > 0 ? "up" : (s.yoy < 0 ? "down" : "flat");
+  }
+
+  const popupHtml = `
+    <div class="popup">
+      <h3>${s.name}</h3>
+      <table>
+        <tr><td>府県</td><td class="val">${s.pref}</td></tr>
+        <tr><td>所在地</td><td class="val">${s.city}</td></tr>
+        <tr><td>2025年度売上高</td><td class="val">${s.sales.toLocaleString()} 億円${s.note ? s.note : ""}</td></tr>
+        <tr><td>決算期</td><td class="val">${s.term}</td></tr>
+        <tr><td>前年比</td><td class="val ${yoyClass}">${yoyText}</td></tr>
+      </table>
+    </div>
+  `;
+  marker.bindPopup(popupHtml);
+  marker.bindTooltip(s.name, {
+    permanent: true,
+    direction: 'right',
+    offset: [r + 4, 0],
+    className: 'store-label ' + prefClass[s.pref]
+  });
+  bounds.push([s.lat, s.lng]);
+});
+
+map.fitBounds(bounds, { padding: [30, 30] });
+</script>
+</body>
+</html>
