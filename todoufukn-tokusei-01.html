@@ -296,29 +296,12 @@ const ITEM_NAMES = Object.keys(PREF_DATA);
 // distinct qualitative colors generated via golden-angle HSL rotation,
 // tuned toward an indigo/washi-friendly but readable palette
 function buildQualitativePalette(n){
-  // curated, strongly-contrasting hues for small category counts —
-  // avoids adjacent categories reading as "the same color"
-  const curated = [
-    '#4E79A7', // blue
-    '#F28E2B', // orange
-    '#59A14F', // green
-    '#E15759', // red
-    '#B07AA1', // purple
-    '#76B7B2', // teal
-    '#EDC948', // yellow
-    '#FF9DA7', // pink
-    '#9C755F', // brown
-    '#BAB0AC'  // gray
-  ];
-  if(n <= curated.length){
-    return curated.slice(0, n);
-  }
   const colors = [];
-  const startHue = 205;
+  const startHue = 205; // start near indigo
   for(let i=0;i<n;i++){
     const hue = (startHue + i*137.508) % 360;
-    const sat = 60 + (i % 3) * 10;
-    const light = 55 + (i % 4) * 6;
+    const sat = 42 + (i % 3) * 10;
+    const light = 58 + (i % 4) * 6;
     colors.push(`hsl(${hue.toFixed(1)} ${sat}% ${light}%)`);
   }
   return colors;
@@ -332,7 +315,7 @@ function rgbToCss(rgb){ return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; }
 function lerp(a,b,t){ return a + (b-a)*t; }
 // sequential scale: pale washi-gold -> deep indigo
 const SEQ_LOW = hexToRgb('#f4ecd8');
-const SEQ_HIGH = hexToRgb('#4E79A7');
+const SEQ_HIGH = hexToRgb('#365481');
 function sequentialColor(t){
   const rgb = [
     Math.round(lerp(SEQ_LOW[0], SEQ_HIGH[0], t)),
@@ -436,9 +419,9 @@ function styleForFeature(feature){
   return {
     fillColor: colorForValue(currentItem, value),
     weight: 1,
-    color: '#ffffff',
-    opacity: 0.9,
-    fillOpacity: 0.85
+    color: '#7a7261',
+    opacity: 0.55,
+    fillOpacity: 0.8
   };
 }
 
