@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界の一人当たり平野・平地面積</title>
+<!-- Leaflet本体のCSS -->
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
+<style>
+/* ------------------------------------------------------------
+   ページ全体
+------------------------------------------------------------ */
+html,
+body,
+#map {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+body {
+    overflow: hidden;
+}
+/* ------------------------------------------------------------
+   凡例
+------------------------------------------------------------ */
+.legend {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 6px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    font-size: 13px;
+    line-height: 22px;
+    max-width: 240px;
+}
+.legend i {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 7px;
+    vertical-align: -4px;
+    border: 1px solid #777;
+}
+.legend .note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<!-- 地図を表示する場所 -->
+<div id="map"></div>
+<!-- Leaflet本体 -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    /* ============================================================
+       1. 各国の「一人当たりの平野・平地面積」（単位：㎡/人）
+       ------------------------------------------------------------
+       国土に占める山岳地帯の割合・国土の面積・人口をもとに、
+       「平野・平地面積 ÷ 人口」として算出した値です。
+       山岳地帯の割合の出典はGRID-Arendal（UNEP系機関）等が
+       採用する定義や、World Population Review・World Atlas等の
+       資料によるおおよその目安であり、平野・平地面積も
+       「国土の面積 ×（100%－山岳地帯の割合）」による簡易推計値です。
+       実際の土地利用統計（農地・可住地面積等）とは異なるため、
+       あくまで大まかな傾向をつかむための参考値として扱ってください。
+    ============================================================ */
+    const countryFlatPerCapita = {
+        "Bhutan": 578,
+        "Tajikistan": 1061,
+        "Kyrgyzstan": 2482,
+        "Lesotho": 1234,
+        "Andorra": 574,
+        "Montenegro": 2254,
+        "Armenia": 1350,
+        "North Macedonia": 2006,
+        "Georgia": 2738,
+        "Switzerland": 726,
+        "Lebanon": 333,
+        "Nepal": 933,
+        "North Korea": 909,
+        "Greece": 2566,
+        "Chile": 7524,
+        "Afghanistan": 3823,
+        "Japan": 795,
+        "Taiwan": 458,
+        "South Korea": 566,
+        "Laos": 8911,
+        "Austria": 2714,
+        "Slovenia": 2851,
+        "Norway": 19596,
+        "Albania": 2944,
+        "Bosnia and Herzegovina": 4854,
+        "Honduras": 3101,
+        "Papua New Guinea": 12845,
+        "Haiti": 819,
+        "Turkey": 3519,
+        "Guatemala": 2329,
+        "Rwanda": 692,
+        "New Zealand": 20200,
+        "Iran": 7974,
+        "Myanmar": 5988,
+        "Philippines": 1287,
+        "Mexico": 7428,
+        "Burundi": 914,
+        "Azerbaijan": 4398,
+        "Mongolia": 268880,
+        "Pakistan": 2074,
+        "Vietnam": 1968,
+        "Indonesia": 4006,
+        "Yemen": 7806,
+        "Slovakia": 5239,
+        "El Salvador": 1961,
+        "Costa Rica": 5972,
+        "Dominican Republic": 2531,
+        "Peru": 22444,
+        "Bolivia": 52362,
+        "Ethiopia": 5128,
+        "Italy": 3239,
+        "China": 4432,
+        "Thailand": 4990,
+        "Bulgaria": 11245,
+        "Serbia": 9432,
+        "Croatia": 10108,
+        "Spain": 7075,
+        "Romania": 8470,
+        "Panama": 11499,
+        "Colombia": 14685,
+        "Ecuador": 9586,
+        "Morocco": 13067,
+        "Eritrea": 23964,
+        "South Africa": 13267,
+        "Malawi": 3048,
+        "Madagascar": 12741,
+        "Fiji": 13770,
+        "Portugal": 6590,
+        "United States": 20076,
+        "Canada": 165856,
+        "Uzbekistan": 9695,
+        "Turkmenistan": 50163,
+        "Sri Lanka": 2142,
+        "Malaysia": 7392,
+        "Jordan": 6149,
+        "France": 6582,
+        "Nicaragua": 13920,
+        "Jamaica": 3052,
+        "Venezuela": 24842,
+        "Guyana": 189487,
+        "Kenya": 8068,
+        "Tanzania": 10336,
+        "Democratic Republic of the Congo": 16597,
+        "Cameroon": 12985,
+        "Zimbabwe": 18605,
+        "Kazakhstan": 111436,
+        "Cambodia": 8506,
+        "Oman": 49810,
+        "Israel": 1813,
+        "Syria": 6380,
+        "Germany": 3512,
+        "United Kingdom": 2978,
+        "Czechia": 6110,
+        "Sweden": 32638,
+        "Luxembourg": 3252,
+        "Argentina": 50906,
+        "Algeria": 42711,
+        "Uganda": 3408,
+        "Namibia": 230946,
+        "Mozambique": 19301,
+        "India": 1994,
+        "Iraq": 8486,
+        "Saudi Arabia": 56966,
+        "Ireland": 11798,
+        "Finland": 48698,
+        "Cuba": 10139,
+        "Brazil": 35483,
+        "Tunisia": 11389,
+        "Sudan": 33325,
+        "Somalia": 29702,
+        "Nigeria": 3523,
+        "Ghana": 5948,
+        "Zambia": 31389,
+        "United Arab Emirates": 6118,
+        "Poland": 7545,
+        "Ukraine": 14538,
+        "Belgium": 2468,
+        "Paraguay": 54294,
+        "Libya": 226468,
+        "Egypt": 8115,
+        "Australia": 273551,
+        "Bangladesh": 735,
+        "Hungary": 9243,
+        "Belarus": 21965,
+        "Lithuania": 21458,
+        "Latvia": 32580,
+        "Estonia": 30778,
+        "Uruguay": 50647,
+        "Botswana": 220295,
+        "Denmark": 6625,
+        "Netherlands": 1844
+    };
+    /* ============================================================
+       2. 国名の違いを吸収するための別名
+       ------------------------------------------------------------
+       GeoJSONと上の国名データで国名が違う場合に使用する。
+    ============================================================ */
+    const countryNameAliases = {
+        "United States of America": "United States",
+        "Russian Federation": "Russia",
+        "Korea, Republic of": "South Korea",
+        "Republic of Korea": "South Korea",
+        "Türkiye": "Turkey",
+        "Czech Republic": "Czechia",
+        "Viet Nam": "Vietnam",
+        "United Republic of Tanzania": "Tanzania",
+        "Dem. Rep. Congo": "Democratic Republic of the Congo",
+        "Congo, Dem. Rep.": "Democratic Republic of the Congo",
+        "Republic of the Congo": "Congo"
+    };
+    /* ============================================================
+       2b. 国名の日本語表記（mountain-flatland-table.xlsxに準拠）
+       ------------------------------------------------------------
+       ポップアップ表示用。上のcountryFlatPerCapitaのキー（英語名）
+       に対応する日本語の国名。
+    ============================================================ */
+    const countryNameJapanese = {
+        "Bhutan": "ブータン",
+        "Tajikistan": "タジキスタン",
+        "Kyrgyzstan": "キルギス",
+        "Lesotho": "レソト",
+        "Andorra": "アンドラ",
+        "Montenegro": "モンテネグロ",
+        "Armenia": "アルメニア",
+        "North Macedonia": "北マケドニア",
+        "Georgia": "ジョージア",
+        "Switzerland": "スイス",
+        "Lebanon": "レバノン",
+        "Nepal": "ネパール",
+        "North Korea": "北朝鮮",
+        "Greece": "ギリシャ",
+        "Chile": "チリ",
+        "Afghanistan": "アフガニスタン",
+        "Japan": "日本",
+        "Taiwan": "台湾",
+        "South Korea": "韓国",
+        "Laos": "ラオス",
+        "Austria": "オーストリア",
+        "Slovenia": "スロベニア",
+        "Norway": "ノルウェー",
+        "Albania": "アルバニア",
+        "Bosnia and Herzegovina": "ボスニア・ヘルツェゴビナ",
+        "Honduras": "ホンジュラス",
+        "Papua New Guinea": "パプアニューギニア",
+        "Haiti": "ハイチ",
+        "Turkey": "トルコ",
+        "Guatemala": "グアテマラ",
+        "Rwanda": "ルワンダ",
+        "New Zealand": "ニュージーランド",
+        "Iran": "イラン",
+        "Myanmar": "ミャンマー",
+        "Philippines": "フィリピン",
+        "Mexico": "メキシコ",
+        "Burundi": "ブルンジ",
+        "Azerbaijan": "アゼルバイジャン",
+        "Mongolia": "モンゴル",
+        "Pakistan": "パキスタン",
+        "Vietnam": "ベトナム",
+        "Indonesia": "インドネシア",
+        "Yemen": "イエメン",
+        "Slovakia": "スロバキア",
+        "El Salvador": "エルサルバドル",
+        "Costa Rica": "コスタリカ",
+        "Dominican Republic": "ドミニカ共和国",
+        "Peru": "ペルー",
+        "Bolivia": "ボリビア",
+        "Ethiopia": "エチオピア",
+        "Italy": "イタリア",
+        "China": "中国",
+        "Thailand": "タイ",
+        "Bulgaria": "ブルガリア",
+        "Serbia": "セルビア",
+        "Croatia": "クロアチア",
+        "Spain": "スペイン",
+        "Romania": "ルーマニア",
+        "Panama": "パナマ",
+        "Colombia": "コロンビア",
+        "Ecuador": "エクアドル",
+        "Morocco": "モロッコ",
+        "Eritrea": "エリトリア",
+        "South Africa": "南アフリカ",
+        "Malawi": "マラウイ",
+        "Madagascar": "マダガスカル",
+        "Fiji": "フィジー",
+        "Portugal": "ポルトガル",
+        "United States": "アメリカ合衆国",
+        "Canada": "カナダ",
+        "Uzbekistan": "ウズベキスタン",
+        "Turkmenistan": "トルクメニスタン",
+        "Sri Lanka": "スリランカ",
+        "Malaysia": "マレーシア",
+        "Jordan": "ヨルダン",
+        "France": "フランス",
+        "Nicaragua": "ニカラグア",
+        "Jamaica": "ジャマイカ",
+        "Venezuela": "ベネズエラ",
+        "Guyana": "ガイアナ",
+        "Kenya": "ケニア",
+        "Tanzania": "タンザニア",
+        "Democratic Republic of the Congo": "コンゴ民主共和国",
+        "Cameroon": "カメルーン",
+        "Zimbabwe": "ジンバブエ",
+        "Kazakhstan": "カザフスタン",
+        "Cambodia": "カンボジア",
+        "Oman": "オマーン",
+        "Israel": "イスラエル",
+        "Syria": "シリア",
+        "Germany": "ドイツ",
+        "United Kingdom": "イギリス",
+        "Czechia": "チェコ",
+        "Sweden": "スウェーデン",
+        "Luxembourg": "ルクセンブルク",
+        "Argentina": "アルゼンチン",
+        "Algeria": "アルジェリア",
+        "Uganda": "ウガンダ",
+        "Namibia": "ナミビア",
+        "Mozambique": "モザンビーク",
+        "India": "インド",
+        "Iraq": "イラク",
+        "Saudi Arabia": "サウジアラビア",
+        "Ireland": "アイルランド",
+        "Finland": "フィンランド",
+        "Cuba": "キューバ",
+        "Brazil": "ブラジル",
+        "Tunisia": "チュニジア",
+        "Sudan": "スーダン",
+        "Somalia": "ソマリア",
+        "Nigeria": "ナイジェリア",
+        "Ghana": "ガーナ",
+        "Zambia": "ザンビア",
+        "United Arab Emirates": "アラブ首長国連邦",
+        "Poland": "ポーランド",
+        "Ukraine": "ウクライナ",
+        "Belgium": "ベルギー",
+        "Paraguay": "パラグアイ",
+        "Libya": "リビア",
+        "Egypt": "エジプト",
+        "Australia": "オーストラリア",
+        "Bangladesh": "バングラデシュ",
+        "Hungary": "ハンガリー",
+        "Belarus": "ベラルーシ",
+        "Lithuania": "リトアニア",
+        "Latvia": "ラトビア",
+        "Estonia": "エストニア",
+        "Uruguay": "ウルグアイ",
+        "Botswana": "ボツワナ",
+        "Denmark": "デンマーク",
+        "Netherlands": "オランダ"
+    };
+    /* 英語の国名から日本語の国名を取得（データがなければ英語名のまま） */
+    function getJapaneseName(englishName) {
+        return countryNameJapanese[englishName] || englishName;
+    }
+    /* ============================================================
+       3. 一人当たり平野・平地面積の区分（㎡/人）ごとの色
+       ------------------------------------------------------------
+       面積が広いほど色が濃い緑になるようにしている
+       （数値の分布が非常に偏っているため、区分の幅は
+       　等間隔ではなく大小に応じたランク分けにしている）。
+       これにより「濃淡」で一人当たりの広さがひと目でわかる。
+    ============================================================ */
+    const percentBands = [
+        { min: 40000, max: Infinity, color: "#006837", label: "40,000㎡/人以上（非常に広い）" },
+        { min: 15000, max: 40000,    color: "#31a354", label: "15,000〜40,000㎡/人" },
+        { min: 7000,  max: 15000,    color: "#78c679", label: "7,000〜15,000㎡/人" },
+        { min: 3000,  max: 7000,     color: "#addd8e", label: "3,000〜7,000㎡/人" },
+        { min: 1000,  max: 3000,     color: "#d9f0a3", label: "1,000〜3,000㎡/人" },
+        { min: 0,     max: 1000,     color: "#ffffcc", label: "1,000㎡/人未満（非常に狭い）" }
+    ];
+    const noDataColor = "#d9d9d9";
+    const noDataLabel = "データなし";
+    /* 一人当たり面積(㎡/人)から、対応する区分の色を求める */
+    function getColorByPercent(value) {
+        if (value === undefined) {
+            return noDataColor;
+        }
+        const band = percentBands.find(function (b) {
+            return value >= b.min && value <= b.max;
+        });
+        return band ? band.color : noDataColor;
+    }
+    /* ============================================================
+       4. 地図を作成
+       ============================================================ */
+    const map = L.map("map", {
+        minZoom: 1,
+        maxZoom: 7,
+        // 東西方向に世界地図を繰り返し表示
+        worldCopyJump: true,
+        // ズームボタンは後で手動追加する
+        zoomControl: false
+    }).setView([25, 20], 2);
+    /* ============================================================
+       5. 背景地図
+       ============================================================ */
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(map);
+    /* ============================================================
+       6. GeoJSONの国名を取得
+       ============================================================ */
+    function getCountryName(properties) {
+        const originalName =
+            properties.ADMIN ||
+            properties.name ||
+            "";
+        return countryNameAliases[originalName] || originalName;
+    }
+    /* ============================================================
+       7. 国の色を決める
+       ============================================================ */
+    function getCountryStyle(feature) {
+        const countryName = getCountryName(feature.properties);
+        const value = countryFlatPerCapita[countryName];
+        return {
+            fillColor: getColorByPercent(value),
+            color: "#777",
+            weight: 0.6,
+            fillOpacity: value !== undefined ? 0.85 : 0.45
+        };
+    }
+    /* ============================================================
+       8. 国をクリックしたときの内容
+    ============================================================ */
+    function createCountryPopup(countryName, value) {
+        const displayName = getJapaneseName(countryName);
+        if (value === undefined) {
+            return `
+                <b>${displayName}</b><br>
+                ${noDataLabel}
+            `;
+        }
+        return `
+            <b>${displayName}</b><br>
+            一人当たりの平野・平地面積：約 <strong>${value.toLocaleString()}㎡/人</strong>
+        `;
+    }
+    /* ============================================================
+       9. 世界地図のGeoJSONを読み込む
+    ============================================================ */
+    fetch(
+        "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson"
+    )
+    .then(response => response.json())
+    .then(worldData => {
+        const countryLayer = L.geoJSON(
+            worldData,
+            {
+                /* 国ごとの色 */
+                style: getCountryStyle,
+                /* 国ごとのイベント */
+                onEachFeature: function (feature, layer) {
+                    const countryName =
+                        getCountryName(feature.properties);
+                    const value =
+                        countryFlatPerCapita[countryName];
+                    /* クリック時のポップアップ */
+                    layer.bindPopup(
+                        createCountryPopup(
+                            countryName,
+                            value
+                        )
+                    );
+                    /* マウスを重ねたとき */
+                    layer.on({
+                        mouseover: function (event) {
+                            event.target.setStyle({
+                                weight: 2,
+                                color: "#222"
+                            });
+                        },
+                        /* マウスを離したとき */
+                        mouseout: function (event) {
+                            countryLayer.resetStyle(
+                                event.target
+                            );
+                        }
+                    });
+                }
+            }
+        ).addTo(map);
+    });
+    /* ============================================================
+       10. 凡例
+       ------------------------------------------------------------
+       一人当たりの面積が広い区分から順番に表示し、濃い緑ほど
+       一人当たりの平野・平地面積が広いことを示す。
+    ============================================================ */
+    const legend = L.control({
+        position: "topleft"
+    });
+    legend.onAdd = function () {
+        const container =
+            L.DomUtil.create(
+                "div",
+                "legend"
+            );
+        container.innerHTML =
+            "<b>一人当たりの平野・平地面積</b><br>";
+        /* 広い順（percentBandsの定義順）に表示 */
+        percentBands.forEach(function (band) {
+            container.innerHTML +=
+                '<i style="background:' +
+                band.color +
+                '"></i>' +
+                band.label +
+                "<br>";
+        });
+        container.innerHTML +=
+            '<i style="background:' +
+            noDataColor +
+            '"></i>' +
+            noDataLabel +
+            "<br>";
+        container.innerHTML +=
+            '<div class="note">' +
+            "数値は国土面積・人口・山岳地帯の割合をもとにした" +
+            "簡易推計のおおよその目安です。" +
+            "国・出典によって定義や算出方法が異なるため、" +
+            "参考値としてご覧ください。" +
+            "</div>";
+        return container;
+    };
+    /* 凡例を地図に追加 */
+    legend.addTo(map);
+    /* ============================================================
+       11. ズームボタン
+       ------------------------------------------------------------
+       凡例を先に追加し、その「下」にズームボタンを追加する。
+       CSSで位置を無理にずらすのではなく、Leafletの
+       コントロールの並び順そのものを利用する。
+    ============================================================ */
+    L.control.zoom({
+        position: "topleft"
+    }).addTo(map);
+</script>
+</body>
+</html>

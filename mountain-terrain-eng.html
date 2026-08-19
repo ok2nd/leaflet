@@ -226,149 +226,6 @@ body {
         "United Arab Emirates": "United Arab Emirates"
     };
     /* ============================================================
-       2b. 国名の日本語表記（mountain-flatland-table.xlsxに準拠）
-       ------------------------------------------------------------
-       ポップアップ表示用。上のcountryMountainPercentのキー（英語名）
-       に対応する日本語の国名。
-    ============================================================ */
-    const countryNameJapanese = {
-        "Japan": "日本",
-        "Taiwan": "台湾",
-        "South Korea": "韓国",
-        "North Korea": "北朝鮮",
-        "China": "中国",
-        "Mongolia": "モンゴル",
-        "Kazakhstan": "カザフスタン",
-        "Uzbekistan": "ウズベキスタン",
-        "Turkmenistan": "トルクメニスタン",
-        "Kyrgyzstan": "キルギス",
-        "Tajikistan": "タジキスタン",
-        "Afghanistan": "アフガニスタン",
-        "Pakistan": "パキスタン",
-        "India": "インド",
-        "Nepal": "ネパール",
-        "Bhutan": "ブータン",
-        "Bangladesh": "バングラデシュ",
-        "Sri Lanka": "スリランカ",
-        "Myanmar": "ミャンマー",
-        "Thailand": "タイ",
-        "Laos": "ラオス",
-        "Vietnam": "ベトナム",
-        "Cambodia": "カンボジア",
-        "Malaysia": "マレーシア",
-        "Indonesia": "インドネシア",
-        "Philippines": "フィリピン",
-        "Turkey": "トルコ",
-        "Iran": "イラン",
-        "Iraq": "イラク",
-        "Saudi Arabia": "サウジアラビア",
-        "Yemen": "イエメン",
-        "Oman": "オマーン",
-        "United Arab Emirates": "アラブ首長国連邦",
-        "Israel": "イスラエル",
-        "Jordan": "ヨルダン",
-        "Syria": "シリア",
-        "Lebanon": "レバノン",
-        "Armenia": "アルメニア",
-        "Azerbaijan": "アゼルバイジャン",
-        "Georgia": "ジョージア",
-        "Switzerland": "スイス",
-        "Austria": "オーストリア",
-        "Slovenia": "スロベニア",
-        "Norway": "ノルウェー",
-        "Andorra": "アンドラ",
-        "Montenegro": "モンテネグロ",
-        "North Macedonia": "北マケドニア",
-        "Greece": "ギリシャ",
-        "Albania": "アルバニア",
-        "Bosnia and Herzegovina": "ボスニア・ヘルツェゴビナ",
-        "Bulgaria": "ブルガリア",
-        "Serbia": "セルビア",
-        "Croatia": "クロアチア",
-        "Italy": "イタリア",
-        "Spain": "スペイン",
-        "Portugal": "ポルトガル",
-        "France": "フランス",
-        "Germany": "ドイツ",
-        "United Kingdom": "イギリス",
-        "Ireland": "アイルランド",
-        "Poland": "ポーランド",
-        "Czechia": "チェコ",
-        "Slovakia": "スロバキア",
-        "Hungary": "ハンガリー",
-        "Romania": "ルーマニア",
-        "Ukraine": "ウクライナ",
-        "Belarus": "ベラルーシ",
-        "Lithuania": "リトアニア",
-        "Latvia": "ラトビア",
-        "Estonia": "エストニア",
-        "Finland": "フィンランド",
-        "Sweden": "スウェーデン",
-        "Denmark": "デンマーク",
-        "Netherlands": "オランダ",
-        "Belgium": "ベルギー",
-        "Luxembourg": "ルクセンブルク",
-        "United States": "アメリカ合衆国",
-        "Canada": "カナダ",
-        "Mexico": "メキシコ",
-        "Guatemala": "グアテマラ",
-        "Honduras": "ホンジュラス",
-        "El Salvador": "エルサルバドル",
-        "Nicaragua": "ニカラグア",
-        "Costa Rica": "コスタリカ",
-        "Panama": "パナマ",
-        "Cuba": "キューバ",
-        "Jamaica": "ジャマイカ",
-        "Haiti": "ハイチ",
-        "Dominican Republic": "ドミニカ共和国",
-        "Colombia": "コロンビア",
-        "Venezuela": "ベネズエラ",
-        "Ecuador": "エクアドル",
-        "Peru": "ペルー",
-        "Bolivia": "ボリビア",
-        "Chile": "チリ",
-        "Argentina": "アルゼンチン",
-        "Paraguay": "パラグアイ",
-        "Uruguay": "ウルグアイ",
-        "Brazil": "ブラジル",
-        "Guyana": "ガイアナ",
-        "Morocco": "モロッコ",
-        "Algeria": "アルジェリア",
-        "Tunisia": "チュニジア",
-        "Libya": "リビア",
-        "Egypt": "エジプト",
-        "Sudan": "スーダン",
-        "Ethiopia": "エチオピア",
-        "Eritrea": "エリトリア",
-        "Somalia": "ソマリア",
-        "Kenya": "ケニア",
-        "Uganda": "ウガンダ",
-        "Tanzania": "タンザニア",
-        "Rwanda": "ルワンダ",
-        "Burundi": "ブルンジ",
-        "Democratic Republic of the Congo": "コンゴ民主共和国",
-        "Cameroon": "カメルーン",
-        "Nigeria": "ナイジェリア",
-        "Ghana": "ガーナ",
-        "South Africa": "南アフリカ",
-        "Lesotho": "レソト",
-        "Namibia": "ナミビア",
-        "Botswana": "ボツワナ",
-        "Zambia": "ザンビア",
-        "Zimbabwe": "ジンバブエ",
-        "Mozambique": "モザンビーク",
-        "Malawi": "マラウイ",
-        "Madagascar": "マダガスカル",
-        "New Zealand": "ニュージーランド",
-        "Papua New Guinea": "パプアニューギニア",
-        "Fiji": "フィジー",
-        "Australia": "オーストラリア"
-    };
-    /* 英語の国名から日本語の国名を取得（データがなければ英語名のまま） */
-    function getJapaneseName(englishName) {
-        return countryNameJapanese[englishName] || englishName;
-    }
-    /* ============================================================
        3. 割合の区分（%の範囲）ごとの色
        ------------------------------------------------------------
        同じ「山岳」という系統の色（オレンジ〜赤系）を使い、
@@ -442,15 +299,14 @@ body {
        8. 国をクリックしたときの内容
     ============================================================ */
     function createCountryPopup(countryName, percent) {
-        const displayName = getJapaneseName(countryName);
         if (percent === undefined) {
             return `
-                <b>${displayName}</b><br>
+                <b>${countryName}</b><br>
                 ${noDataLabel}
             `;
         }
         return `
-            <b>${displayName}</b><br>
+            <b>${countryName}</b><br>
             山岳地帯：約 <strong>${percent}%</strong>
         `;
     }
