@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界の山岳地帯の割合</title>
+<!-- Leaflet本体のCSS -->
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
+<style>
+/* ------------------------------------------------------------
+   ページ全体
+------------------------------------------------------------ */
+html,
+body,
+#map {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+body {
+    overflow: hidden;
+}
+/* ------------------------------------------------------------
+   凡例
+------------------------------------------------------------ */
+.legend {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 6px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    font-size: 13px;
+    line-height: 22px;
+    max-width: 230px;
+}
+.legend i {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 7px;
+    vertical-align: -4px;
+    border: 1px solid #777;
+}
+.legend .note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<!-- 地図を表示する場所 -->
+<div id="map"></div>
+<!-- Leaflet本体 -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    /* ============================================================
+       1. 各国の「山岳地帯の割合」（おおよその目安、単位は%）
+       ------------------------------------------------------------
+       国土に占める山岳地帯の割合を示す、単一の公式な世界統計は
+       存在しないため、この数値は GRID-Arendal（UNEP系機関）が
+       採用している Kapos et al. の山岳地域の定義や、
+       World Population Review・World Atlas などで
+       紹介されている数値をもとにした「目安」です。
+       出典によって数値には幅があるため、あくまで大まかな
+       傾向をつかむための参考値として扱ってください。
+    ============================================================ */
+    const countryMountainPercent = {
+        /* アジア */
+        "Japan": 73,
+        "Taiwan": 70,
+        "South Korea": 70,
+        "North Korea": 80,
+        "China": 33,
+        "Mongolia": 40,
+        "Kazakhstan": 15,
+        "Uzbekistan": 20,
+        "Turkmenistan": 20,
+        "Kyrgyzstan": 90.7,
+        "Tajikistan": 91.9,
+        "Afghanistan": 75,
+        "Pakistan": 40,
+        "India": 12,
+        "Nepal": 80.7,
+        "Bhutan": 98.8,
+        "Bangladesh": 2,
+        "Sri Lanka": 20,
+        "Myanmar": 50,
+        "Thailand": 30,
+        "Laos": 70,
+        "Vietnam": 40,
+        "Cambodia": 15,
+        "Malaysia": 20,
+        "Indonesia": 40,
+        "Philippines": 50,
+        "Turkey": 60,
+        "Iran": 55,
+        "Iraq": 10,
+        "Saudi Arabia": 10,
+        "Yemen": 40,
+        "Oman": 15,
+        "United Arab Emirates": 5,
+        "Israel": 15,
+        "Jordan": 20,
+        "Syria": 15,
+        "Lebanon": 81.1,
+        "Armenia": 85.9,
+        "Azerbaijan": 45,
+        "Georgia": 85,
+        /* ヨーロッパ */
+        "Switzerland": 83.6,
+        "Austria": 70,
+        "Slovenia": 70,
+        "Norway": 70,
+        "Andorra": 90,
+        "Montenegro": 89.3,
+        "North Macedonia": 85.5,
+        "Greece": 80,
+        "Albania": 70,
+        "Bosnia and Herzegovina": 70,
+        "Bulgaria": 30,
+        "Serbia": 30,
+        "Croatia": 30,
+        "Italy": 35,
+        "Spain": 30,
+        "Portugal": 25,
+        "France": 20,
+        "Germany": 15,
+        "United Kingdom": 15,
+        "Ireland": 10,
+        "Poland": 5,
+        "Czechia": 15,
+        "Slovakia": 40,
+        "Hungary": 2,
+        "Romania": 30,
+        "Ukraine": 5,
+        "Belarus": 2,
+        "Lithuania": 2,
+        "Latvia": 2,
+        "Estonia": 2,
+        "Finland": 10,
+        "Sweden": 15,
+        "Denmark": 1,
+        "Netherlands": 1,
+        "Belgium": 5,
+        "Luxembourg": 15,
+        /* 北米・中南米 */
+        "United States": 25,
+        "Canada": 25,
+        "Mexico": 50,
+        "Guatemala": 60,
+        "Honduras": 70,
+        "El Salvador": 40,
+        "Nicaragua": 20,
+        "Costa Rica": 40,
+        "Panama": 30,
+        "Cuba": 10,
+        "Jamaica": 20,
+        "Haiti": 65,
+        "Dominican Republic": 40,
+        "Colombia": 30,
+        "Venezuela": 20,
+        "Ecuador": 30,
+        "Peru": 40,
+        "Bolivia": 40,
+        "Chile": 80,
+        "Argentina": 15,
+        "Paraguay": 5,
+        "Uruguay": 2,
+        "Brazil": 10,
+        "Guyana": 20,
+        /* アフリカ */
+        "Morocco": 30,
+        "Algeria": 15,
+        "Tunisia": 10,
+        "Libya": 5,
+        "Egypt": 5,
+        "Sudan": 10,
+        "Ethiopia": 40,
+        "Eritrea": 30,
+        "Somalia": 10,
+        "Kenya": 20,
+        "Uganda": 15,
+        "Tanzania": 20,
+        "Rwanda": 60,
+        "Burundi": 50,
+        "Democratic Republic of the Congo": 20,
+        "Cameroon": 20,
+        "Nigeria": 10,
+        "Ghana": 10,
+        "South Africa": 30,
+        "Lesotho": 90.5,
+        "Namibia": 15,
+        "Botswana": 2,
+        "Zambia": 10,
+        "Zimbabwe": 20,
+        "Mozambique": 15,
+        "Malawi": 30,
+        "Madagascar": 30,
+        /* オセアニア */
+        "New Zealand": 60,
+        "Papua New Guinea": 70,
+        "Fiji": 30,
+        "Australia": 5
+    };
+    /* ============================================================
+       2. 国名の違いを吸収するための別名
+       ------------------------------------------------------------
+       GeoJSONと上の国名データで国名が違う場合に使用する。
+    ============================================================ */
+    const countryNameAliases = {
+        "United States of America": "United States",
+        "Russian Federation": "Russia",
+        "Korea, Republic of": "South Korea",
+        "Republic of Korea": "South Korea",
+        "Türkiye": "Turkey",
+        "Czech Republic": "Czechia",
+        "Viet Nam": "Vietnam",
+        "United Republic of Tanzania": "Tanzania",
+        "Dem. Rep. Congo": "Democratic Republic of the Congo",
+        "Congo, Dem. Rep.": "Democratic Republic of the Congo",
+        "Republic of the Congo": "Congo",
+        "United Arab Emirates": "United Arab Emirates"
+    };
+    /* ============================================================
+       3. 割合の区分（%の範囲）ごとの色
+       ------------------------------------------------------------
+       同じ「山岳」という系統の色（オレンジ〜赤系）を使い、
+       割合が高いほど色が濃くなるようにしている。
+       これにより「濃淡」で割合の大小がひと目でわかる。
+    ============================================================ */
+    const percentBands = [
+        { min: 80, max: 100, color: "#b30000", label: "80〜100%（大部分が山岳）" },
+        { min: 60, max: 80,  color: "#e34a33", label: "60〜80%" },
+        { min: 40, max: 60,  color: "#fc8d59", label: "40〜60%" },
+        { min: 20, max: 40,  color: "#fdcc8a", label: "20〜40%" },
+        { min: 0,  max: 20,  color: "#fef0d9", label: "0〜20%（平地が中心）" }
+    ];
+    const noDataColor = "#d9d9d9";
+    const noDataLabel = "データなし";
+    /* 割合(%)から、対応する区分の色を求める */
+    function getColorByPercent(percent) {
+        if (percent === undefined) {
+            return noDataColor;
+        }
+        const band = percentBands.find(function (b) {
+            return percent >= b.min && percent <= b.max;
+        });
+        return band ? band.color : noDataColor;
+    }
+    /* ============================================================
+       4. 地図を作成
+       ============================================================ */
+    const map = L.map("map", {
+        minZoom: 1,
+        maxZoom: 7,
+        // 東西方向に世界地図を繰り返し表示
+        worldCopyJump: true,
+        // ズームボタンは後で手動追加する
+        zoomControl: false
+    }).setView([25, 20], 2);
+    /* ============================================================
+       5. 背景地図
+       ============================================================ */
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(map);
+    /* ============================================================
+       6. GeoJSONの国名を取得
+       ============================================================ */
+    function getCountryName(properties) {
+        const originalName =
+            properties.ADMIN ||
+            properties.name ||
+            "";
+        return countryNameAliases[originalName] || originalName;
+    }
+    /* ============================================================
+       7. 国の色を決める
+       ============================================================ */
+    function getCountryStyle(feature) {
+        const countryName = getCountryName(feature.properties);
+        const percent = countryMountainPercent[countryName];
+        return {
+            fillColor: getColorByPercent(percent),
+            color: "#777",
+            weight: 0.6,
+            fillOpacity: percent !== undefined ? 0.85 : 0.45
+        };
+    }
+    /* ============================================================
+       8. 国をクリックしたときの内容
+    ============================================================ */
+    function createCountryPopup(countryName, percent) {
+        if (percent === undefined) {
+            return `
+                <b>${countryName}</b><br>
+                ${noDataLabel}
+            `;
+        }
+        return `
+            <b>${countryName}</b><br>
+            山岳地帯：約 <strong>${percent}%</strong>
+        `;
+    }
+    /* ============================================================
+       9. 世界地図のGeoJSONを読み込む
+    ============================================================ */
+    fetch(
+        "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson"
+    )
+    .then(response => response.json())
+    .then(worldData => {
+        const countryLayer = L.geoJSON(
+            worldData,
+            {
+                /* 国ごとの色 */
+                style: getCountryStyle,
+                /* 国ごとのイベント */
+                onEachFeature: function (feature, layer) {
+                    const countryName =
+                        getCountryName(feature.properties);
+                    const percent =
+                        countryMountainPercent[countryName];
+                    /* クリック時のポップアップ */
+                    layer.bindPopup(
+                        createCountryPopup(
+                            countryName,
+                            percent
+                        )
+                    );
+                    /* マウスを重ねたとき */
+                    layer.on({
+                        mouseover: function (event) {
+                            event.target.setStyle({
+                                weight: 2,
+                                color: "#222"
+                            });
+                        },
+                        /* マウスを離したとき */
+                        mouseout: function (event) {
+                            countryLayer.resetStyle(
+                                event.target
+                            );
+                        }
+                    });
+                }
+            }
+        ).addTo(map);
+    });
+    /* ============================================================
+       10. 凡例
+       ------------------------------------------------------------
+       割合の高い区分から順番に表示し、濃い色ほど
+       山岳地帯の割合が高いことを示す。
+    ============================================================ */
+    const legend = L.control({
+        position: "topleft"
+    });
+    legend.onAdd = function () {
+        const container =
+            L.DomUtil.create(
+                "div",
+                "legend"
+            );
+        container.innerHTML =
+            "<b>国土に占める山岳地帯の割合</b><br>";
+        /* 割合の高い順（percentBandsの定義順）に表示 */
+        percentBands.forEach(function (band) {
+            container.innerHTML +=
+                '<i style="background:' +
+                band.color +
+                '"></i>' +
+                band.label +
+                "<br>";
+        });
+        container.innerHTML +=
+            '<i style="background:' +
+            noDataColor +
+            '"></i>' +
+            noDataLabel +
+            "<br>";
+        container.innerHTML +=
+            '<div class="note">' +
+            "数値は複数の資料をもとにしたおおよその目安です。" +
+            "国・出典によって定義や算出方法が異なるため、" +
+            "参考値としてご覧ください。" +
+            "</div>";
+        return container;
+    };
+    /* 凡例を地図に追加 */
+    legend.addTo(map);
+    /* ============================================================
+       11. ズームボタン
+       ------------------------------------------------------------
+       凡例を先に追加し、その「下」にズームボタンを追加する。
+       CSSで位置を無理にずらすのではなく、Leafletの
+       コントロールの並び順そのものを利用する。
+    ============================================================ */
+    L.control.zoom({
+        position: "topleft"
+    }).addTo(map);
+</script>
+</body>
+</html>
