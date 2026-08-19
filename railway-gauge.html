@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界の鉄道軌間</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+html,body,#map{height:100%;width:100%;margin:0}
+body{overflow:hidden}
+.legend{background:rgba(255,255,255,.96);padding:10px 12px;border-radius:6px;
+box-shadow:0 1px 6px rgba(0,0,0,.25);font-size:13px;line-height:22px}
+.legend i{display:inline-block;width:18px;height:18px;margin-right:7px;
+vertical-align:-4px;border:1px solid #777}
+</style></head><body><div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const gauges={"Japan": "1067", "Taiwan": "1067", "Indonesia": "1067", "New Zealand": "1067", "South Africa": "1067", "Australia": "mixed", "Philippines": "1067", "United Kingdom": "1435", "Ireland": "1600", "France": "1435", "Germany": "1435", "Spain": "1668", "Portugal": "1668", "Italy": "1435", "Switzerland": "1435", "Austria": "1435", "Belgium": "1435", "Netherlands": "1435", "Luxembourg": "1435", "Denmark": "1435", "Norway": "1435", "Sweden": "1435", "Poland": "1435", "Czechia": "1435", "Slovakia": "1435", "Hungary": "1435", "Romania": "1435", "Bulgaria": "1435", "Greece": "1435", "Croatia": "1435", "Slovenia": "1435", "Bosnia and Herzegovina": "1435", "Serbia": "1435", "North Macedonia": "1435", "Albania": "1435", "Turkey": "1435", "Ukraine": "1520", "Belarus": "1520", "Russia": "1520", "Estonia": "1520", "Latvia": "1520", "Lithuania": "1520", "Moldova": "1520", "Georgia": "1520", "Armenia": "1520", "Azerbaijan": "1520", "Kazakhstan": "1520", "Kyrgyzstan": "1520", "Uzbekistan": "1520", "Turkmenistan": "1520", "Tajikistan": "1520", "Mongolia": "1520", "Finland": "1524", "India": "1676", "Pakistan": "1676", "Bangladesh": "1676", "Sri Lanka": "1676", "Argentina": "1676", "Chile": "1676", "Brazil": "mixed", "Bolivia": "1000", "Peru": "1435", "Uruguay": "1435", "Paraguay": "1435", "Ecuador": "1435", "Colombia": "1435", "Venezuela": "1435", "Mexico": "1435", "United States": "1435", "Canada": "1435", "Cuba": "1435", "China": "1435", "North Korea": "1435", "South Korea": "1435", "Iran": "1435", "Iraq": "1435", "Israel": "1435", "Egypt": "1435", "Algeria": "1435", "Morocco": "1435", "Tunisia": "1435", "Mauritania": "1435", "Senegal": "1000", "Kenya": "1000", "Uganda": "1000", "Tanzania": "1000", "Ethiopia": "1000", "Ghana": "1067", "Nigeria": "1067", "Cameroon": "1000", "Angola": "1067", "Zimbabwe": "1067", "Zambia": "1067", "Mozambique": "1067", "Namibia": "1067", "Botswana": "1067", "Eswatini": "1067", "Lesotho": "1067", "Madagascar": "1000", "Thailand": "1000", "Malaysia": "1000", "Myanmar": "1000", "Cambodia": "1000", "Vietnam": "1000", "Laos": "1000", "Singapore": "1000"};
+const colors={
+"1000":"#66c2a5","1067":"#fc8d62","1435":"#8da0cb",
+"1520":"#e78ac3","1524":"#a6d854","1676":"#ffd92f",
+"1668":"#e5c494","1600":"#b3b3b3","mixed":"#1b9e77","none":"#d9d9d9"
+};
+const labels={
+"1000":"1,000 mm（メーター）","1067":"1,067 mm（ケープ）",
+"1435":"1,435 mm（標準軌）","1520":"1,520 mm（旧ソ連圏）",
+"1524":"1,524 mm（フィンランド等）","1676":"1,676 mm（インド）",
+"1668":"1,668 mm（イベリア）","1600":"1,600 mm（アイルランド等）",
+"mixed":"複数の軌間","none":"データなし"
+};
+const aliases={"United States of America":"United States",
+"Russian Federation":"Russia","Korea, Republic of":"South Korea",
+"Republic of Korea":"South Korea","Türkiye":"Turkey",
+"Czech Republic":"Czechia","Viet Nam":"Vietnam",
+"United Republic of Tanzania":"Tanzania"};
+function n(p){return aliases[p.ADMIN||p.name]||p.ADMIN||p.name||""}
+const map=L.map("map",{minZoom:1,maxZoom:7,worldCopyJump:true}).setView([35,55],3);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+let gj;
+fetch("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson")
+.then(r=>r.json()).then(world=>{
+ gj=L.geoJSON(world,{
+  style:f=>{
+   const g=gauges[n(f.properties)];
+   return {fillColor:colors[g||"none"],color:"#777",weight:.6,
+   fillOpacity:g?.82:.45};
+  },
+  onEachFeature:(f,l)=>{
+   const name=n(f.properties),g=gauges[name];
+   l.bindPopup(g?("<b>"+name+"</b><br><strong>"+labels[g]+"</strong>"):
+   "<b>"+name+"</b><br>データなし");
+   l.on({mouseover:e=>e.target.setStyle({weight:2,color:"#222"}),
+   mouseout:e=>gj.resetStyle(e.target)});
+  }
+ }).addTo(map); 
+});
+const legend=L.control({position:"topright"});
+legend.onAdd=()=>{const d=L.DomUtil.create("div","legend");
+d.innerHTML="<b>主な鉄道軌間</b><br>";
+["1676","1668","1600","1524","1520","1435","1067","1000","mixed","none"].forEach(g=>
+d.innerHTML+='<i style="background:'+colors[g]+'"></i>'+labels[g]+"<br>");
+return d}; legend.addTo(map);
+</script></body></html>
