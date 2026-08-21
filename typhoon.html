@@ -1,810 +1,808 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台風進路マップ</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台風予想進路マップ</title>
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", MeiYo, sans-serif;
+    }
 
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    #map {
+        width: 100vw;
+        height: 100vh;
+    }
 
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", MeiYo, sans-serif;
-        }
+    /* 台風名ラベル */
+    .typhoon-name-label {
+        background: rgba(0, 0, 0, 0.85);
+        color: #ffffff;
+        border: 1px solid #ffffff;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-weight: bold;
+        font-size: 13px;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    }
 
-        #map {
-            width: 100vw;
-            height: 100vh;
-        }
+    /* 日時ラベル（予報円用）：予報円の外側まで引き出し線を伸ばして表示するフラグ形式 */
+    .time-flag-icon {
+        pointer-events: none;
+    }
+    .time-flag {
+        position: relative;
+        width: 130px;
+        height: 70px;
+    }
+    .time-flag-line {
+        position: absolute;
+        left: 0;
+        width: 1px;
+        background: #ffffff;
+    }
+    .time-flag-above .time-flag-line { bottom: 0; height: 52px; transform: rotate(15deg); transform-origin: bottom center; }
+    .time-flag-below .time-flag-line { top: 0; height: 52px; transform: rotate(-15deg); transform-origin: top center; }
+    .time-flag-label {
+        position: absolute;
+        left: 14px;
+        color: #4453b8;
+        padding: 0 2px;
+        font-size: 11px;
+        font-weight: bold;
+        white-space: nowrap;
+        text-shadow:
+            0 0 3px #ffffff, 0 0 3px #ffffff, 0 0 3px #ffffff,
+            1px 1px 0 #ffffff, -1px -1px 0 #ffffff,
+            1px -1px 0 #ffffff, -1px 1px 0 #ffffff;
+    }
+    .time-flag-above .time-flag-label { top: 0; }
+    .time-flag-below .time-flag-label { bottom: 0; }
 
-        /* 台風名ラベル */
-        .typhoon-name-label {
-            background: rgba(0, 0, 0, 0.85);
-            color: #ffffff;
-            border: 1px solid #ffffff;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-weight: bold;
-            font-size: 13px;
-            white-space: nowrap;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-        }
+    /* 観測開始地点ラベル */
+    .origin-label {
+        background: rgba(127, 140, 141, 0.95);
+        color: #ffffff;
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
 
-        /* 日時ラベル（予報円用）：予報円の外側まで引き出し線を伸ばして表示するフラグ形式 */
-        .time-flag-icon {
-            pointer-events: none;
-        }
-        .time-flag {
-            position: relative;
-            width: 130px;
-            height: 70px;
-        }
-        .time-flag-line {
-            position: absolute;
-            left: 0;
-            width: 1px;
-            background: #ffffff;
-        }
-        .time-flag-above .time-flag-line { bottom: 0; height: 52px; transform: rotate(15deg); transform-origin: bottom center; }
-        .time-flag-below .time-flag-line { top: 0; height: 52px; transform: rotate(-15deg); transform-origin: top center; }
-        .time-flag-label {
-            position: absolute;
-            left: 14px;
-            color: #4453b8;
-            padding: 0 2px;
-            font-size: 11px;
-            font-weight: bold;
-            white-space: nowrap;
-            text-shadow:
-                0 0 3px #ffffff, 0 0 3px #ffffff, 0 0 3px #ffffff,
-                1px 1px 0 #ffffff, -1px -1px 0 #ffffff,
-                1px -1px 0 #ffffff, -1px 1px 0 #ffffff;
-        }
-        .time-flag-above .time-flag-label { top: 0; }
-        .time-flag-below .time-flag-label { bottom: 0; }
+    /* ステータス表示パネル */
+    #status-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 8px 12px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        font-size: 12px;
+        color: #333;
+        max-width: 230px;
+        line-height: 1.5;
+    }
 
-        /* 観測開始地点ラベル */
-        .origin-label {
-            background: rgba(127, 140, 141, 0.95);
-            color: #ffffff;
-            border-radius: 3px;
-            padding: 1px 5px;
-            font-size: 10px;
-            white-space: nowrap;
-        }
+    #status-panel .note {
+        display: block;
+        margin-top: 4px;
+        font-size: 10px;
+        color: #888;
+    }
 
-        /* ステータス表示パネル */
-        #status-panel {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.92);
-            padding: 8px 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            font-size: 12px;
-            color: #333;
-            max-width: 320px;
-            line-height: 1.5;
-        }
+    /* 進路予想の提供元一覧（凡例） */
+    #source-legend {
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(0,0,0,0.15);
+    }
+    #source-legend .legend-title {
+        font-weight: bold;
+        font-size: 11px;
+        color: #555;
+        margin-bottom: 3px;
+    }
+    #source-legend .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #333;
+        line-height: 1.6;
+    }
+    #source-legend .legend-swatch {
+        display: inline-block;
+        width: 18px;
+        height: 0;
+        border-top-width: 3px;
+        border-top-style: solid;
+        flex: 0 0 auto;
+    }
+    #source-legend .legend-swatch.dashed {
+        border-top-style: dashed;
+    }
 
-        #status-panel .note {
-            display: block;
-            margin-top: 4px;
-            font-size: 10px;
-            color: #888;
-        }
-
-        /* 進路予測の提供元一覧（凡例） */
-        #source-legend {
-            margin-bottom: 6px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid rgba(0,0,0,0.15);
-        }
-        #source-legend .legend-title {
-            font-weight: bold;
-            font-size: 11px;
-            color: #555;
-            margin-bottom: 3px;
-        }
-        #source-legend .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: #333;
-            line-height: 1.6;
-        }
-        #source-legend .legend-swatch {
-            display: inline-block;
-            width: 18px;
-            height: 0;
-            border-top-width: 3px;
-            border-top-style: solid;
-            flex: 0 0 auto;
-        }
-        #source-legend .legend-swatch.dashed {
-            border-top-style: dashed;
-        }
-
-        .leaflet-popup-content {
-            margin: 10px 12px;
-        }
-    </style>
+    .leaflet-popup-content {
+        margin: 10px 12px;
+    }
+</style>
 </head>
 <body>
 
-    <div id="map"></div>
-    <div id="status-panel">
-        <div id="source-legend">
-            <div class="legend-title">進路予測の提供元</div>
-            <div class="legend-item"><span class="legend-swatch" style="border-top-color:#2c3e50;"></span>気象庁（JMA）</div>
-            <div class="legend-item"><span class="legend-swatch dashed" style="border-top-color:#16a085;"></span>交通部中央氣象署（台湾・CWA）</div>
-            <div class="legend-title" style="margin-top:6px;">発生〜現在までの経路</div>
-            <div class="legend-item"><span class="legend-swatch" style="border-top-color:#8e44ad;"></span>デジタル台風（国立情報学研究所）</div>
-            <div class="legend-item"><span class="legend-swatch dashed" style="border-top-color:#95a5a6;"></span>　同・熱帯低気圧の期間</div>
-        </div>
-        <div id="status-text">データを読み込み中...</div>
+<div id="map"></div>
+<div id="status-panel">
+    <div id="source-legend">
+        <div class="legend-title">進路予想の提供元</div>
+        <div class="legend-item"><span class="legend-swatch" style="border-top-color:#2c3e50;"></span>気象庁（JMA）</div>
+        <div class="legend-item"><span class="legend-swatch dashed" style="border-top-color:#16a085;"></span>交通部中央氣象署（台湾・CWA）</div>
+        <div class="legend-title" style="margin-top:6px;">発生〜現在までの経路</div>
+        <div class="legend-item"><span class="legend-swatch" style="border-top-color:#8e44ad;"></span>デジタル台風（国立情報学研究所）</div>
+        <div class="legend-item"><span class="legend-swatch dashed" style="border-top-color:#95a5a6;"></span>　同・熱帯低気圧の期間</div>
     </div>
+    <div id="status-text">データを読み込み中...</div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var statusEl = document.getElementById('status-text');
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var statusEl = document.getElementById('status-text');
 
-            // ------------------------------------------------------------------
-            // 地図タイルの設定
-            // ------------------------------------------------------------------
-            var gsiTile = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
-                maxZoom: 18
+        // ------------------------------------------------------------------
+        // 地図タイルの設定
+        // ------------------------------------------------------------------
+        var gsiTile = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            maxZoom: 18
+        });
+
+        var osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+
+        var googleMapTile = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps',
+            maxZoom: 20
+        });
+
+        var map = L.map('map', {
+            center: [30.0, 138.0],
+            zoom: 5,
+            layers: [osmTile]
+        });
+
+        var baseMaps = {
+            "OpenStreetMap": osmTile,
+            "Google Maps": googleMapTile,
+            "地理院タイル": gsiTile
+        };
+        L.control.layers(baseMaps).addTo(map);
+
+        var bounds = [];
+
+        // ------------------------------------------------------------------
+        // ユーティリティ
+        // ------------------------------------------------------------------
+
+        // JMAのJST文字列 "2026-07-06T12:00:00+09:00" を "7/6 12:00" に整形
+        // （ブラウザのタイムゾーンに依存させないため文字列を直接パースする）
+        function formatJSTString(isoStr) {
+            if (!isoStr) return '';
+            var m = isoStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+            if (!m) return '';
+            return (parseInt(m[2], 10)) + '/' + parseInt(m[3], 10) + ' ' + m[4] + ':' + m[5];
+        }
+
+        // position.deg = [lat, lon] を [lat, lon] 配列に変換
+        function degToLatLng(position) {
+            if (!position || !position.deg) return null;
+            var lat = parseFloat(position.deg[0]);
+            var lon = parseFloat(position.deg[1]);
+            if (isNaN(lat) || isNaN(lon)) return null;
+            return [lat, lon];
+        }
+
+        // 強風域/暴風域(方向別に分かれた配列)から、
+        // 描画用の代表半径（最大値）とツールチップ用テキストをまとめる
+        function summarizeWarning(list) {
+            if (!list || !list.length) return null;
+            var maxKm = 0;
+            var lines = [];
+            list.forEach(function (w) {
+                var areaLabel = '全域';
+                if (w.area) {
+                    areaLabel = (typeof w.area === 'object' && w.area.jp) ? w.area.jp : String(w.area);
+                }
+                var km = (w.range && w.range.km !== undefined) ? parseFloat(w.range.km) : NaN;
+                if (!isNaN(km)) {
+                    if (km > maxKm) maxKm = km;
+                    lines.push(areaLabel + ' ' + km + 'km');
+                }
             });
+            if (maxKm <= 0) return null;
+            return { radiusMeters: maxKm * 1000, text: lines.join(' / ') };
+        }
 
-            var osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
-            });
+        // ------------------------------------------------------------------
+        // 発生地点から現在までの経路データ（デジタル台風／国立情報学研究所）
+        //
+        // https://agora.ex.nii.ac.jp/digital-typhoon/ が台風ごとに公開している
+        // GeoJSON（3時間ごとのベストトラック相当データ）を使い、発生時点から
+        // 最新の観測時刻までの経路を取得する。
+        //   URL: https://agora.ex.nii.ac.jp/digital-typhoon/geojson/wnp/{台風ID}.ja.json
+        //   台風ID = "20" + JMAのtyphoonNumber（例: typhoonNumber "2613" → ID "202613"）
+        // properties.class が3未満（熱帯低気圧）かどうかで期間を判定し、
+        // 気象庁の実況・予報と組み合わせて描画する。
+        // ------------------------------------------------------------------
+        function buildDigitalTyphoonId(typhoonNumber) {
+            if (!typhoonNumber || typhoonNumber.length !== 4) return null;
+            return '20' + typhoonNumber;
+        }
 
-            var googleMapTile = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                attribution: '&copy; Google Maps',
-                maxZoom: 20
-            });
-
-            var map = L.map('map', {
-                center: [30.0, 138.0],
-                zoom: 5,
-                layers: [osmTile]
-            });
-
-            var baseMaps = {
-                "OpenStreetMap": osmTile,
-                "Google Maps": googleMapTile,
-                "地理院タイル": gsiTile
-            };
-            L.control.layers(baseMaps).addTo(map);
-
-            var bounds = [];
-
-            // ------------------------------------------------------------------
-            // ユーティリティ
-            // ------------------------------------------------------------------
-
-            // JMAのJST文字列 "2026-07-06T12:00:00+09:00" を "7/6 12:00" に整形
-            // （ブラウザのタイムゾーンに依存させないため文字列を直接パースする）
-            function formatJSTString(isoStr) {
-                if (!isoStr) return '';
-                var m = isoStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-                if (!m) return '';
-                return (parseInt(m[2], 10)) + '/' + parseInt(m[3], 10) + ' ' + m[4] + ':' + m[5];
+        function digitalTyphoonClassLabel(cls) {
+            switch (cls) {
+                case 2: return '熱帯低気圧';
+                case 3: return '台風';
+                case 4: return '強い台風';
+                case 5: return '非常に強い台風〜猛烈な台風';
+                case 6: return '温帯低気圧';
+                default: return '-';
             }
+        }
 
-            // position.deg = [lat, lon] を [lat, lon] 配列に変換
-            function degToLatLng(position) {
-                if (!position || !position.deg) return null;
-                var lat = parseFloat(position.deg[0]);
-                var lon = parseFloat(position.deg[1]);
-                if (isNaN(lat) || isNaN(lon)) return null;
-                return [lat, lon];
-            }
+        function fetchDigitalTyphoonTrack(typhoonNumber) {
+            var dtId = buildDigitalTyphoonId(typhoonNumber);
+            if (!dtId) return Promise.resolve(null);
 
-            // 強風域/暴風域(方向別に分かれた配列)から、
-            // 描画用の代表半径（最大値）とツールチップ用テキストをまとめる
-            function summarizeWarning(list) {
-                if (!list || !list.length) return null;
-                var maxKm = 0;
-                var lines = [];
-                list.forEach(function (w) {
-                    var areaLabel = '全域';
-                    if (w.area) {
-                        areaLabel = (typeof w.area === 'object' && w.area.jp) ? w.area.jp : String(w.area);
+            var url = 'https://agora.ex.nii.ac.jp/digital-typhoon/geojson/wnp/' + dtId + '.ja.json';
+            return fetch(url)
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (geojson) {
+                    var feats = (geojson && geojson.features) || [];
+                    var points = feats.map(function (f) {
+                        if (!f || !f.geometry || f.geometry.type !== 'Point') return null;
+                        var lon = parseFloat(f.geometry.coordinates[0]);
+                        var lat = parseFloat(f.geometry.coordinates[1]);
+                        if (isNaN(lat) || isNaN(lon)) return null;
+                        var p = f.properties || {};
+                        return {
+                            latlng: [lat, lon],
+                            time: p.time || 0,
+                            displayTime: p.display_time || '',
+                            wind: p.wind,
+                            pressure: p.pressure,
+                            cls: p['class']
+                        };
+                    }).filter(Boolean);
+                    points.sort(function (a, b) { return a.time - b.time; });
+                    return points;
+                })
+                .catch(function (err) {
+                    // CORS制限やデータ未公開（発生直後など）で失敗しても、
+                    // 気象庁ベースの実況・予報表示は継続させる
+                    console.error('デジタル台風データ取得失敗 (' + dtId + '):', err);
+                    return null;
+                });
+        }
+
+        // デジタル台風の経路を描画する
+        // （熱帯低気圧の期間はグレー破線、台風としての期間は紫の実線。
+        //   強度が上下して複数回台風/熱帯低気圧を行き来した場合も区間ごとに分けて描画する）
+        function renderDigitalTyphoonTrack(points, displayName) {
+            if (!points || points.length < 2) return;
+
+            var segments = [];
+            var current = null;
+            points.forEach(function (pt, idx) {
+                var isTD = (pt.cls || 0) < 3;
+                if (!current || current.isTD !== isTD) {
+                    if (current) {
+                        current.points.push(pt); // 区間の継ぎ目をつないで線を切れさせない
+                        segments.push(current);
                     }
-                    var km = (w.range && w.range.km !== undefined) ? parseFloat(w.range.km) : NaN;
-                    if (!isNaN(km)) {
-                        if (km > maxKm) maxKm = km;
-                        lines.push(areaLabel + ' ' + km + 'km');
-                    }
-                });
-                if (maxKm <= 0) return null;
-                return { radiusMeters: maxKm * 1000, text: lines.join(' / ') };
-            }
-
-            // ------------------------------------------------------------------
-            // 発生地点から現在までの経路データ（デジタル台風／国立情報学研究所）
-            //
-            // https://agora.ex.nii.ac.jp/digital-typhoon/ が台風ごとに公開している
-            // GeoJSON（3時間ごとのベストトラック相当データ）を使い、発生時点から
-            // 最新の観測時刻までの経路を取得する。
-            //   URL: https://agora.ex.nii.ac.jp/digital-typhoon/geojson/wnp/{台風ID}.ja.json
-            //   台風ID = "20" + JMAのtyphoonNumber（例: typhoonNumber "2613" → ID "202613"）
-            // properties.class が3未満（熱帯低気圧）かどうかで期間を判定し、
-            // 気象庁の実況・予報と組み合わせて描画する。
-            // ------------------------------------------------------------------
-            function buildDigitalTyphoonId(typhoonNumber) {
-                if (!typhoonNumber || typhoonNumber.length !== 4) return null;
-                return '20' + typhoonNumber;
-            }
-
-            function digitalTyphoonClassLabel(cls) {
-                switch (cls) {
-                    case 2: return '熱帯低気圧';
-                    case 3: return '台風';
-                    case 4: return '強い台風';
-                    case 5: return '非常に強い台風〜猛烈な台風';
-                    case 6: return '温帯低気圧';
-                    default: return '-';
-                }
-            }
-
-            function fetchDigitalTyphoonTrack(typhoonNumber) {
-                var dtId = buildDigitalTyphoonId(typhoonNumber);
-                if (!dtId) return Promise.resolve(null);
-
-                var url = 'https://agora.ex.nii.ac.jp/digital-typhoon/geojson/wnp/' + dtId + '.ja.json';
-                return fetch(url)
-                    .then(function (res) {
-                        if (!res.ok) throw new Error('HTTP ' + res.status);
-                        return res.json();
-                    })
-                    .then(function (geojson) {
-                        var feats = (geojson && geojson.features) || [];
-                        var points = feats.map(function (f) {
-                            if (!f || !f.geometry || f.geometry.type !== 'Point') return null;
-                            var lon = parseFloat(f.geometry.coordinates[0]);
-                            var lat = parseFloat(f.geometry.coordinates[1]);
-                            if (isNaN(lat) || isNaN(lon)) return null;
-                            var p = f.properties || {};
-                            return {
-                                latlng: [lat, lon],
-                                time: p.time || 0,
-                                displayTime: p.display_time || '',
-                                wind: p.wind,
-                                pressure: p.pressure,
-                                cls: p['class']
-                            };
-                        }).filter(Boolean);
-                        points.sort(function (a, b) { return a.time - b.time; });
-                        return points;
-                    })
-                    .catch(function (err) {
-                        // CORS制限やデータ未公開（発生直後など）で失敗しても、
-                        // 気象庁ベースの実況・予報表示は継続させる
-                        console.error('デジタル台風データ取得失敗 (' + dtId + '):', err);
-                        return null;
-                    });
-            }
-
-            // デジタル台風の経路を描画する
-            // （熱帯低気圧の期間はグレー破線、台風としての期間は紫の実線。
-            //   強度が上下して複数回台風/熱帯低気圧を行き来した場合も区間ごとに分けて描画する）
-            function renderDigitalTyphoonTrack(points, displayName) {
-                if (!points || points.length < 2) return;
-
-                var segments = [];
-                var current = null;
-                points.forEach(function (pt, idx) {
-                    var isTD = (pt.cls || 0) < 3;
-                    if (!current || current.isTD !== isTD) {
-                        if (current) {
-                            current.points.push(pt); // 区間の継ぎ目をつないで線を切れさせない
-                            segments.push(current);
-                        }
-                        current = { isTD: isTD, points: idx > 0 ? [points[idx - 1], pt] : [pt] };
-                    } else {
-                        current.points.push(pt);
-                    }
-                });
-                if (current) segments.push(current);
-
-                segments.forEach(function (seg) {
-                    var latlngs = seg.points.map(function (p) { return p.latlng; });
-                    if (latlngs.length < 2) return;
-                    latlngs.forEach(function (p) { bounds.push(p); });
-
-                    var line = L.polyline(latlngs, seg.isTD ? {
-                        color: '#95a5a6',
-                        weight: 2,
-                        dashArray: '3, 5',
-                        opacity: 0.8
-                    } : {
-                        color: '#8e44ad',
-                        weight: 3.5,
-                        opacity: 0.8
-                    }).addTo(map);
-
-                    line.bindPopup('<div style="font-size:12px;"><b>' + displayName + '</b><br>' +
-                        'デジタル台風（国立情報学研究所）による経路（' + (seg.isTD ? '熱帯低気圧の期間' : '台風の期間') + '）</div>');
-                });
-
-                // 通過点（詳細はクリックで表示、始点・終点は目立たせない小さいドット）
-                // 見た目のドットは小さいままにしつつ、クリックしやすいように
-                // 一回り大きい透明な円を重ねてクリック判定領域を広げる
-                points.forEach(function (p, idx) {
-                    if (idx === 0 || idx === points.length - 1) return;
-                    var windMs = (typeof p.wind === 'number') ? Math.round(p.wind * 0.5144 * 10) / 10 : null;
-                    var html = '<div style="font-size:12px; line-height:1.7; min-width:170px;">' +
-                        '<b>' + displayName + '</b><br>' +
-                        '<span style="color:#7f8c8d;">' + p.displayTime + '</span>' +
-                        '<hr style="margin:4px 0; border:0; border-top:1px solid #ccc;">' +
-                        '<b>階級:</b> ' + digitalTyphoonClassLabel(p.cls) + '<br>' +
-                        (p.pressure ? '<b>中心気圧:</b> ' + p.pressure + ' hPa<br>' : '') +
-                        (windMs !== null ? '<b>最大風速:</b> ' + windMs + ' m/s（' + p.wind + ' kt）<br>' : '') +
-                        '</div>';
-
-                    // クリック判定を広げるための透明な当たり判定円（見た目には出ない）
-                    L.circleMarker(p.latlng, {
-                        radius: 10,
-                        fillOpacity: 0.001,
-                        stroke: false
-                    }).addTo(map).bindPopup(html);
-
-                    // 実際に見える小さいドット
-                    L.circleMarker(p.latlng, {
-                        radius: 2.5,
-                        fillColor: (p.cls || 0) < 3 ? '#95a5a6' : '#8e44ad',
-                        color: '#ffffff',
-                        weight: 0.5,
-                        fillOpacity: 0.85
-                    }).addTo(map).bindPopup(html);
-                });
-
-                // 発生地点（デジタル台風の記録開始点）
-                var origin = points[0];
-                var originMarker = L.circleMarker(origin.latlng, {
-                    radius: 6,
-                    fillColor: '#8e44ad',
-                    color: '#ffffff',
-                    weight: 2,
-                    fillOpacity: 0.95
-                }).addTo(map);
-                originMarker.bindTooltip('発生', {
-                    permanent: true,
-                    direction: 'top',
-                    offset: [0, -8],
-                    className: 'origin-label'
-                });
-                originMarker.bindPopup('<div style="font-size:13px;"><b>' + displayName + '</b><br>' +
-                    '発生（デジタル台風の記録開始点）<br>' + origin.displayTime +
-                    '<br><a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">出典：デジタル台風（国立情報学研究所）</a></div>');
-                bounds.push(origin.latlng);
-            }
-
-            // 予報円の日時ラベル用アイコン（引き出し線＋ラベル。背景地図を覆わない）
-            // above=true: ラベルを上側に、線を下へ伸ばして地点に接続
-            // above=false: ラベルを下側に、線を上へ伸ばして地点に接続
-            function makeTimeFlagIcon(timeText, above) {
-                var cls = above ? 'time-flag-above' : 'time-flag-below';
-                var html = '<div class="time-flag ' + cls + '">' +
-                    '<div class="time-flag-line"></div>' +
-                    '<div class="time-flag-label">' + timeText + '</div>' +
-                    '</div>';
-                return L.divIcon({
-                    className: 'time-flag-icon',
-                    html: html,
-                    iconSize: [130, 70],
-                    // アイコン内で地点(引き出し線が地図上の座標に接する場所)を anchor に指定
-                    iconAnchor: above ? [0, 70] : [0, 0]
-                });
-            }
-
-            // ------------------------------------------------------------------
-            // ポップアップ生成（実況・推定・予報のいずれの地点にも対応）
-            // ------------------------------------------------------------------
-            function setupPopup(layer, displayName, report, gale, storm) {
-                var jp = (report.part && report.part.jp) ? report.part.jp : '';
-                var timeIso = report.validtime ? report.validtime.JST : null;
-                var timeLabel = formatJSTString(timeIso);
-
-                var html = '<div style="font-size:13px; line-height:1.7; min-width:190px;">';
-                html += '<b style="font-size:15px; color:#2c3e50;">' + displayName + '</b><br>';
-                html += '<span style="color:#7f8c8d;">' + jp + (timeLabel ? '（' + timeLabel + '）' : '') + '</span>';
-                html += '<hr style="margin:4px 0; border:0; border-top:1px solid #ccc;">';
-
-                if (report.category && report.category.jp) {
-                    html += '<b>階級:</b> ' + report.category.jp + '<br>';
-                }
-                if (report.intensity && report.intensity !== '-') {
-                    html += '<b>強さ:</b> ' + report.intensity + '<br>';
-                }
-                if (report.scale && report.scale !== '-') {
-                    html += '<b>大きさ:</b> ' + report.scale + '<br>';
-                }
-                if (report.location) {
-                    html += '<b>位置:</b> ' + report.location + '<br>';
-                }
-                if (report.course) {
-                    html += '<b>進行方向:</b> ' + report.course;
-                    if (report.speed) {
-                        if (report.speed['km/h'] !== undefined) {
-                            html += '（' + report.speed['km/h'] + 'km/h）';
-                        } else if (report.speed.note) {
-                            html += '（' + (report.speed.note.jp || report.speed.note) + '）';
-                        }
-                    }
-                    html += '<br>';
-                }
-                if (report.pressure) {
-                    html += '<b>中心気圧:</b> ' + report.pressure + ' hPa<br>';
-                }
-                if (report.maximumWind && report.maximumWind.sustained &&
-                    report.maximumWind.sustained['m/s'] && report.maximumWind.sustained['m/s'] !== '0') {
-                    var mw = report.maximumWind.sustained;
-                    html += '<b>' + (mw.note ? mw.note + 'の' : '') + '最大風速:</b> ' + mw['m/s'] + ' m/s<br>';
-                    if (report.maximumWind.gust) {
-                        html += '<b>最大瞬間風速:</b> ' + report.maximumWind.gust['m/s'] + ' m/s<br>';
-                    }
-                }
-                if (storm) {
-                    html += '<b>暴風' + (jp === '実況' ? '域' : '警戒域') + ':</b> ' + storm.text + '<br>';
-                }
-                if (gale) {
-                    html += '<b>強風域:</b> ' + gale.text + '<br>';
-                }
-                if (report.probabilityCircleRadius) {
-                    html += '<b>予報円半径:</b> ' + report.probabilityCircleRadius.km + ' km<br>';
-                }
-                html += '</div>';
-
-                layer.bindPopup(html);
-            }
-
-            // ------------------------------------------------------------------
-            // 単一台風の描画
-            // ------------------------------------------------------------------
-            function renderSingleTyphoon(tcCode, spec, dtPoints) {
-                if (!spec || !spec.length) return;
-
-                var title = spec[0];
-                var num = title.typhoonNumber || '';
-                var displayName;
-                if (num.length > 2) {
-                    var displayNum = String(parseInt(num.slice(-2), 10));
-                    displayName = '台風' + displayNum + '号';
+                    current = { isTD: isTD, points: idx > 0 ? [points[idx - 1], pt] : [pt] };
                 } else {
-                    displayName = '熱帯低気圧' + num;
+                    current.points.push(pt);
                 }
+            });
+            if (current) segments.push(current);
 
-                var reports = spec.slice(1);
-                var currentReport = null;
-                var forecastReports = [];
+            segments.forEach(function (seg) {
+                var latlngs = seg.points.map(function (p) { return p.latlng; });
+                if (latlngs.length < 2) return;
+                latlngs.forEach(function (p) { bounds.push(p); });
 
-                reports.forEach(function (r) {
-                    var jp = (r.part && r.part.jp) ? r.part.jp : '';
-                    if (jp === '実況') {
-                        currentReport = r;
-                    } else if (jp.indexOf('予報') === 0) {
-                        forecastReports.push(r);
-                    } else if (!currentReport && jp.indexOf('推定') === 0) {
-                        // 実況が無い場合のフォールバック（推定1時間後など）
-                        currentReport = r;
-                    }
-                });
-                if (!currentReport) return;
+                var line = L.polyline(latlngs, seg.isTD ? {
+                    color: '#95a5a6',
+                    weight: 2,
+                    dashArray: '3, 5',
+                    opacity: 0.8
+                } : {
+                    color: '#8e44ad',
+                    weight: 3.5,
+                    opacity: 0.8
+                }).addTo(map);
 
-                var currentLatLng = degToLatLng(currentReport.position);
-                if (!currentLatLng) return;
-                bounds.push(currentLatLng);
+                line.bindPopup('<div style="font-size:12px;"><b>' + displayName + '</b><br>' +
+                    'デジタル台風（国立情報学研究所）による経路（' + (seg.isTD ? '熱帯低気圧の期間' : '台風の期間') + '）</div>');
+            });
 
-                // --- 1. 発生地点から現在地までの経路（デジタル台風／国立情報学研究所） ---
-                renderDigitalTyphoonTrack(dtPoints, displayName);
+            // 通過点（詳細はクリックで表示、始点・終点は目立たせない小さいドット）
+            // 見た目のドットは小さいままにしつつ、クリックしやすいように
+            // 一回り大きい透明な円を重ねてクリック判定領域を広げる
+            points.forEach(function (p, idx) {
+                if (idx === 0 || idx === points.length - 1) return;
+                var windMs = (typeof p.wind === 'number') ? Math.round(p.wind * 0.5144 * 10) / 10 : null;
+                var html = '<div style="font-size:12px; line-height:1.7; min-width:170px;">' +
+                    '<b>' + displayName + '</b><br>' +
+                    '<span style="color:#7f8c8d;">' + p.displayTime + '</span>' +
+                    '<hr style="margin:4px 0; border:0; border-top:1px solid #ccc;">' +
+                    '<b>階級:</b> ' + digitalTyphoonClassLabel(p.cls) + '<br>' +
+                    (p.pressure ? '<b>中心気圧:</b> ' + p.pressure + ' hPa<br>' : '') +
+                    (windMs !== null ? '<b>最大風速:</b> ' + windMs + ' m/s（' + p.wind + ' kt）<br>' : '') +
+                    '</div>';
 
-                // --- 2. 予報線・予報円・日時ラベル（赤破線） ---
-                forecastReports.sort(function (a, b) {
-                    return (a.advancedHours || 0) - (b.advancedHours || 0);
-                });
+                // クリック判定を広げるための透明な当たり判定円（見た目には出ない）
+                L.circleMarker(p.latlng, {
+                    radius: 10,
+                    fillOpacity: 0.001,
+                    stroke: false
+                }).addTo(map).bindPopup(html);
 
-                var forecastCoords = [currentLatLng];
-                forecastReports.forEach(function (r, idx) {
-                    var ll = degToLatLng(r.position);
-                    if (!ll) return;
-                    forecastCoords.push(ll);
-                    bounds.push(ll);
-
-                    // クリック判定を広げるための透明な当たり判定円（見た目には出ない）
-                    var hitCircle = L.circleMarker(ll, {
-                        radius: 12,
-                        fillOpacity: 0.001,
-                        stroke: false
-                    }).addTo(map);
-
-                    var fMarker = L.circleMarker(ll, {
-                        radius: 4,
-                        fillColor: '#5b6ee1',
-                        color: '#ffffff',
-                        weight: 1.5,
-                        fillOpacity: 1
-                    }).addTo(map);
-
-                    // 予報地点ごとの日時ラベル：円の外へ引き出し線で表示（背景地図を隠さないようにする）
-                    var timeText = r.validtime ? formatJSTString(r.validtime.JST) : '';
-                    if (timeText) {
-                        L.marker(ll, {
-                            icon: makeTimeFlagIcon(timeText, idx % 2 === 0),
-                            interactive: false,
-                            keyboard: false
-                        }).addTo(map);
-                    }
-
-                    var stormFore = summarizeWarning(r.stormWarning);
-                    setupPopup(fMarker, displayName, r, null, stormFore);
-                    setupPopup(hitCircle, displayName, r, null, stormFore);
-
-                    // 予報円（この円内をクリックしてもその時点の予測気圧・最大風速を表示）
-                    if (r.probabilityCircleRadius && r.probabilityCircleRadius.km) {
-                        var probCircle = L.circle(ll, {
-                            radius: parseFloat(r.probabilityCircleRadius.km) * 1000,
-                            color: '#5b6ee1',
-                            weight: 1.5,
-                            dashArray: '4, 4',
-                            fillColor: '#5b6ee1',
-                            fillOpacity: 0.12
-                        }).addTo(map);
-                        setupPopup(probCircle, displayName, r, null, stormFore);
-                    }
-
-                    // 暴風警戒域（予報時点）
-                    if (stormFore) {
-                        var stormForeCircle = L.circle(ll, {
-                            radius: stormFore.radiusMeters,
-                            color: '#d35400',
-                            weight: 1,
-                            dashArray: '2, 4',
-                            fillColor: '#e67e22',
-                            fillOpacity: 0.06
-                        }).addTo(map);
-                        setupPopup(stormForeCircle, displayName, r, null, stormFore);
-                    }
-                });
-
-                if (forecastCoords.length > 1) {
-                    L.polyline(forecastCoords, {
-                        color: '#2c3e50',
-                        weight: 3.5,
-                        dashArray: '6, 6',
-                        opacity: 0.85
-                    }).addTo(map);
-                }
-
-                // --- 3. 現在地・強風域・暴風域（クリックでポップアップ） ---
-                var gale = summarizeWarning(currentReport.galeWarning);
-                var storm = summarizeWarning(currentReport.stormWarning);
-
-                if (gale) {
-                    // 強風域はクリックしても詳細を表示しない（台風名クリックのみで表示させる）
-                    L.circle(currentLatLng, {
-                        radius: gale.radiusMeters,
-                        color: '#f39c12',
-                        weight: 2,
-                        fillColor: '#f1c40f',
-                        fillOpacity: 0.22,
-                        interactive: false
-                    }).addTo(map);
-                }
-
-                if (storm) {
-                    var stormCircle = L.circle(currentLatLng, {
-                        radius: storm.radiusMeters,
-                        color: '#d35400',
-                        weight: 2,
-                        fillColor: '#e67e22',
-                        fillOpacity: 0.32
-                    }).addTo(map);
-                    setupPopup(stormCircle, displayName, currentReport, gale, storm);
-                }
-
-                var currMarker = L.circleMarker(currentLatLng, {
-                    radius: 7,
-                    fillColor: '#e74c3c',
+                // 実際に見える小さいドット
+                L.circleMarker(p.latlng, {
+                    radius: 2.5,
+                    fillColor: (p.cls || 0) < 3 ? '#95a5a6' : '#8e44ad',
                     color: '#ffffff',
-                    weight: 2.5,
+                    weight: 0.5,
+                    fillOpacity: 0.85
+                }).addTo(map).bindPopup(html);
+            });
+
+            // 発生地点（デジタル台風の記録開始点）
+            var origin = points[0];
+            var originMarker = L.circleMarker(origin.latlng, {
+                radius: 6,
+                fillColor: '#8e44ad',
+                color: '#ffffff',
+                weight: 2,
+                fillOpacity: 0.95
+            }).addTo(map);
+            originMarker.bindTooltip('発生', {
+                permanent: true,
+                direction: 'top',
+                offset: [0, -8],
+                className: 'origin-label'
+            });
+            originMarker.bindPopup('<div style="font-size:13px;"><b>' + displayName + '</b><br>' +
+                '発生（デジタル台風の記録開始点）<br>' + origin.displayTime +
+                '<br><a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">出典：デジタル台風（国立情報学研究所）</a></div>');
+            bounds.push(origin.latlng);
+        }
+
+        // 予報円の日時ラベル用アイコン（引き出し線＋ラベル。背景地図を覆わない）
+        // above=true: ラベルを上側に、線を下へ伸ばして地点に接続
+        // above=false: ラベルを下側に、線を上へ伸ばして地点に接続
+        function makeTimeFlagIcon(timeText, above) {
+            var cls = above ? 'time-flag-above' : 'time-flag-below';
+            var html = '<div class="time-flag ' + cls + '">' +
+                '<div class="time-flag-line"></div>' +
+                '<div class="time-flag-label">' + timeText + '</div>' +
+                '</div>';
+            return L.divIcon({
+                className: 'time-flag-icon',
+                html: html,
+                iconSize: [130, 70],
+                // アイコン内で地点(引き出し線が地図上の座標に接する場所)を anchor に指定
+                iconAnchor: above ? [0, 70] : [0, 0]
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // ポップアップ生成（実況・推定・予報のいずれの地点にも対応）
+        // ------------------------------------------------------------------
+        function setupPopup(layer, displayName, report, gale, storm) {
+            var jp = (report.part && report.part.jp) ? report.part.jp : '';
+            var timeIso = report.validtime ? report.validtime.JST : null;
+            var timeLabel = formatJSTString(timeIso);
+
+            var html = '<div style="font-size:13px; line-height:1.7; min-width:190px;">';
+            html += '<b style="font-size:15px; color:#2c3e50;">' + displayName + '</b><br>';
+            html += '<span style="color:#7f8c8d;">' + jp + (timeLabel ? '（' + timeLabel + '）' : '') + '</span>';
+            html += '<hr style="margin:4px 0; border:0; border-top:1px solid #ccc;">';
+
+            if (report.category && report.category.jp) {
+                html += '<b>階級:</b> ' + report.category.jp + '<br>';
+            }
+            if (report.intensity && report.intensity !== '-') {
+                html += '<b>強さ:</b> ' + report.intensity + '<br>';
+            }
+            if (report.scale && report.scale !== '-') {
+                html += '<b>大きさ:</b> ' + report.scale + '<br>';
+            }
+            if (report.location) {
+                html += '<b>位置:</b> ' + report.location + '<br>';
+            }
+            if (report.course) {
+                html += '<b>進行方向:</b> ' + report.course;
+                if (report.speed) {
+                    if (report.speed['km/h'] !== undefined) {
+                        html += '（' + report.speed['km/h'] + 'km/h）';
+                    } else if (report.speed.note) {
+                        html += '（' + (report.speed.note.jp || report.speed.note) + '）';
+                    }
+                }
+                html += '<br>';
+            }
+            if (report.pressure) {
+                html += '<b>中心気圧:</b> ' + report.pressure + ' hPa<br>';
+            }
+            if (report.maximumWind && report.maximumWind.sustained &&
+                report.maximumWind.sustained['m/s'] && report.maximumWind.sustained['m/s'] !== '0') {
+                var mw = report.maximumWind.sustained;
+                html += '<b>' + (mw.note ? mw.note + 'の' : '') + '最大風速:</b> ' + mw['m/s'] + ' m/s<br>';
+                if (report.maximumWind.gust) {
+                    html += '<b>最大瞬間風速:</b> ' + report.maximumWind.gust['m/s'] + ' m/s<br>';
+                }
+            }
+            if (storm) {
+                html += '<b>暴風' + (jp === '実況' ? '域' : '警戒域') + ':</b> ' + storm.text + '<br>';
+            }
+            if (gale) {
+                html += '<b>強風域:</b> ' + gale.text + '<br>';
+            }
+            if (report.probabilityCircleRadius) {
+                html += '<b>予報円半径:</b> ' + report.probabilityCircleRadius.km + ' km<br>';
+            }
+            html += '</div>';
+
+            layer.bindPopup(html);
+        }
+
+        // ------------------------------------------------------------------
+        // 単一台風の描画
+        // ------------------------------------------------------------------
+        function renderSingleTyphoon(tcCode, spec, dtPoints) {
+            if (!spec || !spec.length) return;
+
+            var title = spec[0];
+            var num = title.typhoonNumber || '';
+            var displayName;
+            if (num.length > 2) {
+                var displayNum = String(parseInt(num.slice(-2), 10));
+                displayName = '台風' + displayNum + '号';
+            } else {
+                displayName = '熱帯低気圧' + num;
+            }
+
+            var reports = spec.slice(1);
+            var currentReport = null;
+            var forecastReports = [];
+
+            reports.forEach(function (r) {
+                var jp = (r.part && r.part.jp) ? r.part.jp : '';
+                if (jp === '実況') {
+                    currentReport = r;
+                } else if (jp.indexOf('予報') === 0) {
+                    forecastReports.push(r);
+                } else if (!currentReport && jp.indexOf('推定') === 0) {
+                    // 実況が無い場合のフォールバック（推定1時間後など）
+                    currentReport = r;
+                }
+            });
+            if (!currentReport) return;
+
+            var currentLatLng = degToLatLng(currentReport.position);
+            if (!currentLatLng) return;
+            bounds.push(currentLatLng);
+
+            // --- 1. 発生地点から現在地までの経路（デジタル台風／国立情報学研究所） ---
+            renderDigitalTyphoonTrack(dtPoints, displayName);
+
+            // --- 2. 予報線・予報円・日時ラベル（赤破線） ---
+            forecastReports.sort(function (a, b) {
+                return (a.advancedHours || 0) - (b.advancedHours || 0);
+            });
+
+            var forecastCoords = [currentLatLng];
+            forecastReports.forEach(function (r, idx) {
+                var ll = degToLatLng(r.position);
+                if (!ll) return;
+                forecastCoords.push(ll);
+                bounds.push(ll);
+
+                // クリック判定を広げるための透明な当たり判定円（見た目には出ない）
+                var hitCircle = L.circleMarker(ll, {
+                    radius: 12,
+                    fillOpacity: 0.001,
+                    stroke: false
+                }).addTo(map);
+
+                var fMarker = L.circleMarker(ll, {
+                    radius: 4,
+                    fillColor: '#5b6ee1',
+                    color: '#ffffff',
+                    weight: 1.5,
                     fillOpacity: 1
                 }).addTo(map);
-                setupPopup(currMarker, displayName, currentReport, gale, storm);
 
-                currMarker.bindTooltip(displayName, {
-                    permanent: true,
-                    direction: 'top',
-                    offset: [0, -10],
-                    className: 'typhoon-name-label',
-                    interactive: true
-                });
-
-                // 台風名表示枠（常時ラベル）をクリックしても詳細ポップアップを開けるようにする
-                var nameTooltip = currMarker.getTooltip();
-                if (nameTooltip && nameTooltip._container) {
-                    nameTooltip._container.style.cursor = 'pointer';
-                    nameTooltip._container.onclick = function (e) {
-                        e.stopPropagation();
-                        currMarker.openPopup();
-                    };
-                } else {
-                    currMarker.on('tooltipopen', function () {
-                        var tooltip = currMarker.getTooltip();
-                        if (tooltip && tooltip._container) {
-                            tooltip._container.style.cursor = 'pointer';
-                            tooltip._container.onclick = function (e) {
-                                e.stopPropagation();
-                                currMarker.openPopup();
-                            };
-                        }
-                    });
+                // 予報地点ごとの日時ラベル：円の外へ引き出し線で表示（背景地図を隠さないようにする）
+                var timeText = r.validtime ? formatJSTString(r.validtime.JST) : '';
+                if (timeText) {
+                    L.marker(ll, {
+                        icon: makeTimeFlagIcon(timeText, idx % 2 === 0),
+                        interactive: false,
+                        keyboard: false
+                    }).addTo(map);
                 }
+
+                var stormFore = summarizeWarning(r.stormWarning);
+                setupPopup(fMarker, displayName, r, null, stormFore);
+                setupPopup(hitCircle, displayName, r, null, stormFore);
+
+                // 予報円（この円内をクリックしてもその時点の予想気圧・最大風速を表示）
+                if (r.probabilityCircleRadius && r.probabilityCircleRadius.km) {
+                    var probCircle = L.circle(ll, {
+                        radius: parseFloat(r.probabilityCircleRadius.km) * 1000,
+                        color: '#5b6ee1',
+                        weight: 1.5,
+                        dashArray: '4, 4',
+                        fillColor: '#5b6ee1',
+                        fillOpacity: 0.12
+                    }).addTo(map);
+                    setupPopup(probCircle, displayName, r, null, stormFore);
+                }
+
+                // 暴風警戒域（予報時点）
+                if (stormFore) {
+                    var stormForeCircle = L.circle(ll, {
+                        radius: stormFore.radiusMeters,
+                        color: '#d35400',
+                        weight: 1,
+                        dashArray: '2, 4',
+                        fillColor: '#e67e22',
+                        fillOpacity: 0.06
+                    }).addTo(map);
+                    setupPopup(stormForeCircle, displayName, r, null, stormFore);
+                }
+            });
+
+            if (forecastCoords.length > 1) {
+                L.polyline(forecastCoords, {
+                    color: '#2c3e50',
+                    weight: 3.5,
+                    dashArray: '6, 6',
+                    opacity: 0.85
+                }).addTo(map);
             }
 
-            // ------------------------------------------------------------------
-            // 気象庁以外の進路予測：台湾 交通部中央氣象署 (CWA) の経路データ
-            //
-            // 無料の公開データAPI（登録不要で使えるデモ用キーが公式に案内されている）。
-            // 参照: https://opendata.cwa.gov.tw/dataset/all/W-C0034-005
-            // 追加分は要望どおり「経路の線」だけを描画し、丸印や吹き出しラベルは付けない。
-            // クリックすると簡単な吹き出し（どの台風／実況か予報か）だけ表示する。
-            // ------------------------------------------------------------------
-            var CWA_TRACK_API = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0034-005?Authorization=rdec-key-123-45678-011121314';
-            var CWA_LINE_COLOR = '#16a085';
+            // --- 3. 現在地・強風域・暴風域（クリックでポップアップ） ---
+            var gale = summarizeWarning(currentReport.galeWarning);
+            var storm = summarizeWarning(currentReport.stormWarning);
 
-            function fetchAndRenderCwaTracks() {
-                return fetch(CWA_TRACK_API)
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
-                        var list = data && data.records && data.records.TropicalCyclones &&
-                            data.records.TropicalCyclones.TropicalCyclone;
-                        if (!list || !list.length) return;
-
-                        list.forEach(function (tc) {
-                            var analysisFixes = (tc.AnalysisData && tc.AnalysisData.Fix) || [];
-                            var forecastFixes = (tc.ForecastData && tc.ForecastData.Fix) || [];
-
-                            var toLatLng = function (f) {
-                                var lat = parseFloat(f.CoordinateLatitude);
-                                var lon = parseFloat(f.CoordinateLongitude);
-                                if (isNaN(lat) || isNaN(lon)) return null;
-                                return [lat, lon];
-                            };
-
-                            var pastCoords = analysisFixes.map(toLatLng).filter(Boolean);
-                            var futureCoords = forecastFixes.map(toLatLng).filter(Boolean);
-
-                            // 実況経路の最後の点と予報経路をつないで、線が途切れないようにする
-                            var forecastLine = pastCoords.length
-                                ? [pastCoords[pastCoords.length - 1]].concat(futureCoords)
-                                : futureCoords;
-
-                            var label = (tc.CwaTyphoonName ? tc.CwaTyphoonName + '／' : '') + (tc.TyphoonName || '');
-
-                            if (pastCoords.length > 1) {
-                                var pastLine = L.polyline(pastCoords, {
-                                    color: CWA_LINE_COLOR,
-                                    weight: 3,
-                                    opacity: 0.85
-                                }).addTo(map);
-                                pastLine.bindPopup('<div style="font-size:13px;"><b>' + label +
-                                    '</b><br>交通部中央氣象署（台湾）実況経路</div>');
-                                pastCoords.forEach(function (p) { bounds.push(p); });
-                            }
-
-                            if (forecastLine.length > 1) {
-                                var futureLine = L.polyline(forecastLine, {
-                                    color: CWA_LINE_COLOR,
-                                    weight: 3,
-                                    dashArray: '6, 6',
-                                    opacity: 0.85
-                                }).addTo(map);
-                                futureLine.bindPopup('<div style="font-size:13px;"><b>' + label +
-                                    '</b><br>交通部中央氣象署（台湾）予報経路</div>');
-                                futureCoords.forEach(function (p) { bounds.push(p); });
-                            }
-                        });
-                    })
-                    .catch(function (err) {
-                        // CORS制限やAPI仕様変更等で失敗しても、気象庁側の表示は継続させる
-                        console.error('CWA（台湾）データ取得失敗:', err);
-                    });
+            if (gale) {
+                // 強風域はクリックしても詳細を表示しない（台風名クリックのみで表示させる）
+                L.circle(currentLatLng, {
+                    radius: gale.radiusMeters,
+                    color: '#f39c12',
+                    weight: 2,
+                    fillColor: '#f1c40f',
+                    fillOpacity: 0.22,
+                    interactive: false
+                }).addTo(map);
             }
 
-            // ------------------------------------------------------------------
-            // メイン処理
-            // ------------------------------------------------------------------
+            if (storm) {
+                var stormCircle = L.circle(currentLatLng, {
+                    radius: storm.radiusMeters,
+                    color: '#d35400',
+                    weight: 2,
+                    fillColor: '#e67e22',
+                    fillOpacity: 0.32
+                }).addTo(map);
+                setupPopup(stormCircle, displayName, currentReport, gale, storm);
+            }
 
-            // 気象庁以外の進路予測は気象庁のデータ取得と並行して読み込む
-            var cwaPromise = fetchAndRenderCwaTracks();
-            var dtFailedCount = 0; // デジタル台風データの取得に失敗した台風の数
+            var currMarker = L.circleMarker(currentLatLng, {
+                radius: 7,
+                fillColor: '#e74c3c',
+                color: '#ffffff',
+                weight: 2.5,
+                fillOpacity: 1
+            }).addTo(map);
+            setupPopup(currMarker, displayName, currentReport, gale, storm);
 
-            fetch('https://www.jma.go.jp/bosai/typhoon/data/targetTc.json')
-                .then(function (res) { return res.json(); })
-                .then(function (targetList) {
-                    if (!targetList || !Array.isArray(targetList) || targetList.length === 0) {
-                        cwaPromise.then(function () {
-                            if (bounds.length > 0) {
-                                map.fitBounds(bounds, { padding: [50, 50] });
-                                statusEl.innerHTML = '気象庁：発生中の台風はありません ／ 進路予測: 交通部中央氣象署（台湾）のみ表示中';
-                            } else {
-                                statusEl.innerHTML = '現在、日本周辺で発生している台風はありません。';
-                            }
-                        });
-                        return;
+            currMarker.bindTooltip(displayName, {
+                permanent: true,
+                direction: 'top',
+                offset: [0, -10],
+                className: 'typhoon-name-label',
+                interactive: true
+            });
+
+            // 台風名表示枠（常時ラベル）をクリックしても詳細ポップアップを開けるようにする
+            var nameTooltip = currMarker.getTooltip();
+            if (nameTooltip && nameTooltip._container) {
+                nameTooltip._container.style.cursor = 'pointer';
+                nameTooltip._container.onclick = function (e) {
+                    e.stopPropagation();
+                    currMarker.openPopup();
+                };
+            } else {
+                currMarker.on('tooltipopen', function () {
+                    var tooltip = currMarker.getTooltip();
+                    if (tooltip && tooltip._container) {
+                        tooltip._container.style.cursor = 'pointer';
+                        tooltip._container.onclick = function (e) {
+                            e.stopPropagation();
+                            currMarker.openPopup();
+                        };
                     }
+                });
+            }
+        }
 
-                    statusEl.textContent = '発生中の台風: ' + targetList.length + '件（読み込み中...）';
+        // ------------------------------------------------------------------
+        // 気象庁以外の進路予想：台湾 交通部中央氣象署 (CWA) の経路データ
+        //
+        // 無料の公開データAPI（登録不要で使えるデモ用キーが公式に案内されている）。
+        // 参照: https://opendata.cwa.gov.tw/dataset/all/W-C0034-005
+        // 追加分は要望どおり「経路の線」だけを描画し、丸印や吹き出しラベルは付けない。
+        // クリックすると簡単な吹き出し（どの台風／実況か予報か）だけ表示する。
+        // ------------------------------------------------------------------
+        var CWA_TRACK_API = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0034-005?Authorization=rdec-key-123-45678-011121314';
+        var CWA_LINE_COLOR = '#16a085';
 
-                    var promises = targetList.map(function (tc) {
-                        var code = tc.tropicalCyclone;
-                        if (!code) return Promise.resolve(null);
+        function fetchAndRenderCwaTracks() {
+            return fetch(CWA_TRACK_API)
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    var list = data && data.records && data.records.TropicalCyclones &&
+                        data.records.TropicalCyclones.TropicalCyclone;
+                    if (!list || !list.length) return;
 
-                        return fetch('https://www.jma.go.jp/bosai/typhoon/data/' + code + '/specifications.json')
-                            .then(function (r) { return r.json(); })
-                            .then(function (spec) {
-                                var typhoonNumber = (spec && spec[0] && spec[0].typhoonNumber) || '';
-                                return fetchDigitalTyphoonTrack(typhoonNumber).then(function (dtPoints) {
-                                    if (!dtPoints) dtFailedCount++;
-                                    return { code: code, spec: spec, dtPoints: dtPoints };
-                                });
-                            })
-                            .catch(function () { return null; });
-                    });
+                    list.forEach(function (tc) {
+                        var analysisFixes = (tc.AnalysisData && tc.AnalysisData.Fix) || [];
+                        var forecastFixes = (tc.ForecastData && tc.ForecastData.Fix) || [];
 
-                    Promise.all(promises).then(function (results) {
-                        var count = 0;
-                        results.forEach(function (item) {
-                            if (item && item.spec) {
-                                renderSingleTyphoon(item.code, item.spec, item.dtPoints);
-                                count++;
-                            }
-                        });
+                        var toLatLng = function (f) {
+                            var lat = parseFloat(f.CoordinateLatitude);
+                            var lon = parseFloat(f.CoordinateLongitude);
+                            if (isNaN(lat) || isNaN(lon)) return null;
+                            return [lat, lon];
+                        };
 
-                        // 台湾CWAのデータも届くまで待ってから、地図範囲と状態表示を確定する
-                        cwaPromise.then(function () {
-                            if (bounds.length > 0) {
-                                map.fitBounds(bounds, { padding: [50, 50] });
-                                var msg = '台風データを表示中 (' + count + '件) ／ 進路予測: 気象庁 + 交通部中央氣象署（台湾）';
-                                if (dtFailedCount > 0) {
-                                    msg += '<span class="note">デジタル台風（発生〜現在の経路）の取得に失敗した台風が' + dtFailedCount +
-                                        '件あります。ブラウザのCORS制限が原因の場合があります。</span>';
-                                }
-                                statusEl.innerHTML = msg;
-                            } else {
-                                statusEl.textContent = '表示できる台風座標データがありませんでした。';
-                            }
-                        });
+                        var pastCoords = analysisFixes.map(toLatLng).filter(Boolean);
+                        var futureCoords = forecastFixes.map(toLatLng).filter(Boolean);
+
+                        // 実況経路の最後の点と予報経路をつないで、線が途切れないようにする
+                        var forecastLine = pastCoords.length
+                            ? [pastCoords[pastCoords.length - 1]].concat(futureCoords)
+                            : futureCoords;
+
+                        var label = (tc.CwaTyphoonName ? tc.CwaTyphoonName + '／' : '') + (tc.TyphoonName || '');
+
+                        if (pastCoords.length > 1) {
+                            var pastLine = L.polyline(pastCoords, {
+                                color: CWA_LINE_COLOR,
+                                weight: 3,
+                                opacity: 0.85
+                            }).addTo(map);
+                            pastLine.bindPopup('<div style="font-size:13px;"><b>' + label +
+                                '</b><br>交通部中央氣象署（台湾）実況経路</div>');
+                            pastCoords.forEach(function (p) { bounds.push(p); });
+                        }
+
+                        if (forecastLine.length > 1) {
+                            var futureLine = L.polyline(forecastLine, {
+                                color: CWA_LINE_COLOR,
+                                weight: 3,
+                                dashArray: '6, 6',
+                                opacity: 0.85
+                            }).addTo(map);
+                            futureLine.bindPopup('<div style="font-size:13px;"><b>' + label +
+                                '</b><br>交通部中央氣象署（台湾）予報経路</div>');
+                            futureCoords.forEach(function (p) { bounds.push(p); });
+                        }
                     });
                 })
                 .catch(function (err) {
-                    console.error('気象庁データ取得失敗:', err);
+                    // CORS制限やAPI仕様変更等で失敗しても、気象庁側の表示は継続させる
+                    console.error('CWA（台湾）データ取得失敗:', err);
+                });
+        }
+
+        // ------------------------------------------------------------------
+        // メイン処理
+        // ------------------------------------------------------------------
+
+        // 気象庁以外の進路予想は気象庁のデータ取得と並行して読み込む
+        var cwaPromise = fetchAndRenderCwaTracks();
+        var dtFailedCount = 0; // デジタル台風データの取得に失敗した台風の数
+
+        fetch('https://www.jma.go.jp/bosai/typhoon/data/targetTc.json')
+            .then(function (res) { return res.json(); })
+            .then(function (targetList) {
+                if (!targetList || !Array.isArray(targetList) || targetList.length === 0) {
                     cwaPromise.then(function () {
                         if (bounds.length > 0) {
                             map.fitBounds(bounds, { padding: [50, 50] });
-                            statusEl.innerHTML = '気象庁データの取得に失敗しました ／ 進路予測: 交通部中央氣象署（台湾）のみ表示中';
+                            statusEl.innerHTML = '気象庁：発生中の台風はありません ／ 進路予想: 交通部中央氣象署（台湾）のみ表示中';
                         } else {
-                            statusEl.textContent = '気象庁データの取得に失敗しました。';
+                            statusEl.innerHTML = '現在、日本周辺で発生している台風はありません。';
+                        }
+                    });
+                    return;
+                }
+
+                statusEl.textContent = '発生中の台風: ' + targetList.length + '件（読み込み中...）';
+
+                var promises = targetList.map(function (tc) {
+                    var code = tc.tropicalCyclone;
+                    if (!code) return Promise.resolve(null);
+
+                    return fetch('https://www.jma.go.jp/bosai/typhoon/data/' + code + '/specifications.json')
+                        .then(function (r) { return r.json(); })
+                        .then(function (spec) {
+                            var typhoonNumber = (spec && spec[0] && spec[0].typhoonNumber) || '';
+                            return fetchDigitalTyphoonTrack(typhoonNumber).then(function (dtPoints) {
+                                if (!dtPoints) dtFailedCount++;
+                                return { code: code, spec: spec, dtPoints: dtPoints };
+                            });
+                        })
+                        .catch(function () { return null; });
+                });
+
+                Promise.all(promises).then(function (results) {
+                    var count = 0;
+                    results.forEach(function (item) {
+                        if (item && item.spec) {
+                            renderSingleTyphoon(item.code, item.spec, item.dtPoints);
+                            count++;
+                        }
+                    });
+
+                    // 台湾CWAのデータも届くまで待ってから、地図範囲と状態表示を確定する
+                    cwaPromise.then(function () {
+                        if (bounds.length > 0) {
+                            map.fitBounds(bounds, { padding: [50, 50] });
+                            var msg = '台風データを表示中 (' + count + '件) ／ 進路予想: 気象庁 + 交通部中央氣象署（台湾）';
+                            if (dtFailedCount > 0) {
+                                msg += '<span class="note">デジタル台風（発生〜現在の経路）の取得に失敗した台風が' + dtFailedCount +
+                                    '件あります。</span>';
+                            }
+                            statusEl.innerHTML = msg;
+                        } else {
+                            statusEl.textContent = '表示できる台風座標データがありませんでした。';
                         }
                     });
                 });
-        });
-    </script>
+            })
+            .catch(function (err) {
+                console.error('気象庁データ取得失敗:', err);
+                cwaPromise.then(function () {
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, { padding: [50, 50] });
+                        statusEl.innerHTML = '気象庁データの取得に失敗しました ／ 進路予想: 交通部中央氣象署（台湾）のみ表示中';
+                    } else {
+                        statusEl.textContent = '気象庁データの取得に失敗しました。';
+                    }
+                });
+            });
+    });
+</script>
 </body>
 </html>
