@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>世界の森林の種類</title>
+<title>世界の森林・生態系分布</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 html, body {
@@ -31,10 +31,11 @@ html, body {
     font-weight: bold;
     color: #222;
 }
-/* 説明 */
+/* 説明パネル
+   Leafletの＋／−ボタンより上に配置 */
 .info-panel {
     position: absolute;
-    top: 65px;
+    top: 10px;
     left: 10px;
     z-index: 1000;
     width: 285px;
@@ -52,6 +53,13 @@ html, body {
 .info-panel p {
     margin: 4px 0;
 }
+
+/* 地図の＋／−ボタン
+   説明パネルの下側に移動 */
+.leaflet-top.leaflet-left .leaflet-control-zoom {
+    margin-top: 200px;
+}
+
 /* 凡例 */
 .legend {
     background: rgba(255,255,255,0.97);
@@ -172,14 +180,23 @@ html, body {
     .legend {
         min-width: 230px;
     }
+
+    .info-panel {
+        left: 10px;
+        top: 10px;
+        width: 255px;
+    }
+
+    .leaflet-top.leaflet-left .leaflet-control-zoom {
+        margin-top: 200px;
+    }
 }
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div class="map-title">🌳 世界の森林の種類</div>
 <div class="info-panel">
-    <h3>世界の森林タイプ</h3>
+    <h3>世界の森林・生態系分布</h3>
     <p>
         世界の森林を6種類に分類し、森林以外の地域も
         草原・サバンナ・砂漠・ツンドラなどに分けて表示する。
