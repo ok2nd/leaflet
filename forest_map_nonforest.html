@@ -242,7 +242,7 @@ html, body {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* =========================================================
-   森林タイプ
+   森林地域
    緑系に偏らない、判別しやすい6色
 ========================================================= */
 const FOREST_TYPES = {
@@ -273,7 +273,7 @@ const FOREST_TYPES = {
 };
 
 /* =========================================================
-   非森林タイプ
+   非森林地域
    RESOLVE Ecoregions 2017 の森林以外の生態系を表示する。
    森林以外も「砂漠・乾燥地」「草原・サバンナ」「ツンドラ」
    などに分け、単なる白地ではなく生態系として色分けする。
@@ -399,7 +399,7 @@ const API_URL =
     "Resolve_Ecoregions/" +
     "FeatureServer/0/query";
 /* =========================================================
-   森林タイプを1種類ずつ取得
+   森林地域を1種類ずつ取得
    世界地図表示では細かすぎる境界は不要なので、
    ポリゴンを簡略化して通信量を抑える。
 ========================================================= */
@@ -485,7 +485,7 @@ async function loadForestType(biomeName) {
 }
 
 /* =========================================================
-   非森林タイプを取得
+   非森林地域を取得
 ========================================================= */
 async function loadNonForestType(biomeName) {
 
@@ -853,7 +853,7 @@ function createLegend() {
         const div = L.DomUtil.create("div", "legend");
 
         let html = `
-            <div class="legend-title">森林タイプ</div>
+            <div class="legend-title">森林地域</div>
         `;
 
         Object.keys(FOREST_TYPES).forEach(function(biomeName, index) {
