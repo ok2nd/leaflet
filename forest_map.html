@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界の森林の種類</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: "Yu Gothic", "Meiryo", Arial, sans-serif;
+}
+#map {
+    width: 100%;
+    height: 100vh;
+}
+/* タイトル */
+.map-title {
+    position: absolute;
+    top: 10px;
+    left: 60px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.96);
+    padding: 8px 14px;
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+    font-size: 18px;
+    font-weight: bold;
+    color: #222;
+}
+/* 説明 */
+.info-panel {
+    position: absolute;
+    top: 65px;
+    left: 10px;
+    z-index: 1000;
+    width: 285px;
+    background: rgba(255,255,255,0.96);
+    padding: 12px 14px;
+    border-radius: 6px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.3);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.info-panel h3 {
+    margin: 0 0 7px 0;
+    font-size: 16px;
+}
+.info-panel p {
+    margin: 4px 0;
+}
+/* 凡例 */
+.legend {
+    background: rgba(255,255,255,0.97);
+    padding: 10px 12px;
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+    min-width: 270px;
+}
+.legend-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 7px;
+}
+.legend-row {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+}
+.legend-row input {
+    margin-right: 6px;
+}
+.legend-color {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    border: 1px solid #555;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+.legend-label {
+    font-size: 12px;
+    cursor: pointer;
+}
+.legend-buttons {
+    display: flex;
+    gap: 5px;
+    margin-top: 9px;
+}
+.legend-buttons button {
+    border: 1px solid #999;
+    background: #f5f5f5;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.legend-buttons button:hover {
+    background: #e5e5e5;
+}
+.opacity-box {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid #ddd;
+}
+.opacity-box input {
+    width: 100%;
+}
+/* 読み込み表示 */
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    z-index: 2000;
+    background: rgba(255,255,255,0.97);
+    padding: 18px 25px;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    font-size: 14px;
+    text-align: center;
+}
+.loading-progress {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
+}
+.loading-error {
+    color: #c00;
+    font-size: 12px;
+}
+/* ポップアップ */
+.popup-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.popup-type {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 7px;
+}
+.popup-table {
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.popup-table td {
+    padding: 3px 5px;
+    border-bottom: 1px solid #ddd;
+}
+.popup-table td:first-child {
+    font-weight: bold;
+    color: #555;
+}
+@media (max-width: 700px) {
+    .map-title {
+        left: 55px;
+        font-size: 16px;
+    }
+    .info-panel {
+        width: 255px;
+        font-size: 11px;
+    }
+    .legend {
+        min-width: 230px;
+    }
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="map-title">🌳 世界の森林の種類</div>
+<div class="info-panel">
+    <h3>世界の森林タイプ</h3>
+    <p>
+        世界の森林を、気候帯・植生・生態系に基づいて
+        6種類の森林タイプに分類して表示する。
+    </p>
+    <p>
+        森林をクリックすると、個別のエコリージョンを確認できる。
+    </p>
+    <p style="color:#666;">
+        データ：RESOLVE Ecoregions 2017
+    </p>
+</div>
+<div id="loading" class="loading">
+    世界の森林データを読み込んでいます……
+    <div id="loadingProgress" class="loading-progress">0 / 6</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* =========================================================
+   森林タイプ
+   緑系に偏らない、判別しやすい6色
+========================================================= */
+const FOREST_TYPES = {
+    "Boreal Forests/Taiga": {
+        name: "亜寒帯林（タイガ）",
+        color: "#2878B5"
+    },
+    "Temperate Conifer Forests": {
+        name: "温帯針葉樹林",
+        color: "#8E44AD"
+    },
+    "Temperate Broadleaf & Mixed Forests": {
+        name: "温帯広葉樹・混交林",
+        color: "#117C11"
+    },
+    "Tropical & Subtropical Coniferous Forests": {
+        name: "熱帯・亜熱帯針葉樹林",
+        color: "#D6A500"
+    },
+    "Tropical & Subtropical Dry Broadleaf Forests": {
+        name: "熱帯・亜熱帯乾燥広葉樹林",
+        color: "#FF4500"
+    },
+    "Tropical & Subtropical Moist Broadleaf Forests": {
+        name: "熱帯・亜熱帯湿潤広葉樹林",
+        color: "#C23B8E"
+    }
+};
+/* =========================================================
+   Leaflet地図
+========================================================= */
+const map = L.map("map", {
+    center: [20, 0],
+    zoom: 2,
+    minZoom: 2,
+    maxZoom: 10,
+    worldCopyJump: true
+});
+/* =========================================================
+   白地図
+   森林の色を見やすくするため、これをデフォルトにする
+========================================================= */
+const whiteMap = L.tileLayer(
+    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    {
+        maxZoom: 20,
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>'
+    }
+).addTo(map);
+/* =========================================================
+   標準地図
+========================================================= */
+const osm = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom: 19,
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+    }
+);
+/* =========================================================
+   衛星画像
+========================================================= */
+const satellite = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+        maxZoom: 19,
+        attribution: "Tiles &copy; Esri"
+    }
+);
+/* =========================================================
+   森林レイヤー
+========================================================= */
+const forestLayers = {};
+/* =========================================================
+   森林透明度
+========================================================= */
+let currentOpacity = 0.72;
+/* =========================================================
+   ArcGIS REST API
+========================================================= */
+const API_URL =
+    "https://services.arcgis.com/" +
+    "P3ePLMYs2RVChkJx/" +
+    "arcgis/rest/services/" +
+    "Resolve_Ecoregions/" +
+    "FeatureServer/0/query";
+/* =========================================================
+   森林タイプを1種類ずつ取得
+   世界地図表示では細かすぎる境界は不要なので、
+   ポリゴンを簡略化して通信量を抑える。
+========================================================= */
+async function loadForestType(biomeName) {
+    const params = new URLSearchParams({
+        where:
+            "BIOME_NAME='" +
+            biomeName.replace(/'/g, "''") +
+            "'",
+        outFields:
+            "ECO_NAME,BIOME_NAME,ECO_ID,REALM",
+        returnGeometry:
+            "true",
+        outSR:
+            "4326",
+        /* 約2km程度を目安に簡略化 */
+        maxAllowableOffset:
+            "0.02",
+        /* 座標の小数桁数 */
+        geometryPrecision:
+            "4",
+        resultType:
+            "standard",
+        f:
+            "geojson"
+    });
+    const url =
+        API_URL + "?" + params.toString();
+    console.log(
+        "森林データ取得：",
+        biomeName
+    );
+    const response =
+        await fetch(url);
+    if (!response.ok) {
+        throw new Error(
+            "HTTP " + response.status
+        );
+    }
+    /*
+     * response.json()ではなくtext→JSONとする。
+     * ArcGIS側の異常レスポンスを確認しやすくする。
+     */
+    const text =
+        await response.text();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (error) {
+        console.error(
+            "ArcGISから返された内容：",
+            text.substring(0, 1000)
+        );
+        throw new Error(
+            "ArcGISから正しいJSONを取得できませんでした。"
+        );
+    }
+    if (data.error) {
+        console.error(
+            "ArcGIS Error:",
+            data.error
+        );
+        throw new Error(
+            data.error.message ||
+            "ArcGIS API Error"
+        );
+    }
+    if (
+        !data.features ||
+        !Array.isArray(data.features)
+    ) {
+        throw new Error(
+            "GeoJSONのfeaturesがありません"
+        );
+    }
+    console.log(
+        FOREST_TYPES[biomeName].name +
+        "：" +
+        data.features.length +
+        "件"
+    );
+    return data;
+}
+/* =========================================================
+   森林ポリゴンのスタイル
+========================================================= */
+function forestStyle(biomeName) {
+    const type =
+        FOREST_TYPES[biomeName];
+    return {
+        color:
+            "#444",
+        weight:
+            0.8,
+        opacity:
+            0.9,
+        fillColor:
+            type.color,
+        fillOpacity:
+            currentOpacity
+    };
+}
+/* =========================================================
+   マウスオーバー
+========================================================= */
+function highlightFeature(e) {
+    e.target.setStyle({
+        weight:
+            2,
+        color:
+            "#222",
+        fillOpacity:
+            0.9
+    });
+    e.target.bringToFront();
+}
+/* =========================================================
+   マウスアウト
+========================================================= */
+function resetHighlight(e, biomeName) {
+    e.target.setStyle(
+        forestStyle(biomeName)
+    );
+}
+/* =========================================================
+   ポップアップ
+========================================================= */
+function createPopup(feature, biomeName) {
+    const p =
+        feature.properties;
+    const type =
+        FOREST_TYPES[biomeName];
+    return `
+        <div class="popup-title">
+            ${p.ECO_NAME || "エコリージョン"}
+        </div>
+        <div
+            class="popup-type"
+            style="color:${type.color};"
+        >
+            ${type.name}
+        </div>
+        <table class="popup-table">
+            <tr>
+                <td>英語</td>
+                <td>${biomeName}</td>
+            </tr>
+            <tr>
+                <td>ECO ID</td>
+                <td>${p.ECO_ID || "-"}</td>
+            </tr>
+            <tr>
+                <td>生物地理区</td>
+                <td>${p.REALM || "-"}</td>
+            </tr>
+        </table>
+    `;
+}
+/* =========================================================
+   森林レイヤー作成
+========================================================= */
+function createForestLayer(
+    biomeName,
+    data
+) {
+    const layer =
+        L.geoJSON(
+            data,
+            {
+                style: function() {
+                    return forestStyle(
+                        biomeName
+                    );
+                },
+                onEachFeature:
+                    function(feature, layer) {
+                        layer.bindPopup(
+                            createPopup(
+                                feature,
+                                biomeName
+                            )
+                        );
+                        layer.on({
+                            mouseover:
+                                highlightFeature,
+                            mouseout:
+                                function(e) {
+                                    resetHighlight(
+                                        e,
+                                        biomeName
+                                    );
+                                }
+                        });
+                    }
+            }
+        );
+    forestLayers[biomeName] =
+        layer;
+    layer.addTo(map);
+}
+/* =========================================================
+   森林データ読み込み
+========================================================= */
+async function loadAllForests() {
+    const biomeNames =
+        Object.keys(
+            FOREST_TYPES
+        );
+    let completed = 0;
+    const progress =
+        document.getElementById(
+            "loadingProgress"
+        );
+    /*
+     * 6種類を並列取得
+     */
+    const results =
+        await Promise.all(
+            biomeNames.map(
+                async function(biomeName) {
+                    const data =
+                        await loadForestType(
+                            biomeName
+                        );
+                    completed++;
+                    progress.textContent =
+                        completed + " / 6";
+                    return {
+                        biomeName:
+                            biomeName,
+                        data:
+                            data
+                    };
+                }
+            )
+        );
+    /*
+     * Leafletレイヤー作成
+     */
+    results.forEach(
+        function(result) {
+            createForestLayer(
+                result.biomeName,
+                result.data
+            );
+        }
+    );
+    createLegend();
+    document
+        .getElementById("loading")
+        .style.display = "none";
+    console.log(
+        "世界の森林データ読み込み完了"
+    );
+}
+/* =========================================================
+   読み込み実行・エラー処理
+========================================================= */
+loadAllForests()
+    .catch(function(error) {
+        console.error(
+            "森林データ読み込みエラー：",
+            error
+        );
+        const loading =
+            document.getElementById(
+                "loading"
+            );
+        loading.innerHTML =
+            "森林データを読み込めませんでした。" +
+            "<br><br>" +
+            "<span class='loading-error'>" +
+            error.message +
+            "</span>" +
+            "<br><br>" +
+            "<span style='font-size:11px;color:#666;'>" +
+            "ブラウザのコンソールも確認してください。" +
+            "</span>";
+    });
+/* =========================================================
+   凡例
+========================================================= */
+function createLegend() {
+    const legend =
+        L.control({
+            position:
+                "bottomright"
+        });
+    legend.onAdd =
+        function() {
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "legend"
+                );
+            let html = `
+                <div class="legend-title">
+                    森林タイプ
+                </div>
+            `;
+            Object.keys(
+                FOREST_TYPES
+            ).forEach(
+                function(
+                    biomeName,
+                    index
+                ) {
+                    const type =
+                        FOREST_TYPES[
+                            biomeName
+                        ];
+                    html += `
+                        <div class="legend-row">
+                            <input
+                                type="checkbox"
+                                id="forest-${index}"
+                                data-biome="${biomeName}"
+                                checked
+                            >
+                            <span
+                                class="legend-color"
+                                style="
+                                    background:${type.color};
+                                "
+                            ></span>
+                            <label
+                                class="legend-label"
+                                for="forest-${index}"
+                            >
+                                ${type.name}
+                            </label>
+                        </div>
+                    `;
+                }
+            );
+            html += `
+                <div class="legend-buttons">
+                    <button
+                        type="button"
+                        id="showAll"
+                    >
+                        全て表示
+                    </button>
+                    <button
+                        type="button"
+                        id="hideAll"
+                    >
+                        全て非表示
+                    </button>
+                </div>
+                <div class="opacity-box">
+                    <div>
+                        森林レイヤー透明度
+                    </div>
+                    <input
+                        type="range"
+                        id="opacitySlider"
+                        min="0"
+                        max="100"
+                        value="72"
+                    >
+                </div>
+            `;
+            div.innerHTML =
+                html;
+            L.DomEvent
+                .disableClickPropagation(
+                    div
+                );
+            /* ON / OFF */
+            div
+                .querySelectorAll(
+                    'input[type="checkbox"]'
+                )
+                .forEach(
+                    function(checkbox) {
+                        checkbox.addEventListener(
+                            "change",
+                            function() {
+                                const biome =
+                                    this.dataset.biome;
+                                if (this.checked) {
+                                    forestLayers[
+                                        biome
+                                    ].addTo(map);
+                                } else {
+                                    map.removeLayer(
+                                        forestLayers[
+                                            biome
+                                        ]
+                                    );
+                                }
+                            }
+                        );
+                    }
+                );
+            /* 全て表示 */
+            div
+                .querySelector(
+                    "#showAll"
+                )
+                .addEventListener(
+                    "click",
+                    function() {
+                        Object.keys(
+                            FOREST_TYPES
+                        ).forEach(
+                            function(biome) {
+                                forestLayers[
+                                    biome
+                                ].addTo(map);
+                            }
+                        );
+                        div
+                            .querySelectorAll(
+                                'input[type="checkbox"]'
+                            )
+                            .forEach(
+                                function(input) {
+                                    input.checked =
+                                        true;
+                                }
+                            );
+                    }
+                );
+            /* 全て非表示 */
+            div
+                .querySelector(
+                    "#hideAll"
+                )
+                .addEventListener(
+                    "click",
+                    function() {
+                        Object.keys(
+                            FOREST_TYPES
+                        ).forEach(
+                            function(biome) {
+                                map.removeLayer(
+                                    forestLayers[
+                                        biome
+                                    ]
+                                );
+                            }
+                        );
+                        div
+                            .querySelectorAll(
+                                'input[type="checkbox"]'
+                            )
+                            .forEach(
+                                function(input) {
+                                    input.checked =
+                                        false;
+                                }
+                            );
+                    }
+                );
+            /* 透明度 */
+            div
+                .querySelector(
+                    "#opacitySlider"
+                )
+                .addEventListener(
+                    "input",
+                    function() {
+                        currentOpacity =
+                            Number(
+                                this.value
+                            ) / 100;
+                        Object.keys(
+                            forestLayers
+                        ).forEach(
+                            function(biome) {
+                                forestLayers[
+                                    biome
+                                ].setStyle({
+                                    fillOpacity:
+                                        currentOpacity
+                                });
+                            }
+                        );
+                    }
+                );
+            return div;
+        };
+    legend.addTo(map);
+}
+/* =========================================================
+   地図タイル切り替え
+   デフォルトは白地図
+========================================================= */
+L.control.layers(
+    {
+        "白地図": whiteMap,
+        "標準地図": osm,
+        "衛星画像": satellite
+    },
+    null,
+    {
+        position:
+            "topright"
+    }
+).addTo(map);
+/* =========================================================
+   スケール
+========================================================= */
+L.control.scale({
+    imperial:
+        false
+}).addTo(map);
+/* =========================================================
+   初期表示範囲
+========================================================= */
+map.fitBounds(
+    [
+        [-55, -180],
+        [83, 180]
+    ],
+    {
+        padding:
+            [10, 10]
+    }
+);
+</script>
+</body>
+</html>
