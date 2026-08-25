@@ -32,32 +32,58 @@ html, body {
     color: #222;
 }
 /* 説明パネル
-   Leafletの＋／−ボタンより上に配置 */
+   Leafletの左上コントロールとして使用する。
+   横幅は内容に合わせて自動調整する。 */
 .info-panel {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1000;
-    width: 285px;
+    position: relative;
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    box-sizing: border-box;
     background: rgba(255,255,255,0.96);
-    padding: 12px 14px;
+    padding: 7px 10px;
     border-radius: 6px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.3);
     font-size: 12px;
-    line-height: 1.6;
+    line-height: 1.45;
 }
 .info-panel h3 {
-    margin: 0 0 7px 0;
+    margin: 0 0 3px 0;
     font-size: 16px;
 }
 .info-panel p {
-    margin: 4px 0;
+    margin: 2px 0;
 }
 
-/* 地図の＋／−ボタン
-   説明パネルの下側に移動 */
-.leaflet-top.leaflet-left .leaflet-control-zoom {
-    margin-top: 200px;
+
+/* 凡例切り替えボタン */
+.legend-toggle-control a {
+    display: block;
+    width: 82px;
+    min-width: 82px;
+    box-sizing: border-box;
+    padding: 0;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    color: #222;
+    background: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.legend-toggle-control a:hover {
+    background: #f4f4f4;
+}
+
+/* スマホでは地図を優先して凡例を初期非表示 */
+@media (max-width: 700px) {
+    .legend {
+        display: none;
+    }
 }
 
 /* 凡例 */
@@ -175,6 +201,7 @@ html, body {
     }
     .info-panel {
         width: 255px;
+        padding: 6px 9px;
         font-size: 11px;
     }
     .legend {
@@ -197,13 +224,6 @@ html, body {
 <div id="map"></div>
 <div class="info-panel">
     <h3>世界の森林・生態系分布</h3>
-    <p>
-        世界の森林を6種類に分類し、森林以外の地域も
-        草原・サバンナ・砂漠・ツンドラなどに分けて表示する。
-    </p>
-    <p>
-        森林をクリックすると、個別のエコリージョンを確認できる。
-    </p>
     <p style="color:#666;">
         データ：RESOLVE Ecoregions 2017
     </p>
@@ -215,7 +235,7 @@ html, body {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* =========================================================
-   森林タイプ
+   森林地域
    緑系に偏らない、判別しやすい6色
 ========================================================= */
 const FOREST_TYPES = {
@@ -246,7 +266,7 @@ const FOREST_TYPES = {
 };
 
 /* =========================================================
-   非森林タイプ
+   非森林地域
    RESOLVE Ecoregions 2017 の森林以外の生態系を表示する。
    森林以外も「砂漠・乾燥地」「草原・サバンナ」「ツンドラ」
    などに分け、単なる白地ではなく生態系として色分けする。
@@ -296,8 +316,31 @@ const map = L.map("map", {
     zoom: 2,
     minZoom: 2,
     maxZoom: 10,
-    worldCopyJump: true
+    worldCopyJump: true,
+    zoomControl: false
 });
+/* =========================================================
+   左上の説明パネルと＋／−ボタン
+   どちらもLeafletの同じコントロール領域に置く。
+   先に説明パネル、後にズームを追加することで、
+   ＋／−ボタンが説明パネルのすぐ下に自動配置される。
+========================================================= */
+
+const infoControl = L.control({
+    position: "topleft"
+});
+
+infoControl.onAdd = function() {
+    return document.querySelector(".info-panel");
+};
+
+infoControl.addTo(map);
+
+L.control.zoom({
+    position: "topleft"
+}).addTo(map);
+
+
 /* =========================================================
    白地図
    森林の色を見やすくするため、これをデフォルトにする
@@ -349,7 +392,7 @@ const API_URL =
     "Resolve_Ecoregions/" +
     "FeatureServer/0/query";
 /* =========================================================
-   森林タイプを1種類ずつ取得
+   森林地域を1種類ずつ取得
    世界地図表示では細かすぎる境界は不要なので、
    ポリゴンを簡略化して通信量を抑える。
 ========================================================= */
@@ -435,7 +478,7 @@ async function loadForestType(biomeName) {
 }
 
 /* =========================================================
-   非森林タイプを取得
+   非森林地域を取得
 ========================================================= */
 async function loadNonForestType(biomeName) {
 
@@ -758,6 +801,7 @@ async function loadAllForests() {
     });
 
     createLegend();
+    createLegendToggle();
 
     document.getElementById("loading").style.display = "none";
 
@@ -802,7 +846,7 @@ function createLegend() {
         const div = L.DomUtil.create("div", "legend");
 
         let html = `
-            <div class="legend-title">森林タイプ</div>
+            <div class="legend-title">森林地域</div>
         `;
 
         Object.keys(FOREST_TYPES).forEach(function(biomeName, index) {
@@ -954,6 +998,88 @@ function createLegend() {
 
     legend.addTo(map);
 }
+
+/* =========================================================
+   凡例の表示・非表示切り替え
+   スマホでは初期状態を非表示にする
+========================================================= */
+
+function createLegendToggle() {
+
+    const toggleControl = L.control({
+        position: "topright"
+    });
+
+    toggleControl.onAdd = function() {
+
+        const div = L.DomUtil.create(
+            "div",
+            "leaflet-bar legend-toggle-control"
+        );
+
+        const link = L.DomUtil.create(
+            "a",
+            "",
+            div
+        );
+
+        link.href = "#";
+        link.setAttribute(
+            "role",
+            "button"
+        );
+
+        const legendElement =
+            document.querySelector(".legend");
+
+        const isMobile =
+            window.matchMedia(
+                "(max-width: 700px)"
+            ).matches;
+
+        let visible =
+            !isMobile;
+
+        function updateButton() {
+
+            legendElement.style.display =
+                visible ? "" : "none";
+
+            link.textContent =
+                visible
+                    ? "凡例 非表示"
+                    : "凡例 表示";
+
+            link.title =
+                visible
+                    ? "凡例を非表示"
+                    : "凡例を表示";
+        }
+
+        updateButton();
+
+        L.DomEvent.disableClickPropagation(div);
+
+        L.DomEvent.on(
+            link,
+            "click",
+            function(e) {
+
+                L.DomEvent.preventDefault(e);
+
+                visible =
+                    !visible;
+
+                updateButton();
+            }
+        );
+
+        return div;
+    };
+
+    toggleControl.addTo(map);
+}
+
 
 /* =========================================================
    地図タイル切り替え
