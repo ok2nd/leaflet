@@ -100,22 +100,19 @@ button:hover {
 <div class="map-controls">
     <div class="control-row">
         <button id="locationBtn">◎ 現在地</button>
-        <button id="playBtn">▶ 再生</button>
+        <button id="japanBtn">全国表示</button>
     </div>
 
     <input id="timeSlider" type="range">
 
     <div class="time-label">
-        <span id="pastLabel">過去</span>
+        <span id="pastLabel">過去2時間</span>
         <span>現在</span>
-        <span id="futureLabel">未来</span>
     </div>
 
     <div id="timeText">現在</div>
 
-    <div class="status" id="status">
-        RainViewerデータを取得中...
-    </div>
+    <div class="status" id="status">RainViewer</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -124,27 +121,15 @@ button:hover {
 /*
 =========================================================
 Leaflet 雨雲レーダー
-・OpenStreetMapのみ
-・RainViewerのみ
-・現在地
-・過去～現在
-・RainViewer APIが未来フレームを返す場合は未来も表示
+RainViewerの「過去2時間」データのみを使用。
 =========================================================
 */
 
 const map = L.map("map", {
     zoomControl: true,
     attributionControl: true,
-    minZoom: 2,
-    maxZoom: 7
+    minZoom: 2
 }).setView([36.5, 138.0], 5);
-
-
-/*
-=========================================================
-OpenStreetMap
-=========================================================
-*/
 
 L.tileLayer(
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -158,28 +143,17 @@ L.tileLayer(
 
 /*
 =========================================================
-変数
+RainViewer
 =========================================================
 */
 
-let rainViewerHost = "";
 let rainViewerFrames = [];
+let rainViewerHost = "";
 let rainLayer = null;
 
 const slider = document.getElementById("timeSlider");
 const timeText = document.getElementById("timeText");
-const statusText = document.getElementById("status");
-const playBtn = document.getElementById("playBtn");
 
-let playing = false;
-let playTimer = null;
-
-
-/*
-=========================================================
-RainViewerデータ取得
-=========================================================
-*/
 
 async function loadRainViewer() {
 
@@ -193,130 +167,77 @@ async function loadRainViewer() {
         );
 
         if (!response.ok) {
-            throw new Error("RainViewer API error");
+            throw new Error(
+                "HTTP " + response.status
+            );
         }
 
         const data = await response.json();
 
-        rainViewerHost = data.host || "";
+        if (!data.host) {
+            throw new Error("RainViewer hostが取得できません");
+        }
 
-        const past =
-            data.radar && Array.isArray(data.radar.past)
-                ? data.radar.past
-                : [];
+        if (!data.radar || !data.radar.past) {
+            throw new Error("RainViewer radar.pastが取得できません");
+        }
 
-        /*
-         * APIがnowcastを返している場合だけ未来を追加。
-         * 現在のRainViewer公開APIでは将来フレームが
-         * 提供されない場合があるため、存在を確認してから使用する。
-         */
-        const nowcast =
-            data.radar && Array.isArray(data.radar.nowcast)
-                ? data.radar.nowcast
-                : [];
-
-        rainViewerFrames =
-            past.concat(nowcast);
-
-        rainViewerFrames.sort(
-            (a, b) => a.time - b.time
-        );
+        rainViewerHost = data.host;
+        rainViewerFrames = data.radar.past.slice();
 
         if (!rainViewerFrames.length) {
             throw new Error("RainViewerのフレームがありません");
         }
 
-        configureSlider();
+        rainViewerFrames.sort(
+            (a, b) => a.time - b.time
+        );
+
+        /*
+         * 最新フレームを「現在」とする。
+         * 未来フレームは使用しない。
+         */
+        const latest =
+            rainViewerFrames[
+                rainViewerFrames.length - 1
+            ].time;
+
+        const oldest =
+            rainViewerFrames[0].time;
+
+        const minOffset =
+            Math.round(
+                (oldest - latest) / 60
+            );
+
+        slider.min = minOffset;
+        slider.max = 0;
+        slider.step = 10;
+        slider.value = 0;
+
+        document.getElementById("pastLabel").textContent =
+            Math.round(Math.abs(minOffset) / 60) + "時間前";
 
         updateRainLayer();
 
-        if (nowcast.length > 0) {
-
-            statusText.textContent =
-                "RainViewer：過去2時間＋未来（API提供分）";
-
-        } else {
-
-            statusText.textContent =
-                "RainViewer：過去2時間（現在、未来フレームなし）";
-        }
-
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "RainViewer:",
+            error
+        );
 
-        statusText.textContent =
+        document.getElementById("status").textContent =
             "RainViewerのデータ取得に失敗しました。";
+
     }
 }
 
 
-/*
-=========================================================
-スライダー設定
-=========================================================
-*/
-
-function configureSlider() {
-
-    const first =
-        rainViewerFrames[0].time;
-
-    const last =
-        rainViewerFrames[
-            rainViewerFrames.length - 1
-        ].time;
-
-    const latest =
-        rainViewerFrames[
-            rainViewerFrames.length - 1
-        ].time;
-
-    /*
-     * スライダー値は「現在の最新フレームからの分数」
-     */
-    const minOffset =
-        Math.round(
-            (first - latest) / 60
-        );
-
-    const maxOffset =
-        Math.round(
-            (last - latest) / 60
-        );
-
-    slider.min = minOffset;
-    slider.max = maxOffset;
-    slider.step = 10;
-
-    slider.value = maxOffset;
-
-    document.getElementById("pastLabel").textContent =
-        Math.round(Math.abs(minOffset) / 60) + "時間前";
-
-    if (maxOffset > 0) {
-
-        document.getElementById("futureLabel").textContent =
-            "+" + maxOffset + "分";
-
-    } else {
-
-        document.getElementById("futureLabel").textContent =
-            "現在";
-    }
-}
-
-
-/*
-=========================================================
-対象フレーム取得
-=========================================================
-*/
-
-function getSelectedFrame() {
+function updateRainLayer() {
 
     if (!rainViewerFrames.length) {
-        return null;
+        return;
     }
 
     const latest =
@@ -334,7 +255,7 @@ function getSelectedFrame() {
     let minDiff =
         Infinity;
 
-    rainViewerFrames.forEach(frame => {
+    rainViewerFrames.forEach(function(frame) {
 
         const diff =
             Math.abs(frame.time - target);
@@ -346,29 +267,14 @@ function getSelectedFrame() {
         }
     });
 
-    return selected;
-}
-
-
-/*
-=========================================================
-RainViewerタイル
-=========================================================
-*/
-
-function updateRainLayer() {
-
-    const selected =
-        getSelectedFrame();
-
-    if (!selected) {
-        return;
-    }
-
     if (rainLayer) {
         map.removeLayer(rainLayer);
     }
 
+    /*
+     * RainViewer公式の host + path 方式。
+     * RainViewerの現在の公開API仕様に合わせる。
+     */
     const url =
         rainViewerHost +
         selected.path +
@@ -377,8 +283,16 @@ function updateRainLayer() {
     rainLayer =
         L.tileLayer(url, {
             opacity: 0.65,
-            maxZoom: 7,
             tileSize: 256,
+
+            /*
+             * RainViewer側のネイティブ最大ズームは7。
+             * maxNativeZoom=7のタイルを、Leafletでは19まで
+             * 拡大表示できるようにする。
+             */
+            maxNativeZoom: 7,
+            maxZoom: 19,
+
             attribution:
                 '<a href="https://www.rainviewer.com/" target="_blank">RainViewer</a>'
         }).addTo(map);
@@ -386,7 +300,12 @@ function updateRainLayer() {
     const date =
         new Date(selected.time * 1000);
 
-    timeText.textContent =
+    const offset =
+        Math.round(
+            (selected.time - latest) / 60
+        );
+
+    let text =
         date.toLocaleString(
             "ja-JP",
             {
@@ -397,45 +316,26 @@ function updateRainLayer() {
             }
         );
 
-    const latest =
-        rainViewerFrames[
-            rainViewerFrames.length - 1
-        ].time;
+    if (offset === 0) {
 
-    const offset =
-        Math.round(
-            (selected.time - latest) / 60
-        );
-
-    if (offset > 0) {
-
-        timeText.textContent +=
-            "  （+" + offset + "分）";
-
-    } else if (offset < 0) {
-
-        timeText.textContent +=
-            "  （" + offset + "分）";
+        text += "（現在）";
 
     } else {
 
-        timeText.textContent +=
-            "  （現在）";
+        text +=
+            "（" + offset + "分）";
     }
+
+    timeText.textContent = text;
 }
 
 
-/*
-=========================================================
-スライダー
-=========================================================
-*/
-
-slider.addEventListener("input", function() {
-
-    updateRainLayer();
-
-});
+slider.addEventListener(
+    "input",
+    function() {
+        updateRainLayer();
+    }
+);
 
 
 /*
@@ -445,113 +345,95 @@ slider.addEventListener("input", function() {
 */
 
 document.getElementById("locationBtn")
-    .addEventListener("click", function() {
+    .addEventListener(
+        "click",
+        function() {
 
-        if (!navigator.geolocation) {
+            const button = this;
 
-            alert(
-                "このブラウザでは現在地取得に対応していません。"
-            );
-
-            return;
-        }
-
-        const button = this;
-
-        button.textContent = "取得中...";
-
-        navigator.geolocation.getCurrentPosition(
-
-            function(position) {
-
-                const lat =
-                    position.coords.latitude;
-
-                const lon =
-                    position.coords.longitude;
-
-                map.setView(
-                    [lat, lon],
-                    10,
-                    {
-                        animate: true
-                    }
-                );
-
-                L.marker([lat, lon])
-                    .addTo(map)
-                    .bindPopup("現在地")
-                    .openPopup();
-
-                button.textContent =
-                    "◎ 現在地";
-            },
-
-            function(error) {
-
-                console.error(error);
+            if (!navigator.geolocation) {
 
                 alert(
-                    "現在地を取得できませんでした。\n" +
-                    "ブラウザの位置情報許可を確認してください。"
+                    "このブラウザでは現在地取得に対応していません。"
                 );
 
-                button.textContent =
-                    "◎ 現在地";
-            },
-
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 60000
+                return;
             }
-        );
-    });
+
+            button.textContent = "取得中...";
+
+            navigator.geolocation.getCurrentPosition(
+
+                function(position) {
+
+                    const lat =
+                        position.coords.latitude;
+
+                    const lon =
+                        position.coords.longitude;
+
+                    map.setView(
+                        [lat, lon],
+                        10,
+                        {
+                            animate: true
+                        }
+                    );
+
+                    /*
+                     * マーカーだけ表示。
+                     * 吹き出しは表示しない。
+                     */
+                    L.marker([lat, lon])
+                        .addTo(map);
+
+                    button.textContent =
+                        "◎ 現在地";
+                },
+
+                function(error) {
+
+                    console.error(error);
+
+                    alert(
+                        "現在地を取得できませんでした。\n" +
+                        "ブラウザの位置情報許可を確認してください。"
+                    );
+
+                    button.textContent =
+                        "◎ 現在地";
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        }
+    );
 
 
 /*
 =========================================================
-再生
+全国表示
 =========================================================
 */
 
-playBtn.addEventListener("click", function() {
+document.getElementById("japanBtn")
+    .addEventListener(
+        "click",
+        function() {
 
-    playing = !playing;
-
-    if (playing) {
-
-        this.textContent = "⏸ 停止";
-
-        playTimer =
-            setInterval(function() {
-
-                let value =
-                    Number(slider.value);
-
-                value += Number(slider.step);
-
-                if (
-                    value >
-                    Number(slider.max)
-                ) {
-                    value =
-                        Number(slider.min);
+            map.setView(
+                [36.5, 138.0],
+                5,
+                {
+                    animate: true
                 }
-
-                slider.value = value;
-
-                updateRainLayer();
-
-            }, 700);
-
-    } else {
-
-        this.textContent = "▶ 再生";
-
-        clearInterval(playTimer);
-    }
-});
+            );
+        }
+    );
 
 
 /*
