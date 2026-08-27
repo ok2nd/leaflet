@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>偏西風(ジェット気流)の流れ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root{
+    --bg: #0a0f1a;
+    --panel: #10182a;
+    --line: #1c2740;
+    --ink: #e7edf7;
+    --sub: #8ea0c0;
+    --polar: #5ec8ff;
+    --polar-glow: rgba(94,200,255,0.55);
+    --sub-jet: #ffb454;
+    --accent: #7de0c1;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg);
+    color:var(--ink);
+    font-family: "Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  }
+  #wrap{ position:relative; width:100%; height:100vh; min-height:520px; }
+  #map{ position:absolute; inset:0; }
+  .leaflet-container{ background:var(--bg) !important; }
+
+  #header{
+    position:absolute; top:0; left:0; right:0; z-index:900;
+    padding:16px 18px 12px;
+    background:linear-gradient(180deg, rgba(10,15,26,0.92) 0%, rgba(10,15,26,0.0) 100%);
+    pointer-events:none;
+  }
+  #header h1{
+    margin:0; font-size:17px; font-weight:700; letter-spacing:.02em;
+    display:flex; align-items:center; gap:8px;
+  }
+  #header h1 .dot{ width:8px; height:8px; border-radius:50%; background:var(--polar); box-shadow:0 0 8px var(--polar-glow); }
+  #header p{ margin:4px 0 0; font-size:12px; color:var(--sub); }
+
+  #legend{
+    position:absolute; right:14px; bottom:14px; z-index:900;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px; font-size:11.5px; color:var(--sub); width:230px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  #legend .row{ display:flex; align-items:center; gap:8px; margin:6px 0; }
+  #legend .swatch{ width:22px; height:0; border-top:3px dashed; flex-shrink:0; }
+  #legend .swatch.polar{ border-color:var(--polar); }
+  #legend .swatch.sub{ border-color:var(--sub-jet); }
+  #legend .title{ color:var(--ink); font-weight:700; font-size:12px; margin-bottom:2px; }
+  #legend .note{ margin-top:8px; padding-top:8px; border-top:1px solid var(--line); line-height:1.5; }
+  #legend a{ color:var(--accent); text-decoration:none; }
+  #legend a:hover{ text-decoration:underline; }
+
+  #badge{
+    position:absolute; left:14px; bottom:14px; z-index:900;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:8px 12px; font-size:11px; color:var(--sub);
+  }
+  #badge b{ color:var(--ink); }
+
+  .jet-arrow{
+    color: inherit;
+    font-size:14px;
+    line-height:1;
+    text-shadow:0 0 6px currentColor;
+    pointer-events:none;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.6));
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="map"></div>
+
+  <div id="header">
+    <h1><span class="dot"></span>偏西風(ジェット気流)の流れ ― 模式図</h1>
+    <p>2026年8月下旬・北半球は夏/南半球は冬の典型的な位置関係をもとにした概念図です</p>
+  </div>
+
+  <div id="legend">
+    <div class="title">凡例</div>
+    <div class="row"><span class="swatch polar"></span>寒帯前線ジェット(強め・南半球側は冬で強化)</div>
+    <div class="row"><span class="swatch sub"></span>亜熱帯ジェット(相対的に弱め)</div>
+    <div class="note">
+      矢印は流れの向き(常に西→東)。破線は流れの向きに動きます。<br><br>
+      ※実測のリアルタイム風速データではなく、季節的な典型パターンを示す模式図です。<br>
+      実際の現在の観測・予測図は
+      <a href="https://earth.nullschool.net/#current/wind/isobaric/250hPa/orthographic" target="_blank" rel="noopener">earth.nullschool.net</a>
+      や
+      <a href="https://www.windy.com/-Jet-stream-jetstream?jetstream" target="_blank" rel="noopener">windy.com</a>
+      で見られます。
+    </div>
+  </div>
+
+  <div id="badge">基準高度: <b>約250hPa (上空9〜12km)</b></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  const map = L.map('map', {
+    worldCopyJump: true,
+    zoomControl: true,
+    minZoom: 2,
+    maxZoom: 6
+  }).setView([25, 20], 2);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 8
+  }).addTo(map);
+
+  // ---- helper: initial bearing between two lonlat points (degrees, 0=N, cw) ----
+  function bearing(lon1, lat1, lon2, lat2){
+    const toRad = d => d * Math.PI/180;
+    const toDeg = r => r * 180/Math.PI;
+    const phi1 = toRad(lat1), phi2 = toRad(lat2);
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(phi2);
+    const x = Math.cos(phi1)*Math.sin(phi2) - Math.sin(phi1)*Math.cos(phi2)*Math.cos(dLon);
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
+  }
+
+  // ---- schematic jet stream paths: [lon, lat] control points, west -> east ----
+  // Northern hemisphere polar jet: late-summer pattern, generally poleward & wavier
+  const polarNH = [
+    [-180,52],[-160,55],[-140,58],[-120,54],[-100,48],[-80,45],[-60,50],
+    [-40,58],[-20,60],[0,56],[20,50],[40,46],[60,48],[80,54],
+    [100,58],[120,55],[140,50],[160,52],[180,52]
+  ];
+
+  // Northern hemisphere subtropical jet: weaker, lower latitude, less wavy
+  const subNH = [
+    [-180,28],[-150,27],[-120,26],[-90,28],[-60,30],[-30,29],
+    [0,27],[30,26],[60,28],[90,30],[120,29],[150,27],[180,28]
+  ];
+
+  // Southern hemisphere polar jet: SH winter -> stronger & fairly zonal, slight waviness
+  const polarSH = [
+    [-180,-48],[-150,-50],[-120,-52],[-90,-49],[-60,-47],[-30,-50],
+    [0,-52],[30,-50],[60,-48],[90,-51],[120,-53],[150,-50],[180,-48]
+  ];
+
+  function toLatLngs(pts){ return pts.map(p => [p[1], p[0]]); }
+
+  function addJet(pts, color, weight, dash, glow){
+    const latlngs = toLatLngs(pts);
+    const line = L.polyline(latlngs, {
+      color: color,
+      weight: weight,
+      opacity: 0.95,
+      dashArray: dash,
+      lineCap: 'round',
+      lineJoin: 'round',
+      className: 'jet-line'
+    }).addTo(map);
+
+    if (line._path){
+      line._path.style.filter = `drop-shadow(0 0 ${glow}px ${color})`;
+    }
+
+    // animate marching dashes to show west->east flow
+    let offset = 0;
+    function animate(){
+      offset = (offset - 1.1 + 1000) % 1000;
+      if (line._path) line._path.style.strokeDashoffset = offset;
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+    // directional arrow markers at intervals
+    for (let i = 1; i < pts.length - 1; i += 2){
+      const [lon1, lat1] = pts[i-1];
+      const [lon2, lat2] = pts[i+1];
+      const [lon, lat] = pts[i];
+      const brg = bearing(lon1, lat1, lon2, lat2);
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="jet-arrow" style="color:${color}; transform:rotate(${brg}deg)">&#9650;</div>`,
+        iconSize: [14,14],
+        iconAnchor: [7,7]
+      });
+      L.marker([lat, lon], { icon, interactive:false }).addTo(map);
+    }
+    return line;
+  }
+
+  addJet(polarNH, '#5ec8ff', 3.5, '14,12', 6);
+  addJet(subNH,   '#ffb454', 2.2, '10,10', 4);
+  addJet(polarSH, '#5ec8ff', 4,   '14,12', 7);
+
+})();
+</script>
+</body>
+</html>

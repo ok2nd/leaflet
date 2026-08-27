@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>偏西風(ジェット気流)ライブビュー</title>
+<style>
+  :root{
+    --bg:#0a0f1a; --panel:#10182a; --line:#1c2740;
+    --ink:#e7edf7; --sub:#8ea0c0; --accent:#5ec8ff;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif; }
+  #wrap{ position:relative; width:100%; height:100vh; min-height:520px; display:flex; flex-direction:column; }
+
+  #header{
+    padding:14px 18px; background:var(--panel); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  #header .titlebox h1{ margin:0; font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  #header .titlebox h1 .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  #header .titlebox p{ margin:3px 0 0; font-size:11.5px; color:var(--sub); }
+
+  #openlink{
+    font-size:12px; color:var(--bg); background:var(--accent); text-decoration:none;
+    padding:8px 14px; border-radius:8px; font-weight:700; white-space:nowrap;
+  }
+  #openlink:hover{ opacity:.9; }
+
+  #frame-area{ position:relative; flex:1; }
+  iframe{ width:100%; height:100%; border:0; display:block; background:#000; }
+
+  #fallback{
+    position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; text-align:center; padding:24px; background:var(--bg);
+  }
+  #fallback.show{ display:flex; }
+  #fallback p{ color:var(--sub); font-size:13px; max-width:420px; line-height:1.6; margin:0; }
+  #fallback a.btn{
+    font-size:13px; color:var(--bg); background:var(--accent); text-decoration:none;
+    padding:10px 18px; border-radius:8px; font-weight:700;
+  }
+
+  #footer{
+    padding:8px 18px; background:var(--panel); border-top:1px solid var(--line);
+    font-size:11px; color:var(--sub);
+  }
+  #footer a{ color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="header">
+    <div class="titlebox">
+      <h1><span class="dot"></span>偏西風(ジェット気流)ライブビュー</h1>
+      <p>earth.nullschool.net の実測・実況ベース風データ(高度約250hPa)をそのまま埋め込み表示</p>
+    </div>
+    <a id="openlink" href="https://earth.nullschool.net/#current/wind/isobaric/250hPa/orthographic" target="_blank" rel="noopener">新しいタブで開く ↗</a>
+  </div>
+
+  <div id="frame-area">
+    <iframe
+      id="ns-frame"
+      src="https://earth.nullschool.net/#current/wind/isobaric/250hPa/orthographic"
+      title="earth.nullschool.net live jet stream viewer"
+      referrerpolicy="no-referrer-when-downgrade"
+      loading="eager">
+    </iframe>
+    <div id="fallback">
+      <p>このサイトはブラウザのセキュリティ設定(X-Frame-Options / CSP)により、埋め込み表示がブロックされる場合があります。<br>その場合は下のボタンから直接開いてください。</p>
+      <a class="btn" href="https://earth.nullschool.net/#current/wind/isobaric/250hPa/orthographic" target="_blank" rel="noopener">earth.nullschool.net を開く ↗</a>
+    </div>
+  </div>
+
+  <div id="footer">
+    ドラッグで回転・スクロールで拡大縮小できます。データは <a href="https://earth.nullschool.net" target="_blank" rel="noopener">earth.nullschool.net</a>(GFSモデル)提供、数時間おきに更新。250hPa面はジェット気流がよく現れる高度の目安です。
+  </div>
+</div>
+
+<script>
+  // If the iframe fails to load (blocked by X-Frame-Options / CSP), show the fallback panel.
+  const frame = document.getElementById('ns-frame');
+  const fallback = document.getElementById('fallback');
+  let loaded = false;
+
+  frame.addEventListener('load', () => { loaded = true; });
+
+  setTimeout(() => {
+    // Heuristic: if load event never meaningfully fired or content is blocked,
+    // most browsers still fire 'load' for a blocked frame (blank page), so we
+    // also try to detect blank/blocked access.
+    try {
+      // Cross-origin access will throw; that's expected and fine (frame is likely fine).
+      const doc = frame.contentDocument;
+      if (doc && doc.body && doc.body.innerHTML.trim() === '') {
+        fallback.classList.add('show');
+      }
+    } catch (e) {
+      // Cross-origin access blocked = frame likely loaded correctly (can't inspect, that's normal).
+    }
+  }, 3500);
+
+  frame.addEventListener('error', () => fallback.classList.add('show'));
+</script>
+</body>
+</html>
