@@ -112,7 +112,7 @@ button:hover {
 
     <div id="timeText">現在</div>
 
-    <div class="status" id="status">RainViewer</div>
+    <div class="status" id="status"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -150,6 +150,7 @@ RainViewer
 let rainViewerFrames = [];
 let rainViewerHost = "";
 let rainLayer = null;
+let locationMarker = null;
 
 const slider = document.getElementById("timeSlider");
 const timeText = document.getElementById("timeText");
@@ -384,8 +385,13 @@ document.getElementById("locationBtn")
                      * マーカーだけ表示。
                      * 吹き出しは表示しない。
                      */
-                    L.marker([lat, lon])
-                        .addTo(map);
+                    if (locationMarker) {
+                        map.removeLayer(locationMarker);
+                    }
+
+                    locationMarker =
+                        L.marker([lat, lon])
+                            .addTo(map);
 
                     button.textContent =
                         "◎ 現在地";
@@ -424,6 +430,11 @@ document.getElementById("japanBtn")
     .addEventListener(
         "click",
         function() {
+
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+                locationMarker = null;
+            }
 
             map.setView(
                 [36.5, 138.0],
