@@ -833,20 +833,10 @@ function updateLocateMarker(pos) {
 	const acc = pos.coords.accuracy;
 
 	if (!firstFix) {
-		// ============================================================
-		// 現在地ボタンを押したときの最低ズーム値
-		// この「10」を変更すると、現在地表示時の境界値を変更できる。
-		// 例：8にすると「ズーム8未満なら8」、12にすると「ズーム12未満なら12」
-		// ============================================================
-		const MIN_LOCATION_ZOOM = 10;
-
-		// 現在のズーム値が10未満なら10にする。
-		// 10以上なら現在のズーム値をそのまま維持する。
+		// 現在のズーム値を維持したまま、中心だけ現在地へ移動する。
+		// 現在より広域（ズームアウト）にはしない。
 		const currentZoom = map.getZoom();
-		const locationZoom = Math.max(currentZoom, MIN_LOCATION_ZOOM);
-
-		// 地図の中心を現在地へ移動。
-		map.setView([lat, lng], locationZoom);
+		map.setView([lat, lng], currentZoom);
 		firstFix = true;
 	}
 
