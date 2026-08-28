@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="晴歩雨描：https://2ndart.hatenablog.com/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界地図：Jawg Maps ＋ 雨雲</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; right:0; left:0; }
+</style>
+</head>
+<body>
+<div class="container"><div id="map"></div></div>
+<script>
+var map = L.map('map');
+map.setView([36.2, 138.3], 5);
+// ------- layers --------
+var Jawg_Streets = L.tileLayer('https://{s}.tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+Jawg_Streets.addTo(map);
+var Jawg_Terrain = L.tileLayer('https://{s}.tile.jawg.io/jawg-terrain/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Jawg_Sunny = L.tileLayer('https://{s}.tile.jawg.io/jawg-sunny/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Jawg_Light = L.tileLayer('https://{s}.tile.jawg.io/jawg-light/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="http://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	subdomains: 'abcd',
+	accessToken: 'ap5fFLcotHXYwH2U3Cr2YF9TNocrVTrDZSSdDBBsncYfbj4qadA6wBFiTePaJiwf'
+});
+var Esri_World_Topo_Map = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; <a href="http://www.esrij.com/">Esri Japan</a>'
+});
+var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	continuousWorld: false
+});
+var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
+});
+var GoogleMapSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+	subdomains: ['mt0','mt1','mt2','mt3'],
+	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>",
+});
+// ---------------
+var baseMap = {
+	"Jawg.Streets": Jawg_Streets,
+	"Jawg.Terrain": Jawg_Terrain,
+	"Jawg.Sunny": Jawg_Sunny,
+	"Jawg.Light": Jawg_Light,
+	"OpenStreetMap": OpenStreetMap,
+	"Esri World Topo Map": Esri_World_Topo_Map,
+	"Google Map": GoogleMap,
+	"Google Map Satellite": GoogleMapSatellite
+};
+// ---------------
+// ------- RainViewer（現行 Weather Maps API） --------
+// 現在は maps.json ではなく weather-maps.json を使用する。
+// 過去2時間分のレーダーを10分間隔で取得する。
+var RainViewer = null;
+
+async function loadRainViewer() {
+	try {
+		const response = await fetch('https://api.rainviewer.com/public/weather-maps.json', { cache: 'no-store' });
+		if (!response.ok) throw new Error('HTTP ' + response.status);
+
+		const data = await response.json();
+		if (!data.host || !data.radar || !Array.isArray(data.radar.past) || data.radar.past.length === 0) {
+			throw new Error('RainViewerのレーダーデータがありません。');
+		}
+
+		const frame = data.radar.past[data.radar.past.length - 1];
+		RainViewer = L.tileLayer(data.host + frame.path + '/256/{z}/{x}/{y}/2/1_1.png', {
+			opacity: 0.5,
+			maxNativeZoom: 7,
+			maxZoom: 22,
+			attribution: 'Weather data by <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>'
+		});
+
+		// 最初からRainViewer雨雲を表示
+		RainViewer.addTo(map);
+
+		// レイヤー切り替えコントロール
+		L.control.layers(baseMap, {
+			"RainViewer 雨雲": RainViewer
+		}).addTo(map);
+
+	} catch (error) {
+		console.error('RainViewerのデータ取得に失敗しました:', error);
+	}
+}
+
+loadRainViewer();
+// ---------------
+L.control.layers(baseMap, overlay).addTo(map);
+function getRainViewer(address) {
+	var result = $.ajax({
+		type: 'GET',
+		url: 'https://tilecache.rainviewer.com/api/maps.json',
+		async: false	// *** 同期通信 ***
+	}).responseText;
+	return result;
+}
+</script>
+</body>
+</html>
