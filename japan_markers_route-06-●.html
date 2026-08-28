@@ -614,10 +614,6 @@ let routeViaMarkers = [];
 let routeDragging = false;
 let routeDraggingIndex = -1;
 
-// 経由地ドラッグ終了直後に発生するLeafletのclickを
-// 地図側の「新しい目的地」処理へ渡さないためのフラグ。
-let suppressNextRouteMapClick = false;
-
 function createRouteDragIcon(active) {
 	return L.divIcon({
 		className: 'route-drag-handle' + (active ? ' active' : ''),
@@ -636,7 +632,6 @@ function removeRouteViaMarker(index) {
 
 function clearRouteViaPoints() {
 	routeViaPoints = [];
-	suppressNextRouteMapClick = false;
 
 	routeViaMarkers.forEach(function(marker) {
 		map.removeLayer(marker);
@@ -751,67 +746,31 @@ function addRouteViaPoint(latlng) {
 		zIndexOffset: 1000
 	}).addTo(map);
 
-	// 経由地マーカー上のクリックを地図へ伝播させない。
-	// これをしないと、ドラッグ終了時のclickが下の
-	// 「目的地・出発点」判定に入り、新しい目的地として扱われる。
-	const markerElement = marker.getElement();
-	if (markerElement) {
-		L.DomEvent.disableClickPropagation(markerElement);
-		L.DomEvent.disableScrollPropagation(markerElement);
-	}
-
-	marker.on('click', function(e) {
-		L.DomEvent.stopPropagation(e);
-	});
-
 	// 既存の経由地点をドラッグして位置変更
 	marker.on('dragstart', function(e) {
-		L.DomEvent.stopPropagation(e);
-		suppressNextRouteMapClick = true;
 		routeDragging = true;
 		routeDraggingIndex = routeViaMarkers.indexOf(marker);
-
-		// 重要：
-		// ドラッグ中にsetIcon()でDOMを差し替えると、Leafletの
-		// ドラッグ処理が途切れることがあるため、アイコンは変更しない。
+		marker.setIcon(createRouteDragIcon(true));
 		map.dragging.disable();
 		L.DomEvent.stopPropagation(e);
 	});
 
 	marker.on('drag', function() {
-		// このイベントを発生させているmarker自身から位置を取得する。
-		// これなら経由地が複数あっても、必ずドラッグ中の経由地だけが移動する。
-		const currentIndex = routeViaMarkers.indexOf(marker);
-		if (currentIndex !== -1) {
-			routeViaPoints[currentIndex] = marker.getLatLng();
+		if (routeDraggingIndex === index) {
+			routeViaPoints[index] = marker.getLatLng();
 		}
 	});
 
-	marker.on('dragend', async function(e) {
-		if (e) L.DomEvent.stopPropagation(e);
-		const currentIndex = routeViaMarkers.indexOf(marker);
-
-		// マウスを離した最終位置を確実に保存
-		if (currentIndex !== -1) {
-			routeViaPoints[currentIndex] = marker.getLatLng();
-		}
-
+	marker.on('dragend', async function() {
 		routeDragging = false;
 		routeDraggingIndex = -1;
+		marker.setIcon(createRouteDragIcon(false));
 		map.dragging.enable();
-
-		// ドラッグ終了時に発生するclickがmap.on('click')へ届いても、
-		// 新しい目的地として処理されないよう少しの間だけ抑止する。
-		suppressNextRouteMapClick = true;
-		setTimeout(function() {
-			suppressNextRouteMapClick = false;
-		}, 400);
 
 		// 位置変更後は、現在のルート上の位置順に経由地を並べ直す。
 		sortRouteViaPointsByRoutePosition();
 
-		// 変更した経由地を含むルートを再検索し、
-		// 距離・時間も新しいルートで再計算する。
+		// 経由地を含むルート・距離・時間を再計算
 		await searchRoute();
 	});
 
@@ -874,13 +833,6 @@ async function routeDragEnd() {
 	routeDragging = false;
 	routeDraggingIndex = -1;
 	map.dragging.enable();
-
-	// ルート線をドラッグして経由地を追加した直後のclickも
-	// 地図の目的地設定処理に入れない。
-	suppressNextRouteMapClick = true;
-	setTimeout(function() {
-		suppressNextRouteMapClick = false;
-	}, 400);
 
 	document.removeEventListener('mousemove', routeDragMove);
 	document.removeEventListener('mouseup', routeDragEnd);
@@ -1065,12 +1017,6 @@ async function searchRoute() {
 
 // 地図クリック：目的地 → 出発点
 map.on('click', function(e) {
-	// 経由地をドラッグした直後のclickは、目的地変更として扱わない。
-	if (routeDragging || suppressNextRouteMapClick) {
-		L.DomEvent.stopPropagation(e);
-		return;
-	}
-
 	if (routeMode === 'off') {
 		return;
 	}
