@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- 国旗アイコンは「ASTI アマノ技研」 の「National Flags of the World」を使用 -->
 <!-- https://amano-tec.com/data/worldflags.html -->
-<title>世界地図：Jawg Maps ＋ 雨雲 ＋ 国旗</title>
+<title>世界地図：Jawg Maps ＋ 国旗</title>
 <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 <style>
@@ -99,7 +99,7 @@ var overlay = {
 	"RainViewer 雨雲": RainViewer
 };
 // ---------------
-L.control.layers(baseMap, overlay).addTo(map);
+L.control.layers(baseMap).addTo(map);
 // ---------------
 map.on('click', onMapClick);
 var posMarker = null;
