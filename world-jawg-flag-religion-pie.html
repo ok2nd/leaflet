@@ -117,7 +117,7 @@ var RainViewer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + time
 var overlay = {
 	"RainViewer 雨雲": RainViewer
 };
-L.control.layers(baseMap, overlay).addTo(map);
+L.control.layers(baseMap).addTo(map);
 // -----------------------------------
 fetch('csv/religion-country.csv')		// 国別宗教構成データ
 .then((response) => {

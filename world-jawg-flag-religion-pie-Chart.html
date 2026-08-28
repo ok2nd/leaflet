@@ -118,7 +118,7 @@ var RainViewer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + time
 var overlay = {
 	"RainViewer 雨雲": RainViewer
 };
-L.control.layers(baseMap, overlay).addTo(map);
+L.control.layers(baseMap).addTo(map);
 
 // Chart.js用の円グラフ生成関数
 function createPieChart(data, size, callback) {
