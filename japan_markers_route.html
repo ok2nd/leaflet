@@ -288,7 +288,6 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 
 
 
-
 /* 住所地名検索の下のKMLボタン */
 .kml-map-control {
 	display: flex;
@@ -318,13 +317,6 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 	-webkit-user-select: none;
 	user-select: none;
 }
-.route-endpoint-marker {
-	width: 20px !important;
-	height: 20px !important;
-	touch-action: none !important;
-	pointer-events: auto !important;
-	cursor: grab;
-}
 .route-endpoint-marker span {
 	display: block;
 	width: 12px;
@@ -335,6 +327,9 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 	box-shadow: 0 1px 4px rgba(0,0,0,.5);
 }
 
+.leaflet-overlay-pane svg path {
+	touch-action: none;
+}
 </style>
 </head>
 <body>
@@ -963,8 +958,6 @@ function addRouteViaPoint(latlng) {
 	if (markerElement) {
 		L.DomEvent.disableClickPropagation(markerElement);
 		L.DomEvent.disableScrollPropagation(markerElement);
-		markerElement.style.touchAction = 'none';
-		markerElement.style.pointerEvents = 'auto';
 	}
 
 	marker.on('click', function(e) {
@@ -1056,9 +1049,14 @@ function routeDragMove(e) {
 	if (!routeDragging || routeDraggingIndex < 0) return;
 
 	const rect = map.getContainer().getBoundingClientRect();
+	const clientX = e.clientX != null ? e.clientX :
+		(e.touches && e.touches[0] ? e.touches[0].clientX : null);
+	const clientY = e.clientY != null ? e.clientY :
+		(e.touches && e.touches[0] ? e.touches[0].clientY : null);
+	if (clientX == null || clientY == null) return;
 	const point = L.point(
-		e.clientX - rect.left,
-		e.clientY - rect.top
+		clientX - rect.left,
+		clientY - rect.top
 	);
 
 	const size = map.getSize();
@@ -1120,36 +1118,24 @@ function startRouteDragAt(latlng, originalEvent) {
 	routeDragging = true;
 	routeDraggingIndex = routeViaMarkers.indexOf(viaMarker);
 
-	// ドラッグ中は地図のパンを停止。
 	map.dragging.disable();
 
-	// 既存のPC用document mouse処理を利用。
-	document.addEventListener('mousemove', routeDragMove);
-	document.addEventListener('mouseup', routeDragEnd);
+	document.addEventListener('mousemove', routeDragMove, {passive: false});
+	document.addEventListener('mouseup', routeDragEnd, {passive: false});
 
-	// Pointer Events対応（スマホ・タブレット・PC）
+	// Pointer Events
 	if (originalEvent && originalEvent.pointerId != null) {
 		const pointerId = originalEvent.pointerId;
 
 		const move = function(ev) {
-			if (!routeDragging) return;
-			if (ev.pointerId !== pointerId) return;
-			const rect = map.getContainer().getBoundingClientRect();
-			const point = L.point(
-				ev.clientX - rect.left,
-				ev.clientY - rect.top
-			);
-			const size = map.getSize();
-			point.x = Math.max(0, Math.min(size.x, point.x));
-			point.y = Math.max(0, Math.min(size.y, point.y));
-			const latlng = map.containerPointToLatLng(point);
-			routeViaPoints[routeDraggingIndex] = latlng;
-			viaMarker.setLatLng(latlng);
-			if (ev.preventDefault) ev.preventDefault();
+			if (!routeDragging || ev.pointerId !== pointerId) return;
+			ev.preventDefault();
+			routeDragMove(ev);
 		};
 
 		const up = function(ev) {
 			if (ev.pointerId !== pointerId) return;
+			ev.preventDefault();
 			document.removeEventListener('pointermove', move);
 			document.removeEventListener('pointerup', up);
 			document.removeEventListener('pointercancel', up);
@@ -1159,54 +1145,50 @@ function startRouteDragAt(latlng, originalEvent) {
 		document.addEventListener('pointermove', move, {passive: false});
 		document.addEventListener('pointerup', up, {passive: false});
 		document.addEventListener('pointercancel', up, {passive: false});
+
+		// touchmove fallback
+		const touchMove = function(ev) {
+			if (!routeDragging) return;
+			const t = ev.touches && ev.touches[0];
+			if (!t) return;
+			ev.preventDefault();
+
+			const rect = map.getContainer().getBoundingClientRect();
+			const point = L.point(t.clientX - rect.left, t.clientY - rect.top);
+			const size = map.getSize();
+			point.x = Math.max(0, Math.min(size.x, point.x));
+			point.y = Math.max(0, Math.min(size.y, point.y));
+
+			const p = map.containerPointToLatLng(point);
+			routeViaPoints[routeDraggingIndex] = p;
+
+			const marker = routeViaMarkers[routeDraggingIndex];
+			if (marker) marker.setLatLng(p);
+		};
+
+		const touchEnd = function() {
+			document.removeEventListener('touchmove', touchMove);
+			document.removeEventListener('touchend', touchEnd);
+			document.removeEventListener('touchcancel', touchEnd);
+			routeDragEnd();
+		};
+
+		document.addEventListener('touchmove', touchMove, {passive: false});
+		document.addEventListener('touchend', touchEnd, {passive: false});
+		document.addEventListener('touchcancel', touchEnd, {passive: false});
 	}
-}
-
-function attachRouteHitDragEvents() {
-	if (!routeHitLine || !routeHitLine._path) return;
-
-	const path = routeHitLine._path;
-
-	// SVGのtouch-actionを無効化。
-	// pointer-eventsを明示して透明線でもタッチ判定する。
-	path.style.touchAction = 'none';
-	path.style.pointerEvents = 'stroke';
-	path.style.cursor = 'grab';
-
-	const begin = function(e) {
-		if (e.originalEvent) {
-			e.originalEvent.preventDefault();
-			e.originalEvent.stopPropagation();
-		}
-		L.DomEvent.stopPropagation(e);
-		startRouteDragAt(e.latlng, e.originalEvent);
-	};
-
-	L.DomEvent.on(path, 'pointerdown', begin);
-	L.DomEvent.on(path, 'mousedown', begin);
-	L.DomEvent.on(path, 'touchstart', begin);
 }
 
 function attachRouteDragEvents() {
-	if (!routeLine) return;
+	if (!routeLine || !routeLine._path) return;
 
-	const begin = function(e) {
-		if (e.originalEvent) {
-			e.originalEvent.preventDefault();
-			e.originalEvent.stopPropagation();
-		}
-		L.DomEvent.stopPropagation(e);
+	const path = routeLine._path;
+
+	// PCでは従来どおり Leaflet の mousedown を使用。
+	routeLine.off('mousedown');
+	routeLine.on('mousedown', function(e) {
 		startRouteDragAt(e.latlng, e.originalEvent);
-	};
-
-	routeLine.on('mousedown', begin);
-	routeLine.on('pointerdown', begin);
-	routeLine.on('touchstart', begin);
-
-	if (routeLine._path) {
-		routeLine._path.style.touchAction = 'none';
-		routeLine._path.style.pointerEvents = 'stroke';
-	}
+	});
 
 	routeLine.on('mouseover', function() {
 		if (!routeDragging) {
@@ -1218,6 +1200,77 @@ function attachRouteDragEvents() {
 			routeLine.setStyle({ weight: 5 });
 		}
 	});
+
+	// --------------------------------------------------------
+	// スマホ・タブレット：
+	// Leafletのmap touch handlerより先にSVG pathで受け取る。
+	// ルート線そのものの当たり判定を太くする。
+	// --------------------------------------------------------
+	path.style.pointerEvents = 'stroke';
+	path.style.touchAction = 'none';
+	path.style.cursor = 'grab';
+
+	// 見た目の線幅は5pxのまま、SVGのstroke-widthだけを
+	// タッチ操作時に太くすることはできないため、
+	// CSSのpointer-eventsだけでなく、下記のcapture listenerで
+	// 線上のpointer/touchを先取りする。
+	const beginPointer = function(ev) {
+		if (routeMode === 'off' || !routeDestination || !routeStart) return;
+
+		ev.preventDefault();
+		ev.stopPropagation();
+		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+
+		const rect = map.getContainer().getBoundingClientRect();
+		const point = L.point(
+			ev.clientX - rect.left,
+			ev.clientY - rect.top
+		);
+		const latlng = map.containerPointToLatLng(point);
+
+		startRouteDragAt(latlng, ev);
+
+		// pointer captureを使うことで、指が線から外れても
+		// ドラッグを最後まで追跡する。
+		if (path.setPointerCapture && ev.pointerId != null) {
+			try {
+				path.setPointerCapture(ev.pointerId);
+			} catch (_) {}
+		}
+	};
+
+	// 同じpathへ何度もイベントを登録しない。
+	if (path._routeDragPointerHandler) {
+		path.removeEventListener('pointerdown', path._routeDragPointerHandler, true);
+	}
+	path._routeDragPointerHandler = beginPointer;
+	path.addEventListener('pointerdown', beginPointer, {capture: true, passive: false});
+
+	// iOS/古いWebKit向けtouchstart保険
+	if (path._routeDragTouchHandler) {
+		path.removeEventListener('touchstart', path._routeDragTouchHandler, true);
+	}
+	const beginTouch = function(ev) {
+		if (routeMode === 'off' || !routeDestination || !routeStart) return;
+
+		ev.preventDefault();
+		ev.stopPropagation();
+		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+
+		const t = ev.touches && ev.touches[0];
+		if (!t) return;
+
+		const rect = map.getContainer().getBoundingClientRect();
+		const point = L.point(
+			t.clientX - rect.left,
+			t.clientY - rect.top
+		);
+		const latlng = map.containerPointToLatLng(point);
+
+		startRouteDragAt(latlng, ev);
+	};
+	path._routeDragTouchHandler = beginTouch;
+	path.addEventListener('touchstart', beginTouch, {capture: true, passive: false});
 }
 
 function clearRouteSearch() {
@@ -1385,14 +1438,6 @@ async function searchRoute() {
 
 		// スマホで指が5px程度の細い線をつかめるよう、
 		// 透明な太いヒット領域をルート線の上に重ねる。
-		routeHitLine = L.polyline(coords, {
-			color: '#000',
-			weight: 24,
-			opacity: 0,
-			lineCap: 'round',
-			lineJoin: 'round',
-			interactive: true
-		}).addTo(map);
 
 		// 複数の経路変更中間地点を表示
 		routeViaMarkers.forEach(function(marker) {
@@ -1421,20 +1466,7 @@ async function searchRoute() {
 
 		attachRouteDragEvents();
 
-		// 透明ヒット領域にもPC/スマホのドラッグ処理を接続。
-		attachRouteHitDragEvents();
-
-		// 透明なタッチ判定線をルート線より前面にする。
-		// スマホでは指が細い実線に正確に乗らなくても操作できる。
-		if (routeHitLine) {
-			routeHitLine.bringToFront();
-		}
 		routeLine.bringToFront();
-
-		// routeLineを前面にした後でもhitLineを最前面に戻す。
-		if (routeHitLine) {
-			routeHitLine.bringToFront();
-		}
 
 		// 複数の経路変更ポイントを常にルート線より前面に表示
 		routeViaMarkers.forEach(function(marker) {
