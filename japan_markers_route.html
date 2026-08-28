@@ -838,10 +838,10 @@ function updateLocateMarker(pos) {
 		// この「10」を変更すると、現在地表示時の境界値を変更できる。
 		// 例：8にすると「ズーム8未満なら8」、12にすると「ズーム12未満なら12」
 		// ============================================================
-		const MIN_LOCATION_ZOOM = 10;
+		const MIN_LOCATION_ZOOM = 14;
 
-		// 現在のズーム値が10未満なら10にする。
-		// 10以上なら現在のズーム値をそのまま維持する。
+		// 現在のズーム値が14未満なら10にする。
+		// 14以上なら現在のズーム値をそのまま維持する。
 		const currentZoom = map.getZoom();
 		const locationZoom = Math.max(currentZoom, MIN_LOCATION_ZOOM);
 
