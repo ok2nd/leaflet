@@ -134,6 +134,10 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 	color: #fff;
 	border-color: #555;
 }
+.route-control-buttons button.route-marker.active {
+	background: #fff;
+	color: #333;
+}
 .route-control-buttons button.route-walk.active {
 	background: #1976d2;
 }
@@ -282,28 +286,8 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 /* 上部ツールバーは地図コントロールへ移動 */
 #toolbar { display: none !important; }
 
-/* マーカー追加：徒歩ルートのすぐ上 */
-.route-control-buttons .route-marker {
-	display: block;
-	width: 40px;
-	height: 40px;
-	margin: 0 0 5px 0;
-	padding: 0;
-	background: #fff;
-	border: 2px solid rgba(0,0,0,0.2);
-	border-radius: 4px;
-	box-shadow: 0 1px 5px rgba(0,0,0,0.25);
-	cursor: pointer;
-	font-size: 17px;
-	line-height: 30px;
-	color: #333;
-}
-.route-control-buttons .route-marker:hover { background: #f4f4f4; }
-.route-control-buttons .route-marker.active {
-	background: #1976d2;
-	color: #fff;
-	border-color: #555;
-}
+
+
 
 /* 住所地名検索の下のKMLボタン */
 .kml-map-control {
@@ -333,6 +317,13 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 	touch-action: none !important;
 	-webkit-user-select: none;
 	user-select: none;
+}
+.route-endpoint-marker {
+	width: 20px !important;
+	height: 20px !important;
+	touch-action: none !important;
+	pointer-events: auto !important;
+	cursor: grab;
 }
 .route-endpoint-marker span {
 	display: block;
@@ -972,6 +963,8 @@ function addRouteViaPoint(latlng) {
 	if (markerElement) {
 		L.DomEvent.disableClickPropagation(markerElement);
 		L.DomEvent.disableScrollPropagation(markerElement);
+		markerElement.style.touchAction = 'none';
+		markerElement.style.pointerEvents = 'auto';
 	}
 
 	marker.on('click', function(e) {
@@ -1174,24 +1167,47 @@ function attachRouteHitDragEvents() {
 
 	const path = routeHitLine._path;
 
-	// SVGのtouch-actionを無効化して、地図パンではなくルート操作にする。
+	// SVGのtouch-actionを無効化。
+	// pointer-eventsを明示して透明線でもタッチ判定する。
 	path.style.touchAction = 'none';
+	path.style.pointerEvents = 'stroke';
+	path.style.cursor = 'grab';
 
-	L.DomEvent.on(path, 'pointerdown', function(e) {
+	const begin = function(e) {
+		if (e.originalEvent) {
+			e.originalEvent.preventDefault();
+			e.originalEvent.stopPropagation();
+		}
+		L.DomEvent.stopPropagation(e);
 		startRouteDragAt(e.latlng, e.originalEvent);
-	});
+	};
 
-	L.DomEvent.on(path, 'touchstart', function(e) {
-		startRouteDragAt(e.latlng, e.originalEvent);
-	});
+	L.DomEvent.on(path, 'pointerdown', begin);
+	L.DomEvent.on(path, 'mousedown', begin);
+	L.DomEvent.on(path, 'touchstart', begin);
 }
 
 function attachRouteDragEvents() {
 	if (!routeLine) return;
 
-	routeLine.on('mousedown', function(e) {
+	const begin = function(e) {
+		if (e.originalEvent) {
+			e.originalEvent.preventDefault();
+			e.originalEvent.stopPropagation();
+		}
+		L.DomEvent.stopPropagation(e);
 		startRouteDragAt(e.latlng, e.originalEvent);
-	});
+	};
+
+	routeLine.on('mousedown', begin);
+	routeLine.on('pointerdown', begin);
+	routeLine.on('touchstart', begin);
+
+	if (routeLine._path) {
+		routeLine._path.style.touchAction = 'none';
+		routeLine._path.style.pointerEvents = 'stroke';
+	}
+
 	routeLine.on('mouseover', function() {
 		if (!routeDragging) {
 			routeLine.setStyle({ weight: 7 });
@@ -1408,17 +1424,27 @@ async function searchRoute() {
 		// 透明ヒット領域にもPC/スマホのドラッグ処理を接続。
 		attachRouteHitDragEvents();
 
+		// 透明なタッチ判定線をルート線より前面にする。
+		// スマホでは指が細い実線に正確に乗らなくても操作できる。
+		if (routeHitLine) {
+			routeHitLine.bringToFront();
+		}
 		routeLine.bringToFront();
+
+		// routeLineを前面にした後でもhitLineを最前面に戻す。
+		if (routeHitLine) {
+			routeHitLine.bringToFront();
+		}
 
 		// 複数の経路変更ポイントを常にルート線より前面に表示
 		routeViaMarkers.forEach(function(marker) {
 			marker.setZIndexOffset(1000);
 		});
 		if (routeDestinationMarker) {
-			routeDestinationMarker.bringToFront();
+			routeDestinationMarker.setZIndexOffset(2000);
 		}
 		if (routeStartMarker) {
-			routeStartMarker.bringToFront();
+			routeStartMarker.setZIndexOffset(2000);
 		}
 
 	} catch (err) {
