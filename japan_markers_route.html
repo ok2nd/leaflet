@@ -1,233 +1,225 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Leaflet：マーカー追加・編集＋KML保存＋KMLインポート</title>
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-	<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
-	<style>
-		* { box-sizing: border-box; margin: 0; padding: 0; }
-		body { font-family: 'Helvetica Neue', Arial, sans-serif; }
-		#map { width: 100%; height: 100vh; }
-
-		/* ツールバー */
-		#toolbar {
-			position: absolute;
-			top: 10px;
-			left: 50%;
-			transform: translateX(-50%);
-			z-index: 1000;
-			display: flex;
-			gap: 6px;
-			background: rgba(255,255,255,0.95);
-			padding: 6px 10px;
-			border-radius: 8px;
-			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-		}
-		#toolbar button {
-			padding: 6px 12px;
-			border: none;
-			border-radius: 5px;
-			cursor: pointer;
-			font-size: 13px;
-			font-weight: bold;
-			transition: all 0.2s;
-		}
-		#btn-add-mode {
-			background: #e85d04;
-			color: white;
-		}
-		#btn-add-mode.active {
-			background: #9d0208;
-			box-shadow: 0 0 0 3px rgba(232,93,4,0.4);
-		}
-		#btn-download-kml {
-			background: #2d6a4f;
-			color: white;
-		}
-		#btn-download-kml:hover { background: #1b4332; }
-		#btn-upload-kml {
-			background: #1a5276;
-			color: white;
-		}
-		#btn-upload-kml:hover { background: #103a52; }
-		#btn-add-mode:hover { background: #9d0208; }
-		#mode-label {
-			display: flex;
-			align-items: center;
-			font-size: 12px;
-			color: #555;
-			margin-left: 4px;
-		}
-
-		/* ポップアップ内スタイル */
-		.marker-popup { min-width: 160px; }
-		.marker-popup .name-display {
-			font-weight: bold;
-			font-size: 14px;
-			margin-bottom: 6px;
-			color: #1a1a1a;
-		}
-		.marker-popup input[type=text] {
-			width: 100%;
-			padding: 4px 6px;
-			border: 1px solid #ccc;
-			border-radius: 4px;
-			font-size: 13px;
-			margin-bottom: 6px;
-		}
-		.popup-btns { display: flex; gap: 5px; flex-wrap: wrap; }
-		.popup-btns button {
-			flex: 1;
-			padding: 4px 6px;
-			border: none;
-			border-radius: 4px;
-			cursor: pointer;
-			font-size: 12px;
-			font-weight: bold;
-		}
-		.btn-save { background: #e85d04; color: white; }
-		.btn-delete { background: #6c757d; color: white; }
-
-		/* マーカーラベル */
-		.marker-label {
-			background: rgba(255, 253, 200, 0.92);
-			border: 1px solid #cca700;
-			border-radius: 3px;
-			padding: 1px 5px;
-			font-size: 12px;
-			font-weight: bold;
-			color: #333;
-			white-space: nowrap;
-			pointer-events: none;
-		}
-
-		/* カーソル */
-		#map.add-mode { cursor: crosshair; }
-
-
-		/* ルート検索コントロール */
-		.route-control {
-			background: transparent;
-			border: none;
-			box-shadow: none;
-		}
-		.route-control-buttons {
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
-		}
-		.route-control-buttons button {
-			width: 34px;
-			height: 34px;
-			background: #fff;
-			border: 2px solid rgba(0,0,0,0.2);
-			border-radius: 4px;
-			box-shadow: 0 1px 5px rgba(0,0,0,0.25);
-			cursor: pointer;
-			font-size: 17px;
-			line-height: 30px;
-			color: #333;
-			padding: 0;
-		}
-		.route-control-buttons button:hover {
-			background: #f4f4f4;
-		}
-		.route-control-buttons button.active {
-			color: #fff;
-			border-color: #555;
-		}
-		.route-control-buttons button.route-walk.active {
-			background: #1976d2;
-		}
-		.route-control-buttons button.route-car.active {
-			background: #d32f2f;
-		}
-		.route-control-buttons button.route-off.active {
-			background: #555;
-		}
-		.route-point-label {
-			background: rgba(255,255,255,0.95);
-			border: 1px solid #777;
-			border-radius: 3px;
-			padding: 2px 5px;
-			font-size: 11px;
-			font-weight: bold;
-			color: #333;
-			white-space: nowrap;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-			pointer-events: none;
-		}
-		.route-info-label {
-			background: rgba(255,255,255,0.96);
-			border: 1px solid #555;
-			border-radius: 4px;
-			padding: 3px 7px;
-			font-size: 12px;
-			font-weight: bold;
-			color: #222;
-			white-space: nowrap;
-			box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-			pointer-events: none;
-		}
-		#map.route-mode {
-			cursor: crosshair;
-		}
-
-		/* KMLファイル名モーダル */
-		#kml-modal-overlay {
-			display: none;
-			position: fixed;
-			inset: 0;
-			background: rgba(0,0,0,0.45);
-			z-index: 2000;
-			align-items: center;
-			justify-content: center;
-		}
-		#kml-modal-overlay.open { display: flex; }
-		#kml-modal {
-			background: white;
-			border-radius: 10px;
-			padding: 24px 28px;
-			box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-			min-width: 300px;
-		}
-		#kml-modal h3 {
-			margin-bottom: 14px;
-			font-size: 15px;
-			color: #222;
-		}
-		#kml-modal input[type=text] {
-			width: 100%;
-			padding: 7px 10px;
-			border: 1.5px solid #ccc;
-			border-radius: 5px;
-			font-size: 14px;
-			margin-bottom: 14px;
-			outline: none;
-			transition: border-color 0.2s;
-		}
-		#kml-modal input[type=text]:focus { border-color: #2d6a4f; }
-		#kml-modal .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-		#kml-modal .modal-btns button {
-			padding: 7px 18px;
-			border: none;
-			border-radius: 5px;
-			cursor: pointer;
-			font-size: 13px;
-			font-weight: bold;
-		}
-		#kml-modal-ok { background: #2d6a4f; color: white; }
-		#kml-modal-ok:hover { background: #1b4332; }
-		#kml-modal-cancel { background: #e9ecef; color: #333; }
-		#kml-modal-cancel:hover { background: #dee2e6; }
-	</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaflet：マーカー追加・編集＋KML保存＋KMLインポート</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Helvetica Neue', Arial, sans-serif; }
+#map { width: 100%; height: 100vh; }
+/* ツールバー */
+#toolbar {
+	position: absolute;
+	top: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 1000;
+	display: flex;
+	gap: 6px;
+	background: rgba(255,255,255,0.95);
+	padding: 6px 10px;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+#toolbar button {
+	padding: 6px 12px;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: bold;
+	transition: all 0.2s;
+}
+#btn-add-mode {
+	background: #e85d04;
+	color: white;
+}
+#btn-add-mode.active {
+	background: #9d0208;
+	box-shadow: 0 0 0 3px rgba(232,93,4,0.4);
+}
+#btn-download-kml {
+	background: #2d6a4f;
+	color: white;
+}
+#btn-download-kml:hover { background: #1b4332; }
+#btn-upload-kml {
+	background: #1a5276;
+	color: white;
+}
+#btn-upload-kml:hover { background: #103a52; }
+#btn-add-mode:hover { background: #9d0208; }
+#mode-label {
+	display: flex;
+	align-items: center;
+	font-size: 12px;
+	color: #555;
+	margin-left: 4px;
+}
+/* ポップアップ内スタイル */
+.marker-popup { min-width: 160px; }
+.marker-popup .name-display {
+	font-weight: bold;
+	font-size: 14px;
+	margin-bottom: 6px;
+	color: #1a1a1a;
+}
+.marker-popup input[type=text] {
+	width: 100%;
+	padding: 4px 6px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	font-size: 13px;
+	margin-bottom: 6px;
+}
+.popup-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+.popup-btns button {
+	flex: 1;
+	padding: 4px 6px;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: bold;
+}
+.btn-save { background: #e85d04; color: white; }
+.btn-delete { background: #6c757d; color: white; }
+/* マーカーラベル */
+.marker-label {
+	background: rgba(255, 253, 200, 0.92);
+	border: 1px solid #cca700;
+	border-radius: 3px;
+	padding: 1px 5px;
+	font-size: 12px;
+	font-weight: bold;
+	color: #333;
+	white-space: nowrap;
+	pointer-events: none;
+}
+/* カーソル */
+#map.add-mode { cursor: crosshair; }
+/* ルート検索コントロール */
+.route-control {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+}
+.route-control-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.route-control-buttons button {
+	width: 34px;
+	height: 34px;
+	background: #fff;
+	border: 2px solid rgba(0,0,0,0.2);
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+	cursor: pointer;
+	font-size: 17px;
+	line-height: 30px;
+	color: #333;
+	padding: 0;
+}
+.route-control-buttons button:hover {
+	background: #f4f4f4;
+}
+.route-control-buttons button.active {
+	color: #fff;
+	border-color: #555;
+}
+.route-control-buttons button.route-walk.active {
+	background: #1976d2;
+}
+.route-control-buttons button.route-car.active {
+	background: #d32f2f;
+}
+.route-control-buttons button.route-off.active {
+	background: #555;
+}
+.route-point-label {
+	background: rgba(255,255,255,0.95);
+	border: 1px solid #777;
+	border-radius: 3px;
+	padding: 2px 5px;
+	font-size: 11px;
+	font-weight: bold;
+	color: #333;
+	white-space: nowrap;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+	pointer-events: none;
+}
+.route-info-label {
+	background: rgba(255,255,255,0.96);
+	border: 1px solid #555;
+	border-radius: 4px;
+	padding: 3px 7px;
+	font-size: 12px;
+	font-weight: bold;
+	color: #222;
+	white-space: nowrap;
+	box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+	pointer-events: none;
+}
+#map.route-mode {
+	cursor: crosshair;
+}
+/* KMLファイル名モーダル */
+#kml-modal-overlay {
+	display: none;
+	position: fixed;
+	inset: 0;
+	background: rgba(0,0,0,0.45);
+	z-index: 2000;
+	align-items: center;
+	justify-content: center;
+}
+#kml-modal-overlay.open { display: flex; }
+#kml-modal {
+	background: white;
+	border-radius: 10px;
+	padding: 24px 28px;
+	box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+	min-width: 300px;
+}
+#kml-modal h3 {
+	margin-bottom: 14px;
+	font-size: 15px;
+	color: #222;
+}
+#kml-modal input[type=text] {
+	width: 100%;
+	padding: 7px 10px;
+	border: 1.5px solid #ccc;
+	border-radius: 5px;
+	font-size: 14px;
+	margin-bottom: 14px;
+	outline: none;
+	transition: border-color 0.2s;
+}
+#kml-modal input[type=text]:focus { border-color: #2d6a4f; }
+#kml-modal .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+#kml-modal .modal-btns button {
+	padding: 7px 18px;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: bold;
+}
+#kml-modal-ok { background: #2d6a4f; color: white; }
+#kml-modal-ok:hover { background: #1b4332; }
+#kml-modal-cancel { background: #e9ecef; color: #333; }
+#kml-modal-cancel:hover { background: #dee2e6; }
+</style>
 </head>
 <body>
-
 <div id="toolbar">
 	<button id="btn-add-mode" title="クリックしてマーカー追加モードを切替">📍 マーカー追加</button>
 	<span id="mode-label">オフ</span>
@@ -235,7 +227,6 @@
 	<button id="btn-upload-kml" title="KMLファイルをアップロード">⬆ KMLアップロード</button>
 	<input type="file" id="kml-file-input" accept=".kml,application/vnd.google-earth.kml+xml,application/xml,text/xml" style="display:none">
 </div>
-
 <!-- KMLファイル名入力モーダル -->
 <div id="kml-modal-overlay">
 	<div id="kml-modal">
@@ -247,10 +238,7 @@
 		</div>
 	</div>
 </div>
-
 <div id="map"></div>
-
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
@@ -259,7 +247,6 @@
 //	地図初期化
 // =====================
 const map = L.map('map').setView([35.6812, 139.7671], 6);
-
 // タイルレイヤー定義
 const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -277,8 +264,6 @@ const googleHybridTile = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={
 	attribution: '&copy; <a href="https://www.google.com/maps">Google Maps</a>',
 	maxZoom: 20
 });
-
-
 const gsiTile = L.tileLayer(
 	'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
 	{ attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>', maxZoom: 18 }
@@ -318,7 +303,6 @@ const overlay = {
 	'登山ルート': topomapTileOverlay,
 };
 L.control.layers(baseMap, overlay).addTo(map);
-
 // ジオコーダー（住所検索）
 L.Control.geocoder({
 	defaultMarkGeocode: false,
@@ -327,7 +311,6 @@ L.Control.geocoder({
 }).on('markgeocode', e => {
 	map.fitBounds(e.geocode.bbox);
 }).addTo(map);
-
 // =====================
 //	マーカー管理
 // =====================
@@ -335,7 +318,6 @@ const MARKER_COLOR = '#e85d04'; // オレンジ系赤
 const markers = []; // { id, lat, lng, name, leafletMarker, labelMarker }
 let markerCounter = 0;
 let addMode = false;
-
 // Google Mapsスタイルのカスタムアイコン（ドロップ型）
 function createIcon(color) {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36">
@@ -351,7 +333,6 @@ function createIcon(color) {
 		popupAnchor: [0, -38]
 	});
 }
-
 function createLabelIcon(name) {
 	return L.divIcon({
 		html: `<div class="marker-label">${escapeHtml(name)}</div>`,
@@ -360,22 +341,17 @@ function createLabelIcon(name) {
 		iconAnchor: [-4, 20]
 	});
 }
-
 function escapeHtml(str) {
 	return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function addMarker(lat, lng, name, id) {
 	const mid = id || (++markerCounter);
 	const markerName = name || '';
-
 	const leafletMarker = L.marker([lat, lng], {
 		icon: createIcon(MARKER_COLOR),
 		draggable: false
 	}).addTo(map);
-
 	const entry = { id: mid, lat, lng, name: markerName, leafletMarker, labelMarker: null };
-
 	// ラベルマーカー
 	if (markerName) {
 		const lm = L.marker([lat, lng], {
@@ -384,18 +360,15 @@ function addMarker(lat, lng, name, id) {
 		}).addTo(map);
 		entry.labelMarker = lm;
 	}
-
 	// ポップアップ
 	leafletMarker.bindPopup(() => buildPopup(entry));
 	leafletMarker.on('popupopen', () => {
 		const popup = leafletMarker.getPopup();
 		popup.setContent(buildPopup(entry));
 	});
-
 	markers.push(entry);
 	return entry;
 }
-
 function buildPopup(entry) {
 	const div = document.createElement('div');
 	div.className = 'marker-popup';
@@ -409,14 +382,12 @@ function buildPopup(entry) {
 	`;
 	return div;
 }
-
 window.saveMarkerName = function(id) {
 	const entry = markers.find(m => m.id === id);
 	if (!entry) return;
 	const input = document.getElementById(`popup-name-${id}`);
 	if (!input) return;
 	entry.name = input.value.trim();
-
 	// ラベル更新
 	if (entry.labelMarker) {
 		map.removeLayer(entry.labelMarker);
@@ -430,7 +401,6 @@ window.saveMarkerName = function(id) {
 	}
 	entry.leafletMarker.closePopup();
 };
-
 window.deleteMarker = function(id) {
 	const idx = markers.findIndex(m => m.id === id);
 	if (idx === -1) return;
@@ -439,27 +409,22 @@ window.deleteMarker = function(id) {
 	if (entry.labelMarker) map.removeLayer(entry.labelMarker);
 	markers.splice(idx, 1);
 };
-
 // =====================
 //	マーカー追加モード
 // =====================
 const btnAddMode = document.getElementById('btn-add-mode');
 const modeLabel = document.getElementById('mode-label');
 const mapEl = document.getElementById('map');
-
 btnAddMode.addEventListener('click', () => {
 	addMode = !addMode;
 	btnAddMode.classList.toggle('active', addMode);
 	modeLabel.textContent = addMode ? 'オン（地図をクリックで追加）' : 'オフ';
 	mapEl.classList.toggle('add-mode', addMode);
 });
-
 map.on('click', e => {
 	if (!addMode || routeMode !== 'off') return;
 	addMarker(e.latlng.lat, e.latlng.lng, '');
 });
-
-
 // =====================
 //	ルート検索
 // =====================
@@ -470,16 +435,13 @@ let routeDestinationMarker = null;
 let routeStartMarker = null;
 let routeLine = null;
 let routeInfoLabel = null;
-
 // 左側のルート検索ボタン
 const RouteControl = L.Control.extend({
 	options: {
 		position: 'topleft'
 	},
-
 	onAdd: function() {
 		const container = L.DomUtil.create('div', 'leaflet-control route-control');
-
 		container.innerHTML = `
 			<div class="route-control-buttons">
 				<button type="button" class="route-walk" title="徒歩ルート検索">
@@ -493,14 +455,11 @@ const RouteControl = L.Control.extend({
 				</button>
 			</div>
 		`;
-
 		const walkBtn = container.querySelector('.route-walk');
 		const carBtn = container.querySelector('.route-car');
 		const offBtn = container.querySelector('.route-off');
-
 		L.DomEvent.disableClickPropagation(container);
 		L.DomEvent.disableScrollPropagation(container);
-
 		L.DomEvent.on(walkBtn, 'click', function() {
 			setRouteMode('walk');
 		});
@@ -510,29 +469,22 @@ const RouteControl = L.Control.extend({
 		L.DomEvent.on(offBtn, 'click', function() {
 			setRouteMode('off');
 		});
-
 		this.walkBtn = walkBtn;
 		this.carBtn = carBtn;
 		this.offBtn = offBtn;
-
 		return container;
 	},
-
 	update: function() {
 		if (!this.walkBtn) return;
-
 		this.walkBtn.classList.toggle('active', routeMode === 'walk');
 		this.carBtn.classList.toggle('active', routeMode === 'car');
 		this.offBtn.classList.toggle('active', routeMode === 'off');
 	}
 });
-
 const routeControl = new RouteControl();
 routeControl.addTo(map);
-
 function setRouteMode(mode) {
 			const previousMode = routeMode;
-
 			// ×：ルート検索を完全に解除
 			if (mode === 'off') {
 				routeMode = 'off';
@@ -541,48 +493,39 @@ function setRouteMode(mode) {
 				routeControl.update();
 				return;
 			}
-
 			// 徒歩⇔車の切り替えでは、目的地・出発点を維持する。
 			// すでにルート表示中なら、新しいモードで即座に再検索する。
 			routeMode = mode;
 			mapEl.classList.add('route-mode');
 			routeControl.update();
-
 			if (routeDestination && routeStart) {
 				searchRoute();
 			} else if (previousMode === 'off') {
 				// 新しくモードを開始した場合は、目的地→出発点の順にクリックする。
 			}
 		}
-
 		function clearRouteSearch() {
 	routeDestination = null;
 	routeStart = null;
-
 	if (routeDestinationMarker) {
 		map.removeLayer(routeDestinationMarker);
 		routeDestinationMarker = null;
 	}
-
 	if (routeStartMarker) {
 		map.removeLayer(routeStartMarker);
 		routeStartMarker = null;
 	}
-
 	if (routeLine) {
 		map.removeLayer(routeLine);
 		routeLine = null;
 	}
-
 	if (routeInfoLabel) {
 		map.removeLayer(routeInfoLabel);
 		routeInfoLabel = null;
 	}
 }
-
 function createRoutePointMarker(latlng, text, type) {
 	const color = type === 'destination' ? '#e53935' : '#1976d2';
-
 	const marker = L.circleMarker(latlng, {
 		radius: 5,
 		color: '#ffffff',
@@ -590,99 +533,76 @@ function createRoutePointMarker(latlng, text, type) {
 		fillColor: color,
 		fillOpacity: 1
 	}).addTo(map);
-
 	marker.bindTooltip(text, {
 		permanent: true,
 		direction: 'top',
 		offset: [0, -5],
 		className: 'route-point-label'
 	});
-
 	return marker;
 }
-
 function formatDistance(meters) {
 	if (meters < 1000) {
 		return Math.round(meters) + ' m';
 	}
 	return (meters / 1000).toFixed(1) + ' km';
 }
-
 function formatDuration(seconds) {
 	const minutes = Math.round(seconds / 60);
-
 	if (minutes < 60) {
 		return minutes + '分';
 	}
-
 	const hours = Math.floor(minutes / 60);
 	const mins = minutes % 60;
-
 	return mins > 0
 		? hours + '時間' + mins + '分'
 		: hours + '時間';
 }
-
 function getRouteMidpoint(coords) {
 	if (!coords || coords.length === 0) return null;
 	if (coords.length === 1) return coords[0];
-
 	let total = 0;
 	const segments = [];
-
 	for (let i = 1; i < coords.length; i++) {
 		const a = L.latLng(coords[i - 1]);
 		const b = L.latLng(coords[i]);
 		const distance = a.distanceTo(b);
-
 		segments.push(distance);
 		total += distance;
 	}
-
 	const half = total / 2;
 	let accumulated = 0;
-
 	for (let i = 1; i < coords.length; i++) {
 		const segment = segments[i - 1];
-
 		if (accumulated + segment >= half) {
 			const ratio = (half - accumulated) / segment;
 			const a = L.latLng(coords[i - 1]);
 			const b = L.latLng(coords[i]);
-
 			return [
 				a.lat + (b.lat - a.lat) * ratio,
 				a.lng + (b.lng - a.lng) * ratio
 			];
 		}
-
 		accumulated += segment;
 	}
-
 	return coords[Math.floor(coords.length / 2)];
 }
-
 async function searchRoute() {
 	if (!routeDestination || !routeStart || routeMode === 'off') {
 		return;
 	}
-
 	const requestedMode = routeMode;
-
 		const endpoint = requestedMode === 'walk'
 			? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'
 			: 'https://router.project-osrm.org/route/v1/driving/';
-
 		const start = routeStart;
 	const destination = routeDestination;
-
 	const url =
 		endpoint +
 		start.lng + ',' + start.lat +
 		';' +
 		destination.lng + ',' + destination.lat +
 		'?overview=full&geometries=geojson';
-
 		// モード切替時など、古いルート表示を消す。
 		if (routeLine) {
 			map.removeLayer(routeLine);
@@ -692,38 +612,28 @@ async function searchRoute() {
 			map.removeLayer(routeInfoLabel);
 			routeInfoLabel = null;
 		}
-
 		try {
 			const response = await fetch(url);
-
 		if (!response.ok) {
 			throw new Error('HTTP ' + response.status);
 		}
-
 		const data = await response.json();
-
 		if (requestedMode !== routeMode) {
 			return;
 		}
-
 		if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
 			throw new Error(data.message || 'ルートが見つかりませんでした');
 		}
-
 		const route = data.routes[0];
-
 		const coords = route.geometry.coordinates.map(function(c) {
 			return [c[1], c[0]];
 		});
-
 		if (routeLine) {
 			map.removeLayer(routeLine);
 		}
-
 		if (routeInfoLabel) {
 			map.removeLayer(routeInfoLabel);
 		}
-
 		routeLine = L.polyline(coords, {
 			color: requestedMode === 'walk' ? '#1976d2' : '#d32f2f',
 			weight: 5,
@@ -731,10 +641,8 @@ async function searchRoute() {
 			lineCap: 'round',
 			lineJoin: 'round'
 		}).addTo(map);
-
 		const modeName = requestedMode === 'walk' ? '徒歩' : '車';
 		const midpoint = getRouteMidpoint(coords);
-
 		routeInfoLabel = L.marker(midpoint, {
 			icon: L.divIcon({
 				html:
@@ -750,20 +658,15 @@ async function searchRoute() {
 			}),
 			interactive: false
 		}).addTo(map);
-
 		routeLine.bringToFront();
-
 		if (routeDestinationMarker) {
 			routeDestinationMarker.bringToFront();
 		}
-
 		if (routeStartMarker) {
 			routeStartMarker.bringToFront();
 		}
-
 	} catch (err) {
 		console.error('Route search error:', err);
-
 		alert(
 			(routeMode === 'walk' ? '徒歩' : '車') +
 			'ルートを取得できませんでした。\n' +
@@ -771,53 +674,41 @@ async function searchRoute() {
 		);
 	}
 }
-
 // 地図クリック：目的地 → 出発点
 map.on('click', function(e) {
 	if (routeMode === 'off') {
 		return;
 	}
-
 	// 1回目：目的地
 	if (!routeDestination) {
 		routeDestination = e.latlng;
-
 		routeDestinationMarker = createRoutePointMarker(
 			e.latlng,
 			'目的地',
 			'destination'
 		);
-
 		return;
 	}
-
 	// 2回目：出発点
 	if (!routeStart) {
 		routeStart = e.latlng;
-
 		routeStartMarker = createRoutePointMarker(
 			e.latlng,
 			'出発点',
 			'start'
 		);
-
 		searchRoute();
 		return;
 	}
-
 	// 3回目以降：新しい目的地として再検索
 	clearRouteSearch();
-
 	routeDestination = e.latlng;
-
 	routeDestinationMarker = createRoutePointMarker(
 		e.latlng,
 		'目的地',
 		'destination'
 	);
 });
-
-
 // =====================
 //	現在地ボタン（継続追跡）
 // =====================
@@ -826,33 +717,25 @@ let locateCircle = null;
 let watchId = null;
 let firstFix = false;
 const LOCATE_INTERVAL_MS = 3000; // 検索間隔（3秒）
-
 function updateLocateMarker(pos) {
 	const lat = pos.coords.latitude;
 	const lng = pos.coords.longitude;
 	const acc = pos.coords.accuracy;
-
 	if (!firstFix) {
 		// ============================================================
 		// 現在地ボタンを押したときの最低ズーム値
 		// この「10」を変更すると、現在地表示時の境界値を変更できる。
 		// 例：8にすると「ズーム8未満なら8」、12にすると「ズーム12未満なら12」
 		// ============================================================
-		const MIN_LOCATION_ZOOM = 14;
-
-		// 現在のズーム値が14未満なら10にする。
-		// 14以上なら現在のズーム値をそのまま維持する。
+		const MIN_LOCATION_ZOOM = 16;
 		const currentZoom = map.getZoom();
 		const locationZoom = Math.max(currentZoom, MIN_LOCATION_ZOOM);
-
 		// 地図の中心を現在地へ移動。
 		map.setView([lat, lng], locationZoom);
 		firstFix = true;
 	}
-
 	if (locateMarker) { map.removeLayer(locateMarker); }
 	if (locateCircle) { map.removeLayer(locateCircle); }
-
 	locateCircle = L.circle([lat, lng], {
 		radius: acc,
 		color: '#1a73e8',
@@ -860,7 +743,6 @@ function updateLocateMarker(pos) {
 		fillOpacity: 0.12,
 		weight: 1.5
 	}).addTo(map);
-
 	locateMarker = L.circleMarker([lat, lng], {
 		radius: 9,
 		color: 'white',
@@ -869,26 +751,22 @@ function updateLocateMarker(pos) {
 		weight: 2.5
 	}).bindPopup('現在地').addTo(map);
 }
-
 function pollLocation() {
 	navigator.geolocation.getCurrentPosition(updateLocateMarker, err => {
 		alert('現在地の取得に失敗しました: ' + err.message);
 		stopWatch();
 	}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 }
-
 function startWatch() {
 	if (!navigator.geolocation) {
 		alert('このブラウザは現在地取得に対応していません。');
 		return;
 	}
 	if (watchId !== null) return; // 既に追跡中
-
 	firstFix = false;
 	pollLocation(); // 即座に1回取得
 	watchId = setInterval(pollLocation, LOCATE_INTERVAL_MS); // 以後5秒おき
 }
-
 function stopWatch() {
 	if (watchId !== null) {
 		clearInterval(watchId);
@@ -897,7 +775,6 @@ function stopWatch() {
 	if (locateMarker) { map.removeLayer(locateMarker); locateMarker = null; }
 	if (locateCircle) { map.removeLayer(locateCircle); locateCircle = null; }
 }
-
 // =====================
 //	easyButton：現在地・停止・全体表示
 // =====================
@@ -905,11 +782,9 @@ L.easyButton('fas fa-map-marker-alt', function() {
 	stopWatch();
 	startWatch();
 }, '現在地を表示（継続追跡）').addTo(map);
-
 L.easyButton('fa fa-times', function() {
 	stopWatch();
 }, '現在地追跡を停止').addTo(map);
-
 L.easyButton('fa fa-reply-all', function() {
 	if (markers.length === 0) {
 		alert('マーカーがありません。');
@@ -918,13 +793,11 @@ L.easyButton('fa fa-reply-all', function() {
 	const bounds = markers.map(m => [m.lat, m.lng]);
 	map.fitBounds(bounds, { padding: [50, 50] });
 }, 'マーカー全体を表示').addTo(map);
-
 // =====================
 //	KML エクスポート（ファイル名指定モーダル）
 // =====================
 const kmlOverlay	= document.getElementById('kml-modal-overlay');
 const kmlFilename = document.getElementById('kml-filename');
-
 document.getElementById('btn-download-kml').addEventListener('click', () => {
 	if (markers.length === 0) { alert('マーカーがありません。'); return; }
 	// デフォルトファイル名を今日の日付で設定
@@ -937,21 +810,16 @@ document.getElementById('btn-download-kml').addEventListener('click', () => {
 	kmlFilename.focus();
 	kmlFilename.select();
 });
-
 document.getElementById('kml-modal-cancel').addEventListener('click', () => {
 	kmlOverlay.classList.remove('open');
 });
-
 kmlOverlay.addEventListener('click', e => {
 	if (e.target === kmlOverlay) kmlOverlay.classList.remove('open');
 });
-
 kmlFilename.addEventListener('keydown', e => {
 	if (e.key === 'Enter') doDownloadKML();
 });
-
 document.getElementById('kml-modal-ok').addEventListener('click', doDownloadKML);
-
 function doDownloadKML() {
 	let name = kmlFilename.value.trim() || 'markers';
 	// .kml拡張子を重複しないよう付与
@@ -966,7 +834,6 @@ function doDownloadKML() {
 	URL.revokeObjectURL(url);
 	kmlOverlay.classList.remove('open');
 }
-
 function buildKML(entries) {
 	const placemarks = entries.map(e => `
 		<Placemark>
@@ -984,7 +851,6 @@ function buildKML(entries) {
 			</Style>
 			<Point><coordinates>${e.lng},${e.lat},0</coordinates></Point>
 		</Placemark>`).join('\n');
-
 	return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 	<Document>
@@ -993,26 +859,21 @@ ${placemarks}
 	</Document>
 </kml>`;
 }
-
 function xmlEscape(str) {
 	return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
-
 // =====================
 //	KML インポート（ローカルファイルアップロード）
 // =====================
 const btnUploadKML = document.getElementById('btn-upload-kml');
 const kmlFileInput = document.getElementById('kml-file-input');
-
 btnUploadKML.addEventListener('click', () => {
 	kmlFileInput.value = ''; // 同じファイルを再選択しても発火するようにリセット
 	kmlFileInput.click();
 });
-
 kmlFileInput.addEventListener('change', () => {
 	const file = kmlFileInput.files && kmlFileInput.files[0];
 	if (!file) return;
-
 	const reader = new FileReader();
 	reader.onload = () => {
 		try {
@@ -1027,7 +888,6 @@ kmlFileInput.addEventListener('change', () => {
 	};
 	reader.readAsText(file, 'UTF-8');
 });
-
 // =====================
 //	KML インポート（URLパラメータ kml=xxx）
 // =====================
@@ -1035,7 +895,6 @@ kmlFileInput.addEventListener('change', () => {
 	const params = new URLSearchParams(location.search);
 	const kmlPath = params.get('kml');
 	if (!kmlPath) return;
-
 	try {
 		const res = await fetch(kmlPath);
 		if (!res.ok) throw new Error('KMLファイルが取得できません: ' + kmlPath);
@@ -1046,13 +905,11 @@ kmlFileInput.addEventListener('change', () => {
 		alert('KMLの読み込みに失敗しました: ' + err.message);
 	}
 })();
-
 function parseAndLoadKML(kmlText) {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(kmlText, 'application/xml');
 	const placemarks = doc.getElementsByTagName('Placemark');
 	const bounds = [];
-
 	Array.from(placemarks).forEach(pm => {
 		const nameEl = pm.getElementsByTagName('name')[0];
 		const coordEl = pm.getElementsByTagName('coordinates')[0];
@@ -1067,7 +924,6 @@ function parseAndLoadKML(kmlText) {
 		addMarker(lat, lng, name);
 		bounds.push([lat, lng]);
 	});
-
 	if (bounds.length > 0) {
 		map.fitBounds(bounds, { padding: [40, 40] });
 	}
