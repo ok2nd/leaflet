@@ -278,6 +278,53 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
     }
 }
 
+
+/* 上部ツールバーは地図コントロールへ移動 */
+#toolbar { display: none !important; }
+
+/* マーカー追加：徒歩ルートのすぐ上 */
+.route-control-buttons .route-marker {
+	display: block;
+	width: 40px;
+	height: 40px;
+	margin: 0 0 5px 0;
+	padding: 0;
+	background: #fff;
+	border: 2px solid rgba(0,0,0,0.2);
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+	cursor: pointer;
+	font-size: 17px;
+	line-height: 36px;
+	color: #333;
+}
+.route-control-buttons .route-marker:hover { background: #f4f4f4; }
+.route-control-buttons .route-marker.active {
+	background: #1976d2;
+	color: #fff;
+	border-color: #555;
+}
+
+/* 住所地名検索の下のKMLボタン */
+.kml-map-control {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+.kml-map-control button {
+	width: 44px;
+	min-height: 38px;
+	padding: 2px;
+	background: #fff;
+	border: 2px solid rgba(0,0,0,0.2);
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+	cursor: pointer;
+	font-size: 11px;
+	line-height: 14px;
+	font-weight: bold;
+}
+
 </style>
 </head>
 <body>
@@ -480,6 +527,9 @@ const mapEl = document.getElementById('map');
 btnAddMode.addEventListener('click', () => {
 	addMode = !addMode;
 	btnAddMode.classList.toggle('active', addMode);
+	if (typeof routeControl !== 'undefined' && routeControl.markerBtn) {
+		routeControl.markerBtn.classList.toggle('active', addMode);
+	}
 	modeLabel.textContent = addMode ? 'オン（地図をクリックで追加）' : 'オフ';
 	mapEl.classList.toggle('add-mode', addMode);
 });
@@ -506,7 +556,8 @@ const RouteControl = L.Control.extend({
 		const container = L.DomUtil.create('div', 'leaflet-control route-control');
 		container.innerHTML = `
 			<div class="route-control-buttons">
-				<button type="button" class="route-walk" title="徒歩ルート検索">
+				
+				<button type="button" class="route-marker" title="マーカー追加">📍</button><button type="button" class="route-walk" title="徒歩ルート検索">
 					<i class="fas fa-person-walking"></i>
 				</button>
 				<button type="button" class="route-car" title="車ルート検索">
@@ -517,11 +568,20 @@ const RouteControl = L.Control.extend({
 				</button>
 			</div>
 		`;
+		const markerBtn = container.querySelector('.route-marker');
 		const walkBtn = container.querySelector('.route-walk');
 		const carBtn = container.querySelector('.route-car');
 		const offBtn = container.querySelector('.route-off');
 		L.DomEvent.disableClickPropagation(container);
 		L.DomEvent.disableScrollPropagation(container);
+		L.DomEvent.on(markerBtn, 'click', function(e) {
+			L.DomEvent.stopPropagation(e);
+			addMode = !addMode;
+			btnAddMode.classList.toggle('active', addMode);
+			markerBtn.classList.toggle('active', addMode);
+			modeLabel.textContent = addMode ? 'オン（地図をクリックで追加）' : 'オフ';
+			mapEl.classList.toggle('add-mode', addMode);
+		});
 		L.DomEvent.on(walkBtn, 'click', function() {
 			setRouteMode('walk');
 		});
@@ -531,6 +591,7 @@ const RouteControl = L.Control.extend({
 		L.DomEvent.on(offBtn, 'click', function() {
 			setRouteMode('off');
 		});
+		this.markerBtn = markerBtn;
 		this.walkBtn = walkBtn;
 		this.carBtn = carBtn;
 		this.offBtn = offBtn;
@@ -538,6 +599,7 @@ const RouteControl = L.Control.extend({
 	},
 	update: function() {
 		if (!this.walkBtn) return;
+		if (this.markerBtn) this.markerBtn.classList.toggle('active', addMode);
 		this.walkBtn.classList.toggle('active', routeMode === 'walk');
 		this.carBtn.classList.toggle('active', routeMode === 'car');
 		this.offBtn.classList.toggle('active', routeMode === 'off');
@@ -1429,99 +1491,35 @@ function parseAndLoadKML(kmlText) {
 	}
 }
 
+
+
 // ============================================================
-// 地図左右の操作ボタン
+// KML操作：住所・地名検索の下
 // ============================================================
-function installRouteMapControls() {
-    const left = L.control({position: 'topleft'});
-    left.onAdd = function() {
-        const div = L.DomUtil.create('div', 'route-map-control-stack leaflet-control');
-        div.innerHTML =
-            '<button type="button" id="mapMarkerModeBtn" title="マーカー追加">📍</button>' +
-            '<button type="button" id="mapWalkModeBtn" title="徒歩ルート">🚶</button>' +
-            '<button type="button" id="mapCarModeBtn" title="車ルート">🚗</button>' +
-            '<button type="button" id="mapRouteOffBtn" title="ルートOFF">×</button>';
-        L.DomEvent.disableClickPropagation(div);
-        L.DomEvent.disableScrollPropagation(div);
-        return div;
-    };
-    left.addTo(map);
+const KMLMapControl = L.Control.extend({
+	options: { position: 'topright' },
+	onAdd: function() {
+		const container = L.DomUtil.create('div', 'leaflet-control kml-map-control');
+		container.innerHTML =
+			'<button type="button" title="KML保存">💾<br>KML保存</button>' +
+			'<button type="button" title="KMLアップロード">📂<br>KML読込</button>';
 
-    const right = L.control({position: 'topright'});
-    right.onAdd = function() {
-        const div = L.DomUtil.create('div', 'route-map-control-stack leaflet-control');
-        div.innerHTML =
-            '<button type="button" id="mapKmlSaveBtn" title="KML保存">KML<br>保存</button>' +
-            '<button type="button" id="mapKmlUploadBtn" title="KMLアップロード">KML<br>読込</button>';
-        L.DomEvent.disableClickPropagation(div);
-        L.DomEvent.disableScrollPropagation(div);
-        return div;
-    };
-    right.addTo(map);
+		L.DomEvent.disableClickPropagation(container);
+		L.DomEvent.disableScrollPropagation(container);
 
-    // 既存ボタンを再利用することで、既存のマーカー/KML処理を変更しない。
-    const markerBtn = document.querySelector('#addMarkerBtn') ||
-                      document.querySelector('.add-marker-btn');
-    const saveBtn = document.querySelector('#saveKmlBtn') ||
-                    document.querySelector('.save-kml-btn');
-    const uploadBtn = document.querySelector('#uploadKmlBtn') ||
-                      document.querySelector('.upload-kml-btn');
-
-    const mb = document.getElementById('mapMarkerModeBtn');
-    const wb = document.getElementById('mapWalkModeBtn');
-    const cb = document.getElementById('mapCarModeBtn');
-    const xb = document.getElementById('mapRouteOffBtn');
-
-    if (markerBtn) {
-        mb.addEventListener('click', function(e) {
-            L.DomEvent.stopPropagation(e);
-            markerBtn.click();
-            mb.classList.toggle('active');
-        });
-    }
-
-    wb.addEventListener('click', function(e) {
-        L.DomEvent.stopPropagation(e);
-        const b = document.querySelector('#walkRouteBtn') ||
-                  document.querySelector('[data-route-mode="walk"]');
-        if (b) b.click();
-    });
-
-    cb.addEventListener('click', function(e) {
-        L.DomEvent.stopPropagation(e);
-        const b = document.querySelector('#carRouteBtn') ||
-                  document.querySelector('[data-route-mode="car"]');
-        if (b) b.click();
-    });
-
-    xb.addEventListener('click', function(e) {
-        L.DomEvent.stopPropagation(e);
-        const b = document.querySelector('#routeOffBtn') ||
-                  document.querySelector('[data-route-mode="off"]');
-        if (b) b.click();
-    });
-
-    if (saveBtn) {
-        document.getElementById('mapKmlSaveBtn').addEventListener('click', function(e) {
-            L.DomEvent.stopPropagation(e);
-            saveBtn.click();
-        });
-    }
-
-    if (uploadBtn) {
-        document.getElementById('mapKmlUploadBtn').addEventListener('click', function(e) {
-            L.DomEvent.stopPropagation(e);
-            uploadBtn.click();
-        });
-    }
-}
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof map !== 'undefined') {
-        installRouteMapControls();
-    }
+		const buttons = container.querySelectorAll('button');
+		L.DomEvent.on(buttons[0], 'click', function(e) {
+			L.DomEvent.stopPropagation(e);
+			document.getElementById('btn-download-kml').click();
+		});
+		L.DomEvent.on(buttons[1], 'click', function(e) {
+			L.DomEvent.stopPropagation(e);
+			document.getElementById('btn-upload-kml').click();
+		});
+		return container;
+	}
 });
+new KMLMapControl().addTo(map);
 </script>
 </body>
 </html>
