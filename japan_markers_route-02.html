@@ -833,10 +833,7 @@ function updateLocateMarker(pos) {
 	const acc = pos.coords.accuracy;
 
 	if (!firstFix) {
-		// 現在のズーム値を維持したまま、中心だけ現在地へ移動する。
-		// 現在より広域（ズームアウト）にはしない。
-		const currentZoom = map.getZoom();
-		map.setView([lat, lng], currentZoom);
+		map.setView([lat, lng], 15);
 		firstFix = true;
 	}
 
