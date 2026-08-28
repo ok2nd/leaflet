@@ -170,21 +170,7 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 #map.route-mode {
 	cursor: crosshair;
 }
-
-/* 経路変更用ドラッグハンドル */
-.route-drag-handle {
-	background: #fff;
-	border: 3px solid #333;
-	border-radius: 50%;
-	width: 16px;
-	height: 16px;
-	box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-}
-.route-drag-handle.active {
-	background: #ffd54f;
-}
-
-		/* KMLファイル名モーダル */
+/* KMLファイル名モーダル */
 #kml-modal-overlay {
 	display: none;
 	position: fixed;
@@ -601,221 +587,62 @@ function getRouteMidpoint(coords) {
 	}
 	return coords[Math.floor(coords.length / 2)];
 }
-// 経路変更用の中間地点（ドラッグ可能）
-let routeVia = null;
-let routeDragMarker = null;
-let routeDragging = false;
-let routeDragStartedOnLine = false;
-
-function createRouteDragIcon(active) {
-	return L.divIcon({
-		className: 'route-drag-handle' + (active ? ' active' : ''),
-		html: '',
-		iconSize: [16, 16],
-		iconAnchor: [8, 8]
-	});
-}
-
-function clearRouteDragMarker() {
-	if (routeDragMarker) {
-		map.removeLayer(routeDragMarker);
-		routeDragMarker = null;
-	}
-}
-
-function showRouteDragMarker(latlng, active) {
-	if (!routeDragMarker) {
-		routeDragMarker = L.marker(latlng, {
-			icon: createRouteDragIcon(active),
-			draggable: false,
-			zIndexOffset: 1000
-		}).addTo(map);
-	} else {
-		routeDragMarker.setLatLng(latlng);
-		routeDragMarker.setIcon(createRouteDragIcon(active));
-	}
-}
-
-// 経路をマウスでつまんだ地点を、経路変更用の中間地点にする
-function startRouteDrag(e) {
-	if (routeMode === 'off' || !routeDestination || !routeStart) return;
-
-	routeDragging = true;
-	routeDragStartedOnLine = true;
-	routeVia = e.latlng;
-	showRouteDragMarker(routeVia, true);
-
-	// 地図のパン操作と競合しないようにする
-	map.dragging.disable();
-	if (e.originalEvent && e.originalEvent.preventDefault) {
-		e.originalEvent.preventDefault();
-	}
-	L.DomEvent.stopPropagation(e);
-
-	document.addEventListener('mousemove', routeDragMove);
-	document.addEventListener('mouseup', routeDragEnd);
-}
-
-function routeDragMove(e) {
-	if (!routeDragging) return;
-
-	const rect = map.getContainer().getBoundingClientRect();
-	const point = L.point(
-		e.clientX - rect.left,
-		e.clientY - rect.top
-	);
-
-	// 地図外までドラッグした場合も地図内座標に収める
-	const size = map.getSize();
-	point.x = Math.max(0, Math.min(size.x, point.x));
-	point.y = Math.max(0, Math.min(size.y, point.y));
-
-	routeVia = map.containerPointToLatLng(point);
-	showRouteDragMarker(routeVia, true);
-}
-
-async function routeDragEnd() {
-	if (!routeDragging) return;
-
-	routeDragging = false;
-	routeDragStartedOnLine = false;
-	map.dragging.enable();
-
-	document.removeEventListener('mousemove', routeDragMove);
-	document.removeEventListener('mouseup', routeDragEnd);
-
-	if (!routeVia) return;
-
-	showRouteDragMarker(routeVia, false);
-
-	// ドラッグ終了時に、新しい中間地点を含めて経路を再検索
-	await searchRoute();
-}
-
-function attachRouteDragEvents() {
-	if (!routeLine) return;
-
-	routeLine.on('mousedown', startRouteDrag);
-	routeLine.on('mouseover', function() {
-		if (!routeDragging) {
-			routeLine.setStyle({ weight: 7 });
-		}
-	});
-	routeLine.on('mouseout', function() {
-		if (!routeDragging) {
-			routeLine.setStyle({ weight: 5 });
-		}
-	});
-}
-
-function clearRouteSearch() {
-	routeDestination = null;
-	routeStart = null;
-	routeVia = null;
-	routeDragging = false;
-
-	clearRouteDragMarker();
-
-	if (routeDestinationMarker) {
-		map.removeLayer(routeDestinationMarker);
-		routeDestinationMarker = null;
-	}
-	if (routeStartMarker) {
-		map.removeLayer(routeStartMarker);
-		routeStartMarker = null;
-	}
-	if (routeLine) {
-		map.removeLayer(routeLine);
-		routeLine = null;
-	}
-	if (routeInfoLabel) {
-		map.removeLayer(routeInfoLabel);
-		routeInfoLabel = null;
-	}
-}
-
 async function searchRoute() {
 	if (!routeDestination || !routeStart || routeMode === 'off') {
 		return;
 	}
-
 	const requestedMode = routeMode;
-
-	const endpoint = requestedMode === 'walk'
-		? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'
-		: 'https://router.project-osrm.org/route/v1/driving/';
-
-	const start = routeStart;
+		const endpoint = requestedMode === 'walk'
+			? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'
+			: 'https://router.project-osrm.org/route/v1/driving/';
+		const start = routeStart;
 	const destination = routeDestination;
-
-	// 中間地点がある場合は「出発点 → 中間地点 → 目的地」で再検索
-	let coordinates =
-		start.lng + ',' + start.lat;
-
-	if (routeVia) {
-		coordinates += ';' + routeVia.lng + ',' + routeVia.lat;
-	}
-
-	coordinates += ';' +
-		destination.lng + ',' + destination.lat;
-
 	const url =
 		endpoint +
-		coordinates +
+		start.lng + ',' + start.lat +
+		';' +
+		destination.lng + ',' + destination.lat +
 		'?overview=full&geometries=geojson';
-
-	// 再検索中は現在の経路線と距離・時間表示をいったん消す
-	if (routeLine) {
-		map.removeLayer(routeLine);
-		routeLine = null;
-	}
-	if (routeInfoLabel) {
-		map.removeLayer(routeInfoLabel);
-		routeInfoLabel = null;
-	}
-
-	try {
-		const response = await fetch(url);
-
+		// モード切替時など、古いルート表示を消す。
+		if (routeLine) {
+			map.removeLayer(routeLine);
+			routeLine = null;
+		}
+		if (routeInfoLabel) {
+			map.removeLayer(routeInfoLabel);
+			routeInfoLabel = null;
+		}
+		try {
+			const response = await fetch(url);
 		if (!response.ok) {
 			throw new Error('HTTP ' + response.status);
 		}
-
 		const data = await response.json();
-
-		// 検索中に徒歩⇔車を切り替えた場合、古い結果は表示しない
 		if (requestedMode !== routeMode) {
 			return;
 		}
-
 		if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
 			throw new Error(data.message || 'ルートが見つかりませんでした');
 		}
-
 		const route = data.routes[0];
-
 		const coords = route.geometry.coordinates.map(function(c) {
 			return [c[1], c[0]];
 		});
-
+		if (routeLine) {
+			map.removeLayer(routeLine);
+		}
+		if (routeInfoLabel) {
+			map.removeLayer(routeInfoLabel);
+		}
 		routeLine = L.polyline(coords, {
 			color: requestedMode === 'walk' ? '#1976d2' : '#d32f2f',
 			weight: 5,
 			opacity: 0.85,
 			lineCap: 'round',
-			lineJoin: 'round',
-			interactive: true
+			lineJoin: 'round'
 		}).addTo(map);
-
-		// 経路変更中間地点を表示
-		if (routeVia) {
-			showRouteDragMarker(routeVia, false);
-		}
-
 		const modeName = requestedMode === 'walk' ? '徒歩' : '車';
 		const midpoint = getRouteMidpoint(coords);
-
-		// 距離・時間は、変更後の経路で再計算した結果を表示
 		routeInfoLabel = L.marker(midpoint, {
 			icon: L.divIcon({
 				html:
@@ -831,31 +658,22 @@ async function searchRoute() {
 			}),
 			interactive: false
 		}).addTo(map);
-
-		attachRouteDragEvents();
-
 		routeLine.bringToFront();
-
-		if (routeDragMarker) {
-			routeDragMarker.bringToFront();
-		}
 		if (routeDestinationMarker) {
 			routeDestinationMarker.bringToFront();
 		}
 		if (routeStartMarker) {
 			routeStartMarker.bringToFront();
 		}
-
 	} catch (err) {
 		console.error('Route search error:', err);
 		alert(
-			(requestedMode === 'walk' ? '徒歩' : '車') +
+			(routeMode === 'walk' ? '徒歩' : '車') +
 			'ルートを取得できませんでした。\n' +
 			err.message
 		);
 	}
 }
-
 // 地図クリック：目的地 → 出発点
 map.on('click', function(e) {
 	if (routeMode === 'off') {
