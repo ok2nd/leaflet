@@ -290,13 +290,12 @@ const esriTile = L.tileLayer(
 	'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
 	{ attribution: '<a href="https://www.esrij.com/">Esri Japan</a>', maxZoom: 18 }
 );
-// 初期表示：Googleマップ
-googleRoadTile.addTo(map);
-
+osmTile.addTo(map);
 const topomapTile = L.tileLayer(
 	'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 	{ attribution: '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18 }
 );
+osmTile.addTo(map);
 const baseMap = {
 	'OpenStreetMap': osmTile,
 	'Google マップ': googleRoadTile,
@@ -500,7 +499,6 @@ const routeControl = new RouteControl();
 routeControl.addTo(map);
 function setRouteMode(mode) {
 			const previousMode = routeMode;
-
 			// ×：ルート検索を完全に解除
 			if (mode === 'off') {
 				routeMode = 'off';
@@ -509,22 +507,17 @@ function setRouteMode(mode) {
 				routeControl.update();
 				return;
 			}
-
-			// 徒歩⇔車を切り替えた場合は、途中の経路設定をすべてリセット。
-			// 目的地・出発点はそのまま残し、新しいモードで最初から再検索する。
-			if (previousMode !== 'off' && previousMode !== mode) {
-				clearRouteViaPoints();
-			}
-
+			// 徒歩⇔車の切り替えでは、目的地・出発点を維持する。
+			// すでにルート表示中なら、新しいモードで即座に再検索する。
 			routeMode = mode;
 			mapEl.classList.add('route-mode');
 			routeControl.update();
-
 			if (routeDestination && routeStart) {
 				searchRoute();
+			} else if (previousMode === 'off') {
+				// 新しくモードを開始した場合は、目的地→出発点の順にクリックする。
 			}
 		}
-
 		function clearRouteSearch() {
 	routeDestination = null;
 	routeStart = null;
@@ -608,11 +601,11 @@ function getRouteMidpoint(coords) {
 	}
 	return coords[Math.floor(coords.length / 2)];
 }
-// 経路変更用の中間地点（複数設定可能）
-let routeViaPoints = [];
-let routeViaMarkers = [];
+// 経路変更用の中間地点（ドラッグ可能）
+let routeVia = null;
+let routeDragMarker = null;
 let routeDragging = false;
-let routeDraggingIndex = -1;
+let routeDragStartedOnLine = false;
 
 function createRouteDragIcon(active) {
 	return L.divIcon({
@@ -623,178 +616,37 @@ function createRouteDragIcon(active) {
 	});
 }
 
-function removeRouteViaMarker(index) {
-	if (routeViaMarkers[index]) {
-		map.removeLayer(routeViaMarkers[index]);
+function clearRouteDragMarker() {
+	if (routeDragMarker) {
+		map.removeLayer(routeDragMarker);
+		routeDragMarker = null;
 	}
-	routeViaMarkers.splice(index, 1);
 }
 
-function clearRouteViaPoints() {
-	routeViaPoints = [];
-
-	routeViaMarkers.forEach(function(marker) {
-		map.removeLayer(marker);
-	});
-	routeViaMarkers = [];
-
-	routeDragging = false;
-	routeDraggingIndex = -1;
-}
-
-// 現在表示されているルート上で、指定地点がどの位置にあるかを求める。
-// 戻り値は「出発点からの概算距離（m）」。
-function getPositionOnCurrentRoute(latlng) {
-	if (!routeLine) return Infinity;
-
-	const linePoints = routeLine.getLatLngs();
-	if (!linePoints || linePoints.length < 2) return Infinity;
-
-	const target = L.latLng(latlng);
-	let cumulative = 0;
-	let bestPosition = 0;
-	let bestDistance = Infinity;
-
-	for (let i = 1; i < linePoints.length; i++) {
-		const a = L.latLng(linePoints[i - 1]);
-		const b = L.latLng(linePoints[i]);
-
-		const ax = map.latLngToLayerPoint(a);
-		const bx = map.latLngToLayerPoint(b);
-		const tx = map.latLngToLayerPoint(target);
-
-		const dx = bx.x - ax.x;
-		const dy = bx.y - ax.y;
-		const len2 = dx * dx + dy * dy;
-
-		let t = 0;
-		if (len2 > 0) {
-			t = ((tx.x - ax.x) * dx + (tx.y - ax.y) * dy) / len2;
-			t = Math.max(0, Math.min(1, t));
-		}
-
-		const px = ax.x + dx * t;
-		const py = ax.y + dy * t;
-		const d = Math.hypot(tx.x - px, tx.y - py);
-
-		const segmentLength = a.distanceTo(b);
-
-		if (d < bestDistance) {
-			bestDistance = d;
-			bestPosition = cumulative + segmentLength * t;
-		}
-
-		cumulative += segmentLength;
+function showRouteDragMarker(latlng, active) {
+	if (!routeDragMarker) {
+		routeDragMarker = L.marker(latlng, {
+			icon: createRouteDragIcon(active),
+			draggable: false,
+			zIndexOffset: 1000
+		}).addTo(map);
+	} else {
+		routeDragMarker.setLatLng(latlng);
+		routeDragMarker.setIcon(createRouteDragIcon(active));
 	}
-
-	return bestPosition;
 }
 
-// 経由地点を現在のルート上の位置順に並べ替える。
-// 画面上で「経由地2」を経由地1より手前に置いた場合も、自動的に順番を修正する。
-function sortRouteViaPointsByRoutePosition() {
-	if (!routeLine || routeViaPoints.length < 2) return;
-
-	// 経由地点と、そのマーカーを必ずセットで並べ替える。
-	const sorted = routeViaPoints.map(function(point, index) {
-		return {
-			point: point,
-			marker: routeViaMarkers[index],
-			index: index,
-			position: getPositionOnCurrentRoute(point)
-		};
-	});
-
-	sorted.sort(function(a, b) {
-		if (a.position !== b.position) {
-			return a.position - b.position;
-		}
-		return a.index - b.index;
-	});
-
-	routeViaPoints = sorted.map(function(item) {
-		return item.point;
-	});
-
-	routeViaMarkers = sorted.map(function(item) {
-		return item.marker;
-	});
-
-	updateRouteViaMarkerLabels();
-}
-
-function updateRouteViaMarkerLabels() {
-	routeViaMarkers.forEach(function(marker, index) {
-		if (marker) {
-			marker.bindTooltip('経由地 ' + (index + 1), {
-				permanent: false,
-				direction: 'top',
-				offset: [0, -7],
-				className: 'route-point-label'
-			});
-		}
-	});
-}
-
-function addRouteViaPoint(latlng) {
-	const point = L.latLng(latlng);
-	routeViaPoints.push(point);
-
-	const marker = L.marker(latlng, {
-		icon: createRouteDragIcon(false),
-		draggable: true,
-		zIndexOffset: 1000
-	}).addTo(map);
-
-	// 既存の経由地点をドラッグして位置変更
-	marker.on('dragstart', function(e) {
-		routeDragging = true;
-		routeDraggingIndex = routeViaMarkers.indexOf(marker);
-		marker.setIcon(createRouteDragIcon(true));
-		map.dragging.disable();
-		L.DomEvent.stopPropagation(e);
-	});
-
-	marker.on('drag', function() {
-		if (routeDraggingIndex === index) {
-			routeViaPoints[index] = marker.getLatLng();
-		}
-	});
-
-	marker.on('dragend', async function() {
-		routeDragging = false;
-		routeDraggingIndex = -1;
-		marker.setIcon(createRouteDragIcon(false));
-		map.dragging.enable();
-
-		// 位置変更後は、現在のルート上の位置順に経由地を並べ直す。
-		sortRouteViaPointsByRoutePosition();
-
-		// 経由地を含むルート・距離・時間を再計算
-		await searchRoute();
-	});
-
-	routeViaMarkers.push(marker);
-
-	// 新しい経由地も現在のルート上の位置順に並べる。
-	sortRouteViaPointsByRoutePosition();
-
-	return marker;
-}
-
-// 経路をマウスでつまんだ場所に新しい中間地点を追加。
-// 何度でも追加できる。
+// 経路をマウスでつまんだ地点を、経路変更用の中間地点にする
 function startRouteDrag(e) {
 	if (routeMode === 'off' || !routeDestination || !routeStart) return;
 
-	// ルート線をつまむたびに、新しい経由地点を追加
-	const viaMarker = addRouteViaPoint(e.latlng);
 	routeDragging = true;
-	routeDraggingIndex = routeViaMarkers.indexOf(viaMarker);
-	viaMarker.setIcon(createRouteDragIcon(true));
+	routeDragStartedOnLine = true;
+	routeVia = e.latlng;
+	showRouteDragMarker(routeVia, true);
 
+	// 地図のパン操作と競合しないようにする
 	map.dragging.disable();
-
 	if (e.originalEvent && e.originalEvent.preventDefault) {
 		e.originalEvent.preventDefault();
 	}
@@ -805,7 +657,7 @@ function startRouteDrag(e) {
 }
 
 function routeDragMove(e) {
-	if (!routeDragging || routeDraggingIndex < 0) return;
+	if (!routeDragging) return;
 
 	const rect = map.getContainer().getBoundingClientRect();
 	const point = L.point(
@@ -813,38 +665,30 @@ function routeDragMove(e) {
 		e.clientY - rect.top
 	);
 
+	// 地図外までドラッグした場合も地図内座標に収める
 	const size = map.getSize();
 	point.x = Math.max(0, Math.min(size.x, point.x));
 	point.y = Math.max(0, Math.min(size.y, point.y));
 
-	const latlng = map.containerPointToLatLng(point);
-	routeViaPoints[routeDraggingIndex] = latlng;
-
-	const marker = routeViaMarkers[routeDraggingIndex];
-	if (marker) {
-		marker.setLatLng(latlng);
-	}
+	routeVia = map.containerPointToLatLng(point);
+	showRouteDragMarker(routeVia, true);
 }
 
 async function routeDragEnd() {
 	if (!routeDragging) return;
 
-	const index = routeDraggingIndex;
 	routeDragging = false;
-	routeDraggingIndex = -1;
+	routeDragStartedOnLine = false;
 	map.dragging.enable();
 
 	document.removeEventListener('mousemove', routeDragMove);
 	document.removeEventListener('mouseup', routeDragEnd);
 
-	const marker = routeViaMarkers[index];
-	if (marker) {
-		marker.setIcon(createRouteDragIcon(false));
-	}
+	if (!routeVia) return;
 
-	// ドラッグ終了時に経由地点の順序を整理し、
-	// 「出発点 → 経由地1 → 経由地2 → … → 目的地」で再検索する。
-	sortRouteViaPointsByRoutePosition();
+	showRouteDragMarker(routeVia, false);
+
+	// ドラッグ終了時に、新しい中間地点を含めて経路を再検索
 	await searchRoute();
 }
 
@@ -867,8 +711,10 @@ function attachRouteDragEvents() {
 function clearRouteSearch() {
 	routeDestination = null;
 	routeStart = null;
+	routeVia = null;
+	routeDragging = false;
 
-	clearRouteViaPoints();
+	clearRouteDragMarker();
 
 	if (routeDestinationMarker) {
 		map.removeLayer(routeDestinationMarker);
@@ -902,17 +748,13 @@ async function searchRoute() {
 	const start = routeStart;
 	const destination = routeDestination;
 
-	// 複数の経由地点は、現在のルート上の順序に合わせてからAPIへ渡す。
-	// これにより、経由地の追加順ではなく、ルート上の位置順で最短経路を計算する。
-	sortRouteViaPointsByRoutePosition();
-
-	// 「出発点 → 複数の中間地点 → 目的地」で再検索
+	// 中間地点がある場合は「出発点 → 中間地点 → 目的地」で再検索
 	let coordinates =
 		start.lng + ',' + start.lat;
 
-	routeViaPoints.forEach(function(via) {
-		coordinates += ';' + via.lng + ',' + via.lat;
-	});
+	if (routeVia) {
+		coordinates += ';' + routeVia.lng + ',' + routeVia.lat;
+	}
 
 	coordinates += ';' +
 		destination.lng + ',' + destination.lat;
@@ -965,10 +807,10 @@ async function searchRoute() {
 			interactive: true
 		}).addTo(map);
 
-		// 複数の経路変更中間地点を表示
-		routeViaMarkers.forEach(function(marker) {
-			marker.setZIndexOffset(1000);
-		});
+		// 経路変更中間地点を表示
+		if (routeVia) {
+			showRouteDragMarker(routeVia, false);
+		}
 
 		const modeName = requestedMode === 'walk' ? '徒歩' : '車';
 		const midpoint = getRouteMidpoint(coords);
@@ -994,10 +836,10 @@ async function searchRoute() {
 
 		routeLine.bringToFront();
 
-		// 複数の経路変更ポイントを常にルート線より前面に表示
-		routeViaMarkers.forEach(function(marker) {
-			marker.setZIndexOffset(1000);
-		});
+		if (routeDragMarker) {
+			// L.MarkerにはbringToFront()がないため、Z-indexを上げる。
+			routeDragMarker.setZIndexOffset(1000);
+		}
 		if (routeDestinationMarker) {
 			routeDestinationMarker.bringToFront();
 		}
