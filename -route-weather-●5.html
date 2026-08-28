@@ -349,18 +349,16 @@ Overlay_Map[ 14 ].on('click', function (e) {
 });
 Basic_Map[ 0 ].addTo(map);
 // 雨雲レーダー
-/*
-	L.control.rainviewer({ 
-		position: 'topright',
-		nextButtonText: '>',
-		playStopButtonText: '開始/停止',
-		prevButtonText: '<',
-		positionSliderLabelText: '時間',
-		opacitySliderLabelText: '透明度',
-		animationInterval: 500,
-		opacity: 0.5
-	}).addTo(map);
-*/
+L.control.rainviewer({ 
+	position: 'topright',
+	nextButtonText: '>',
+	playStopButtonText: '開始/停止',
+	prevButtonText: '<',
+	positionSliderLabelText: '時間',
+	opacitySliderLabelText: '透明度',
+	animationInterval: 500,
+	opacity: 0.5
+}).addTo(map);
 // 現在地表示ボタン
 var watch_id = 0;
 var curMarker = null;	// 現在地マーカー
@@ -432,15 +430,13 @@ L.easyButton('fa-walking', function(btn, easyMap) {
 	btn.state('route-off');
 }).addTo(map);
 var weather_mode = false;
-/*
-	L.easyButton('fa-cloud-sun', function(btn, easyMap) {
-		posMarkerRemove();
-		startMarkerRemove();
-		routeControlReset();
-		route_mode = false;
-		weather_mode = true;
-	}).addTo(map);
-*/
+L.easyButton('fa-cloud-sun', function(btn, easyMap) {
+	posMarkerRemove();
+	startMarkerRemove();
+	routeControlReset();
+	route_mode = false;
+	weather_mode = true;
+}).addTo(map);
 L.easyButton('fa fa-times', function(btn, easyMap) {
 	posMarkerRemove();
 	startMarkerRemove();
