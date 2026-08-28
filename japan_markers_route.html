@@ -231,6 +231,53 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 #kml-modal-ok:hover { background: #1b4332; }
 #kml-modal-cancel { background: #e9ecef; color: #333; }
 #kml-modal-cancel:hover { background: #dee2e6; }
+
+/* ルート操作用マーカー：PC/スマホ共通 */
+.route-point-marker {
+    touch-action: none !important;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: grab;
+}
+.route-point-marker:active {
+    cursor: grabbing;
+}
+.route-map-control-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.route-map-control-stack button {
+    width: 42px;
+    min-height: 40px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 5px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    font-size: 13px;
+    font-weight: bold;
+}
+.route-map-control-stack button.active {
+    border: 2px solid #1976d2;
+    background: #e8f0fe;
+}
+@media (max-width: 600px) {
+    .route-map-control-stack button {
+        width: 40px;
+        min-height: 40px;
+    }
+}
+
+
+/* 地図上のコントロールへ移動した旧ボタン */
+@media (max-width: 600px) {
+    #addMarkerBtn, #saveKmlBtn, #uploadKmlBtn,
+    .add-marker-btn, .save-kml-btn, .upload-kml-btn {
+        display: none !important;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -620,7 +667,7 @@ let suppressNextRouteMapClick = false;
 
 function createRouteDragIcon(active) {
 	return L.divIcon({
-		className: 'route-drag-handle' + (active ? ' active' : ''),
+		className: 'route-drag-handle route-point-marker' + (active ? ' active' : ''),
 		html: '',
 		iconSize: [16, 16],
 		iconAnchor: [8, 8]
@@ -934,6 +981,64 @@ function clearRouteSearch() {
 		map.removeLayer(routeInfoLabel);
 		routeInfoLabel = null;
 	}
+}
+
+
+// ============================================================
+// 目的地・出発点のドラッグ移動
+// ============================================================
+function enableRouteEndpointDragging(marker, type) {
+    if (!marker) return;
+
+    if (marker.dragging) marker.dragging.enable();
+
+    const el = marker.getElement();
+    if (el) {
+        el.classList.add('route-point-marker');
+        L.DomEvent.disableClickPropagation(el);
+        L.DomEvent.disableScrollPropagation(el);
+    }
+
+    marker.off('dragstart.routeEndpoint');
+    marker.off('drag.routeEndpoint');
+    marker.off('dragend.routeEndpoint');
+
+    marker.on('dragstart.routeEndpoint', function(e) {
+        routeDragging = true;
+        suppressNextRouteMapClick = true;
+        map.dragging.disable();
+        L.DomEvent.stopPropagation(e);
+    });
+
+    marker.on('drag.routeEndpoint', function(e) {
+        const p = marker.getLatLng();
+        if (type === 'destination') {
+            routeDestination = {lat: p.lat, lng: p.lng};
+        } else {
+            routeStart = {lat: p.lat, lng: p.lng};
+        }
+    });
+
+    marker.on('dragend.routeEndpoint', async function(e) {
+        L.DomEvent.stopPropagation(e);
+
+        const p = marker.getLatLng();
+        if (type === 'destination') {
+            routeDestination = {lat: p.lat, lng: p.lng};
+        } else {
+            routeStart = {lat: p.lat, lng: p.lng};
+        }
+
+        routeDragging = false;
+        map.dragging.enable();
+
+        suppressNextRouteMapClick = true;
+        setTimeout(function() {
+            suppressNextRouteMapClick = false;
+        }, 500);
+
+        await searchRoute();
+    });
 }
 
 async function searchRoute() {
@@ -1323,6 +1428,100 @@ function parseAndLoadKML(kmlText) {
 		map.fitBounds(bounds, { padding: [40, 40] });
 	}
 }
+
+// ============================================================
+// 地図左右の操作ボタン
+// ============================================================
+function installRouteMapControls() {
+    const left = L.control({position: 'topleft'});
+    left.onAdd = function() {
+        const div = L.DomUtil.create('div', 'route-map-control-stack leaflet-control');
+        div.innerHTML =
+            '<button type="button" id="mapMarkerModeBtn" title="マーカー追加">📍</button>' +
+            '<button type="button" id="mapWalkModeBtn" title="徒歩ルート">🚶</button>' +
+            '<button type="button" id="mapCarModeBtn" title="車ルート">🚗</button>' +
+            '<button type="button" id="mapRouteOffBtn" title="ルートOFF">×</button>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        return div;
+    };
+    left.addTo(map);
+
+    const right = L.control({position: 'topright'});
+    right.onAdd = function() {
+        const div = L.DomUtil.create('div', 'route-map-control-stack leaflet-control');
+        div.innerHTML =
+            '<button type="button" id="mapKmlSaveBtn" title="KML保存">KML<br>保存</button>' +
+            '<button type="button" id="mapKmlUploadBtn" title="KMLアップロード">KML<br>読込</button>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        return div;
+    };
+    right.addTo(map);
+
+    // 既存ボタンを再利用することで、既存のマーカー/KML処理を変更しない。
+    const markerBtn = document.querySelector('#addMarkerBtn') ||
+                      document.querySelector('.add-marker-btn');
+    const saveBtn = document.querySelector('#saveKmlBtn') ||
+                    document.querySelector('.save-kml-btn');
+    const uploadBtn = document.querySelector('#uploadKmlBtn') ||
+                      document.querySelector('.upload-kml-btn');
+
+    const mb = document.getElementById('mapMarkerModeBtn');
+    const wb = document.getElementById('mapWalkModeBtn');
+    const cb = document.getElementById('mapCarModeBtn');
+    const xb = document.getElementById('mapRouteOffBtn');
+
+    if (markerBtn) {
+        mb.addEventListener('click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            markerBtn.click();
+            mb.classList.toggle('active');
+        });
+    }
+
+    wb.addEventListener('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        const b = document.querySelector('#walkRouteBtn') ||
+                  document.querySelector('[data-route-mode="walk"]');
+        if (b) b.click();
+    });
+
+    cb.addEventListener('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        const b = document.querySelector('#carRouteBtn') ||
+                  document.querySelector('[data-route-mode="car"]');
+        if (b) b.click();
+    });
+
+    xb.addEventListener('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        const b = document.querySelector('#routeOffBtn') ||
+                  document.querySelector('[data-route-mode="off"]');
+        if (b) b.click();
+    });
+
+    if (saveBtn) {
+        document.getElementById('mapKmlSaveBtn').addEventListener('click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            saveBtn.click();
+        });
+    }
+
+    if (uploadBtn) {
+        document.getElementById('mapKmlUploadBtn').addEventListener('click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            uploadBtn.click();
+        });
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof map !== 'undefined') {
+        installRouteMapControls();
+    }
+});
 </script>
 </body>
 </html>
