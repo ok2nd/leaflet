@@ -295,7 +295,7 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 	box-shadow: 0 1px 5px rgba(0,0,0,0.25);
 	cursor: pointer;
 	font-size: 17px;
-	line-height: 30px;
+	line-height: 36px;
 	color: #333;
 }
 .route-control-buttons .route-marker:hover { background: #f4f4f4; }
@@ -323,25 +323,6 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
 	font-size: 11px;
 	line-height: 14px;
 	font-weight: bold;
-}
-
-
-/* 目的地・出発点・経由地・ルートのタッチ操作 */
-.route-point-marker,
-.route-endpoint-marker,
-.route-drag-handle {
-	touch-action: none !important;
-	-webkit-user-select: none;
-	user-select: none;
-}
-.route-endpoint-marker span {
-	display: block;
-	width: 12px;
-	height: 12px;
-	margin: 4px;
-	border: 2px solid #fff;
-	border-radius: 50%;
-	box-shadow: 0 1px 4px rgba(0,0,0,.5);
 }
 
 </style>
@@ -543,30 +524,14 @@ window.deleteMarker = function(id) {
 const btnAddMode = document.getElementById('btn-add-mode');
 const modeLabel = document.getElementById('mode-label');
 const mapEl = document.getElementById('map');
-function setMarkerAddMode(enabled) {
-	addMode = !!enabled;
-
-	// マーカー追加をONにしたら徒歩・車ルートはOFF。
-	if (addMode && routeMode !== 'off') {
-		routeMode = 'off';
-		clearRouteSearch();
-		mapEl.classList.remove('route-mode');
-	}
-
+btnAddMode.addEventListener('click', () => {
+	addMode = !addMode;
 	btnAddMode.classList.toggle('active', addMode);
 	if (typeof routeControl !== 'undefined' && routeControl.markerBtn) {
 		routeControl.markerBtn.classList.toggle('active', addMode);
 	}
 	modeLabel.textContent = addMode ? 'オン（地図をクリックで追加）' : 'オフ';
 	mapEl.classList.toggle('add-mode', addMode);
-
-	if (typeof routeControl !== 'undefined') {
-		routeControl.update();
-	}
-}
-
-btnAddMode.addEventListener('click', () => {
-	setMarkerAddMode(!addMode);
 });
 map.on('click', e => {
 	if (!addMode || routeMode !== 'off') return;
@@ -581,7 +546,6 @@ let routeStart = null;
 let routeDestinationMarker = null;
 let routeStartMarker = null;
 let routeLine = null;
-let routeHitLine = null;
 let routeInfoLabel = null;
 // 左側のルート検索ボタン
 const RouteControl = L.Control.extend({
@@ -612,16 +576,16 @@ const RouteControl = L.Control.extend({
 		L.DomEvent.disableScrollPropagation(container);
 		L.DomEvent.on(markerBtn, 'click', function(e) {
 			L.DomEvent.stopPropagation(e);
-			setMarkerAddMode(!addMode);
+			addMode = !addMode;
+			btnAddMode.classList.toggle('active', addMode);
+			markerBtn.classList.toggle('active', addMode);
+			modeLabel.textContent = addMode ? 'オン（地図をクリックで追加）' : 'オフ';
+			mapEl.classList.toggle('add-mode', addMode);
 		});
-		L.DomEvent.on(walkBtn, 'click', function(e) {
-			L.DomEvent.stopPropagation(e);
-			setMarkerAddMode(false);
+		L.DomEvent.on(walkBtn, 'click', function() {
 			setRouteMode('walk');
 		});
-		L.DomEvent.on(carBtn, 'click', function(e) {
-			L.DomEvent.stopPropagation(e);
-			setMarkerAddMode(false);
+		L.DomEvent.on(carBtn, 'click', function() {
 			setRouteMode('car');
 		});
 		L.DomEvent.on(offBtn, 'click', function() {
@@ -662,13 +626,6 @@ function setRouteMode(mode) {
 			}
 
 			routeMode = mode;
-			// 徒歩・車ルートをONにしたらマーカー追加はOFF。
-			addMode = false;
-			btnAddMode.classList.remove('active');
-			mapEl.classList.remove('add-mode');
-			if (routeControl.markerBtn) {
-				routeControl.markerBtn.classList.remove('active');
-			}
 			mapEl.classList.add('route-mode');
 			routeControl.update();
 
@@ -692,10 +649,6 @@ function setRouteMode(mode) {
 		map.removeLayer(routeLine);
 		routeLine = null;
 	}
-	if (routeHitLine) {
-		map.removeLayer(routeHitLine);
-		routeHitLine = null;
-	}
 	if (routeInfoLabel) {
 		map.removeLayer(routeInfoLabel);
 		routeInfoLabel = null;
@@ -703,77 +656,19 @@ function setRouteMode(mode) {
 }
 function createRoutePointMarker(latlng, text, type) {
 	const color = type === 'destination' ? '#e53935' : '#1976d2';
-
-	const marker = L.marker(latlng, {
-		draggable: true,
-		zIndexOffset: 1500,
-		icon: L.divIcon({
-			className: 'route-endpoint-marker route-point-marker',
-			html: '<span style="background:' + color + ';"></span>',
-			iconSize: [20, 20],
-			iconAnchor: [10, 10]
-		})
+	const marker = L.circleMarker(latlng, {
+		radius: 5,
+		color: '#ffffff',
+		weight: 2,
+		fillColor: color,
+		fillOpacity: 1
 	}).addTo(map);
-
 	marker.bindTooltip(text, {
 		permanent: true,
 		direction: 'top',
-		offset: [0, -10],
+		offset: [0, -5],
 		className: 'route-point-label'
 	});
-
-	// PCのマウスだけでなくスマホの指でも確実にドラッグ可能。
-	const el = marker.getElement();
-	if (el) {
-		L.DomEvent.disableClickPropagation(el);
-		L.DomEvent.disableScrollPropagation(el);
-		el.style.touchAction = 'none';
-	}
-
-	if (marker.dragging) {
-		marker.dragging.enable();
-	}
-
-	marker.on('dragstart', function(e) {
-		routeDragging = true;
-		suppressNextRouteMapClick = true;
-		map.dragging.disable();
-		L.DomEvent.stopPropagation(e);
-	});
-
-	marker.on('drag', function(e) {
-		const p = marker.getLatLng();
-
-		if (type === 'destination') {
-			routeDestination = p;
-		} else {
-			routeStart = p;
-		}
-	});
-
-	marker.on('dragend', async function(e) {
-		if (e) L.DomEvent.stopPropagation(e);
-
-		const p = marker.getLatLng();
-
-		if (type === 'destination') {
-			routeDestination = p;
-		} else {
-			routeStart = p;
-		}
-
-		routeDragging = false;
-		map.dragging.enable();
-
-		// ドラッグ終了時のclickで新しい目的地にならないようにする。
-		suppressNextRouteMapClick = true;
-		setTimeout(function() {
-			suppressNextRouteMapClick = false;
-		}, 500);
-
-		await searchRoute();
-	});
-
 	return marker;
 }
 function formatDistance(meters) {
@@ -1110,88 +1005,10 @@ async function routeDragEnd() {
 	await searchRoute();
 }
 
-
-// ------------------------------------------------------------
-// ルート線のタッチ・ポインター操作
-// 透明な太いhitLineを使うことで、スマホでも指でつかみやすくする。
-// ------------------------------------------------------------
-function startRouteDragAt(latlng, originalEvent) {
-	if (routeMode === 'off' || !routeDestination || !routeStart) return;
-
-	if (originalEvent) {
-		if (originalEvent.preventDefault) originalEvent.preventDefault();
-		if (originalEvent.stopPropagation) originalEvent.stopPropagation();
-	}
-
-	const viaMarker = addRouteViaPoint(latlng);
-	routeDragging = true;
-	routeDraggingIndex = routeViaMarkers.indexOf(viaMarker);
-
-	// ドラッグ中は地図のパンを停止。
-	map.dragging.disable();
-
-	// 既存のPC用document mouse処理を利用。
-	document.addEventListener('mousemove', routeDragMove);
-	document.addEventListener('mouseup', routeDragEnd);
-
-	// Pointer Events対応（スマホ・タブレット・PC）
-	if (originalEvent && originalEvent.pointerId != null) {
-		const pointerId = originalEvent.pointerId;
-
-		const move = function(ev) {
-			if (!routeDragging) return;
-			if (ev.pointerId !== pointerId) return;
-			const rect = map.getContainer().getBoundingClientRect();
-			const point = L.point(
-				ev.clientX - rect.left,
-				ev.clientY - rect.top
-			);
-			const size = map.getSize();
-			point.x = Math.max(0, Math.min(size.x, point.x));
-			point.y = Math.max(0, Math.min(size.y, point.y));
-			const latlng = map.containerPointToLatLng(point);
-			routeViaPoints[routeDraggingIndex] = latlng;
-			viaMarker.setLatLng(latlng);
-			if (ev.preventDefault) ev.preventDefault();
-		};
-
-		const up = function(ev) {
-			if (ev.pointerId !== pointerId) return;
-			document.removeEventListener('pointermove', move);
-			document.removeEventListener('pointerup', up);
-			document.removeEventListener('pointercancel', up);
-			routeDragEnd();
-		};
-
-		document.addEventListener('pointermove', move, {passive: false});
-		document.addEventListener('pointerup', up, {passive: false});
-		document.addEventListener('pointercancel', up, {passive: false});
-	}
-}
-
-function attachRouteHitDragEvents() {
-	if (!routeHitLine || !routeHitLine._path) return;
-
-	const path = routeHitLine._path;
-
-	// SVGのtouch-actionを無効化して、地図パンではなくルート操作にする。
-	path.style.touchAction = 'none';
-
-	L.DomEvent.on(path, 'pointerdown', function(e) {
-		startRouteDragAt(e.latlng, e.originalEvent);
-	});
-
-	L.DomEvent.on(path, 'touchstart', function(e) {
-		startRouteDragAt(e.latlng, e.originalEvent);
-	});
-}
-
 function attachRouteDragEvents() {
 	if (!routeLine) return;
 
-	routeLine.on('mousedown', function(e) {
-		startRouteDragAt(e.latlng, e.originalEvent);
-	});
+	routeLine.on('mousedown', startRouteDrag);
 	routeLine.on('mouseover', function() {
 		if (!routeDragging) {
 			routeLine.setStyle({ weight: 7 });
@@ -1221,10 +1038,6 @@ function clearRouteSearch() {
 	if (routeLine) {
 		map.removeLayer(routeLine);
 		routeLine = null;
-	}
-	if (routeHitLine) {
-		map.removeLayer(routeHitLine);
-		routeHitLine = null;
 	}
 	if (routeInfoLabel) {
 		map.removeLayer(routeInfoLabel);
@@ -1367,17 +1180,6 @@ async function searchRoute() {
 			interactive: true
 		}).addTo(map);
 
-		// スマホで指が5px程度の細い線をつかめるよう、
-		// 透明な太いヒット領域をルート線の上に重ねる。
-		routeHitLine = L.polyline(coords, {
-			color: '#000',
-			weight: 24,
-			opacity: 0,
-			lineCap: 'round',
-			lineJoin: 'round',
-			interactive: true
-		}).addTo(map);
-
 		// 複数の経路変更中間地点を表示
 		routeViaMarkers.forEach(function(marker) {
 			marker.setZIndexOffset(1000);
@@ -1404,9 +1206,6 @@ async function searchRoute() {
 		}).addTo(map);
 
 		attachRouteDragEvents();
-
-		// 透明ヒット領域にもPC/スマホのドラッグ処理を接続。
-		attachRouteHitDragEvents();
 
 		routeLine.bringToFront();
 
