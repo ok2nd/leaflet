@@ -413,8 +413,95 @@ const topomapTileOverlay = L.tileLayer(
 	'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 	{ attribution: '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', opacity: 0.5, maxZoom: 18 }
 );
+
+// ============================================================
+// 防災・地形オーバーレイ
+// -route-weather.html から指定された8種類のみ追加
+// ============================================================
+const RouteOverlayMap = [];
+
+RouteOverlayMap[1] = L.tileLayer(
+	'https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png',
+	{
+		opacity: 0.3,
+		maxNativeZoom: 16,
+		attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+	}
+);
+
+RouteOverlayMap[7] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',
+	{
+		opacity: 0.5,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：洪水浸水想定区域（想定最大規模）'
+	}
+);
+
+RouteOverlayMap[8] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/01_flood_l2_keizoku_data/{z}/{x}/{y}.png',
+	{
+		opacity: 0.3,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：浸水継続時間（想定最大規模）'
+	}
+);
+
+RouteOverlayMap[9] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png',
+	{
+		opacity: 0.5,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：高潮浸水想定区域'
+	}
+);
+
+RouteOverlayMap[10] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png',
+	{
+		opacity: 0.5,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：津波浸水想定'
+	}
+);
+
+RouteOverlayMap[11] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',
+	{
+		opacity: 0.5,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（土石流）'
+	}
+);
+
+RouteOverlayMap[12] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/05_kyukeishakeikaikuiki/{z}/{x}/{y}.png',
+	{
+		opacity: 0.5,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（急傾斜地の崩壊）'
+	}
+);
+
+RouteOverlayMap[13] = L.tileLayer(
+	'https://disaportaldata.gsi.go.jp/raster/05_jisuberikeikaikuiki/{z}/{x}/{y}.png',
+	{
+		opacity: 0.5,
+		maxNativeZoom: 17,
+		attribution: '国土地理院：土砂災害警戒区域（地すべり）'
+	}
+);
+
 const overlay = {
 	'登山ルート': topomapTileOverlay,
+	'国土地理院 陰影起伏図': RouteOverlayMap[1],
+	'ハザードマップ 洪水浸水想定区域': RouteOverlayMap[7],
+	'ハザードマップ 浸水継続時間': RouteOverlayMap[8],
+	'ハザードマップ 高潮浸水想定区域': RouteOverlayMap[9],
+	'ハザードマップ 津波浸水想定': RouteOverlayMap[10],
+	'ハザードマップ 土石流': RouteOverlayMap[11],
+	'ハザードマップ 急傾斜地の崩壊': RouteOverlayMap[12],
+	'ハザードマップ 地すべり': RouteOverlayMap[13]
 };
 L.control.layers(baseMap, overlay).addTo(map);
 // ジオコーダー（住所検索）

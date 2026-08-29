@@ -510,7 +510,10 @@ L.Control.geocoder({
 	placeholder: '住所・地名を検索...',
 	errorMessage: '見つかりませんでした'
 }).on('markgeocode', e => {
-	map.fitBounds(e.geocode.bbox);
+	// 住所・地名検索結果の表示ズーム値
+	// この「16」を変更すると、検索結果のズーム値を変更できる。
+	const SEARCH_RESULT_ZOOM = 16;
+	map.setView(e.geocode.center, SEARCH_RESULT_ZOOM);
 }).addTo(map);
 // =====================
 //	マーカー管理
