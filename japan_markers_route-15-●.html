@@ -958,8 +958,6 @@ function addRouteViaPoint(latlng) {
 	if (markerElement) {
 		L.DomEvent.disableClickPropagation(markerElement);
 		L.DomEvent.disableScrollPropagation(markerElement);
-		markerElement.style.touchAction = 'none';
-		markerElement.style.pointerEvents = 'auto';
 	}
 
 	marker.on('click', function(e) {
@@ -1181,312 +1179,99 @@ function startRouteDragAt(latlng, originalEvent) {
 	}
 }
 
-
-// ------------------------------------------------------------
-// スマホ専用：ルート線タップ → 経由地ハンドル方式
-//
-// スマホでは「ルート線を直接ドラッグ」しない。
-// 1. ルート線を指でタップ
-// 2. タップ位置に経由地ハンドルを表示
-// 3. そのハンドルを指でドラッグ
-// 4. 指を離したらルート再検索
-//
-// PC側は従来のrouteLine mousedown方式をそのまま使用する。
-// ------------------------------------------------------------
-function isTouchDeviceForRoute() {
-	return (
-		window.matchMedia &&
-		window.matchMedia('(pointer: coarse)').matches
-	) || ('ontouchstart' in window);
-}
-
-function getEventLatLngFromClientXY(clientX, clientY) {
-	const rect = map.getContainer().getBoundingClientRect();
-	return map.containerPointToLatLng(
-		L.point(clientX - rect.left, clientY - rect.top)
-	);
-}
-
-function createMobileRouteTapLayer() {
-	// 既存のスマホ用タップ判定線を削除
-	if (routeHitLine) {
-		map.removeLayer(routeHitLine);
-		routeHitLine = null;
-	}
-
-	if (!routeLine || !isTouchDeviceForRoute()) return;
-
-	const coords = routeLine.getLatLngs();
-
-	// 見た目には一切表示しない。
-	// ただし、ルート線の30px程度の範囲をタップ判定にする。
-	routeHitLine = L.polyline(coords, {
-		color: '#000',
-		weight: 30,
-		opacity: 0,
-		lineCap: 'round',
-		lineJoin: 'round',
-		interactive: true
-	}).addTo(map);
-
-	const path = routeHitLine._path;
-	if (!path) return;
-
-	path.style.pointerEvents = 'stroke';
-	path.style.touchAction = 'none';
-
-	let pointerDown = null;
-	let pointerMoved = false;
-
-	const onPointerDown = function(ev) {
-		if (routeMode === 'off' || !routeDestination || !routeStart) return;
-
-		pointerDown = {
-			id: ev.pointerId,
-			x: ev.clientX,
-			y: ev.clientY
-		};
-		pointerMoved = false;
-
-		// ここから地図パンを開始させない。
-		ev.preventDefault();
-		ev.stopPropagation();
-		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-
-		map.dragging.disable();
-
-		if (path.setPointerCapture) {
-			try {
-				path.setPointerCapture(ev.pointerId);
-			} catch (_) {}
-		}
-	};
-
-	const onPointerMove = function(ev) {
-		if (!pointerDown || ev.pointerId !== pointerDown.id) return;
-
-		const dx = ev.clientX - pointerDown.x;
-		const dy = ev.clientY - pointerDown.y;
-
-		if (Math.hypot(dx, dy) > 10) {
-			pointerMoved = true;
-		}
-
-		// タップ判定中は地図パンをさせない。
-		ev.preventDefault();
-		ev.stopPropagation();
-		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-	};
-
-	const finishPointer = function(ev) {
-		if (!pointerDown || ev.pointerId !== pointerDown.id) return;
-
-		ev.preventDefault();
-		ev.stopPropagation();
-		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-
-		const x = ev.clientX;
-		const y = ev.clientY;
-		const wasTap = !pointerMoved;
-
-		pointerDown = null;
-
-		map.dragging.enable();
-
-		if (!wasTap) return;
-
-		const latlng = getEventLatLngFromClientXY(x, y);
-
-		// タップ位置に「経由地ハンドル」を1個作る。
-		// ここからは通常のLeaflet Markerドラッグを使用するため、
-		// 地図パンとは完全に分離できる。
-		const viaMarker = addRouteViaPoint(latlng);
-
-		if (viaMarker) {
-			viaMarker.setIcon(createRouteDragIcon(true));
-
-			const el = viaMarker.getElement();
-			if (el) {
-				el.style.touchAction = 'none';
-				el.style.pointerEvents = 'auto';
-			}
-
-			// ハンドルを表示したことが分かるよう、短時間だけツールチップ表示
-			viaMarker.bindTooltip('指でつかんで移動', {
-				permanent: true,
-				direction: 'top',
-				offset: [0, -8],
-				className: 'route-point-label'
-			}).openTooltip();
-
-			setTimeout(function() {
-				if (viaMarker && map.hasLayer(viaMarker)) {
-					viaMarker.closeTooltip();
-				}
-			}, 1800);
-		}
-	};
-
-	path.addEventListener('pointerdown', onPointerDown, {
-		capture: true,
-		passive: false
-	});
-	path.addEventListener('pointermove', onPointerMove, {
-		capture: true,
-		passive: false
-	});
-	path.addEventListener('pointerup', finishPointer, {
-		capture: true,
-		passive: false
-	});
-	path.addEventListener('pointercancel', finishPointer, {
-		capture: true,
-		passive: false
-	});
-
-	// iPhone/Safari等でPointer Eventsが利用できない場合のtouch保険
-	const onTouchStart = function(ev) {
-		if (!ev.touches || !ev.touches[0]) return;
-
-		const t = ev.touches[0];
-		pointerDown = {
-			id: 'touch',
-			x: t.clientX,
-			y: t.clientY
-		};
-		pointerMoved = false;
-
-		ev.preventDefault();
-		ev.stopPropagation();
-		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-
-		map.dragging.disable();
-	};
-
-	const onTouchMove = function(ev) {
-		if (!pointerDown || pointerDown.id !== 'touch') return;
-
-		const t = ev.touches && ev.touches[0];
-		if (!t) return;
-
-		if (Math.hypot(
-			t.clientX - pointerDown.x,
-			t.clientY - pointerDown.y
-		) > 10) {
-			pointerMoved = true;
-		}
-
-		ev.preventDefault();
-		ev.stopPropagation();
-		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-	};
-
-	const onTouchEnd = function(ev) {
-		if (!pointerDown || pointerDown.id !== 'touch') return;
-
-		const t = ev.changedTouches && ev.changedTouches[0];
-		if (!t) {
-			pointerDown = null;
-			map.dragging.enable();
-			return;
-		}
-
-		const x = t.clientX;
-		const y = t.clientY;
-		const wasTap = !pointerMoved;
-
-		pointerDown = null;
-		map.dragging.enable();
-
-		ev.preventDefault();
-		ev.stopPropagation();
-		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-
-		if (!wasTap) return;
-
-		const latlng = getEventLatLngFromClientXY(x, y);
-		const viaMarker = addRouteViaPoint(latlng);
-
-		if (viaMarker) {
-			viaMarker.setIcon(createRouteDragIcon(true));
-
-			const el = viaMarker.getElement();
-			if (el) {
-				el.style.touchAction = 'none';
-				el.style.pointerEvents = 'auto';
-			}
-
-			viaMarker.bindTooltip('指でつかんで移動', {
-				permanent: true,
-				direction: 'top',
-				offset: [0, -8],
-				className: 'route-point-label'
-			}).openTooltip();
-
-			setTimeout(function() {
-				if (viaMarker && map.hasLayer(viaMarker)) {
-					viaMarker.closeTooltip();
-				}
-			}, 1800);
-		}
-	};
-
-	path.addEventListener('touchstart', onTouchStart, {
-		capture: true,
-		passive: false
-	});
-	path.addEventListener('touchmove', onTouchMove, {
-		capture: true,
-		passive: false
-	});
-	path.addEventListener('touchend', onTouchEnd, {
-		capture: true,
-		passive: false
-	});
-	path.addEventListener('touchcancel', onTouchEnd, {
-		capture: true,
-		passive: false
-	});
-}
-
 function attachRouteDragEvents() {
-	if (!routeLine) return;
+	if (!routeLine || !routeLine._path) return;
 
-	// ========================================================
-	// PC：これまで動作していた方式を維持
-	// ========================================================
-	if (routeLine._path) {
-		routeLine._path.style.cursor = 'grab';
-	}
+	const path = routeLine._path;
 
+	// PCでは従来どおり Leaflet の mousedown を使用。
 	routeLine.off('mousedown');
 	routeLine.on('mousedown', function(e) {
-		if (isTouchDeviceForRoute()) return;
 		startRouteDragAt(e.latlng, e.originalEvent);
 	});
 
-	routeLine.off('mouseover');
 	routeLine.on('mouseover', function() {
 		if (!routeDragging) {
 			routeLine.setStyle({ weight: 7 });
 		}
 	});
-
-	routeLine.off('mouseout');
 	routeLine.on('mouseout', function() {
 		if (!routeDragging) {
 			routeLine.setStyle({ weight: 5 });
 		}
 	});
 
-	// ========================================================
-	// スマホ：直接ドラッグではなく「タップ→ハンドル」
-	// ========================================================
-	if (isTouchDeviceForRoute()) {
-		createMobileRouteTapLayer();
-	}
-}
+	// --------------------------------------------------------
+	// スマホ・タブレット：
+	// Leafletのmap touch handlerより先にSVG pathで受け取る。
+	// ルート線そのものの当たり判定を太くする。
+	// --------------------------------------------------------
+	path.style.pointerEvents = 'stroke';
+	path.style.touchAction = 'none';
+	path.style.cursor = 'grab';
 
+	// 見た目の線幅は5pxのまま、SVGのstroke-widthだけを
+	// タッチ操作時に太くすることはできないため、
+	// CSSのpointer-eventsだけでなく、下記のcapture listenerで
+	// 線上のpointer/touchを先取りする。
+	const beginPointer = function(ev) {
+		if (routeMode === 'off' || !routeDestination || !routeStart) return;
+
+		ev.preventDefault();
+		ev.stopPropagation();
+		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+
+		const rect = map.getContainer().getBoundingClientRect();
+		const point = L.point(
+			ev.clientX - rect.left,
+			ev.clientY - rect.top
+		);
+		const latlng = map.containerPointToLatLng(point);
+
+		startRouteDragAt(latlng, ev);
+
+		// pointer captureを使うことで、指が線から外れても
+		// ドラッグを最後まで追跡する。
+		if (path.setPointerCapture && ev.pointerId != null) {
+			try {
+				path.setPointerCapture(ev.pointerId);
+			} catch (_) {}
+		}
+	};
+
+	// 同じpathへ何度もイベントを登録しない。
+	if (path._routeDragPointerHandler) {
+		path.removeEventListener('pointerdown', path._routeDragPointerHandler, true);
+	}
+	path._routeDragPointerHandler = beginPointer;
+	path.addEventListener('pointerdown', beginPointer, {capture: true, passive: false});
+
+	// iOS/古いWebKit向けtouchstart保険
+	if (path._routeDragTouchHandler) {
+		path.removeEventListener('touchstart', path._routeDragTouchHandler, true);
+	}
+	const beginTouch = function(ev) {
+		if (routeMode === 'off' || !routeDestination || !routeStart) return;
+
+		ev.preventDefault();
+		ev.stopPropagation();
+		if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+
+		const t = ev.touches && ev.touches[0];
+		if (!t) return;
+
+		const rect = map.getContainer().getBoundingClientRect();
+		const point = L.point(
+			t.clientX - rect.left,
+			t.clientY - rect.top
+		);
+		const latlng = map.containerPointToLatLng(point);
+
+		startRouteDragAt(latlng, ev);
+	};
+	path._routeDragTouchHandler = beginTouch;
+	path.addEventListener('touchstart', beginTouch, {capture: true, passive: false});
+}
 
 function clearRouteSearch() {
 	routeDestination = null;
@@ -1528,8 +1313,6 @@ function enableRouteEndpointDragging(marker, type) {
     const el = marker.getElement();
     if (el) {
         el.classList.add('route-point-marker');
-        el.style.touchAction = 'none';
-        el.style.pointerEvents = 'auto';
         L.DomEvent.disableClickPropagation(el);
         L.DomEvent.disableScrollPropagation(el);
     }
@@ -1610,12 +1393,7 @@ async function searchRoute() {
 		coordinates +
 		'?overview=full&geometries=geojson';
 
-	// 再検索中は現在の経路線とスマホ用タップ判定線、
-	// 距離・時間表示をいったん消す
-	if (routeHitLine) {
-		map.removeLayer(routeHitLine);
-		routeHitLine = null;
-	}
+	// 再検索中は現在の経路線と距離・時間表示をいったん消す
 	if (routeLine) {
 		map.removeLayer(routeLine);
 		routeLine = null;
