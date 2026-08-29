@@ -535,6 +535,7 @@ function setMarkerAddMode(enabled) {
 	// マーカー追加をONにしたら徒歩・車ルートはOFF。
 	if (addMode && routeMode !== 'off') {
 		routeMode = 'off';
+		clearRouteSearch();
 		mapEl.classList.remove('route-mode');
 	}
 
@@ -548,12 +549,6 @@ function setMarkerAddMode(enabled) {
 	if (typeof routeControl !== 'undefined') {
 		routeControl.update();
 	}
-	// マーカー追加モードに切り替えても、現在表示中の徒歩/車ルートは残す。
-	// ルート検索モードをOFFにするだけで、routeLine・目的地・出発点・経由地は削除しない。
-	if (routeLine) {
-		routeLine.bringToFront();
-	}
-
 }
 
 btnAddMode.addEventListener('click', () => {
