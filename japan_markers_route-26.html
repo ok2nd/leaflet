@@ -345,24 +345,11 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; }
     cursor: pointer;
     font-weight: bold;
 }
-.facility-search-actions button:first-child { background: #1976d2; color: #fff; border-color: #1976d2; }
+.facility-search-actions button:first-child { background: #e0f7fa; color: #000; border-color: #aaa; }
 .facility-search-status {
     margin-top: 6px;
     color: #555;
     line-height: 1.4;
-}
-.facility-add-marker-btn {
-    margin-top: 6px;
-    padding: 5px 10px;
-    border: 1px solid #aaa;
-    border-radius: 4px;
-    background: #fff;
-    color: #222;
-    cursor: pointer;
-    font-weight: bold;
-}
-.facility-add-marker-btn:hover {
-    background: #f2f2f2;
 }
 @media (max-width: 600px) {
     .facility-search-panel {
@@ -2159,7 +2146,6 @@ function parseAndLoadKML(kmlText) {
 // 既存の住所・地名検索やルート検索には手を加えず、施設検索だけを追加。
 // ============================================================
 const facilityResultLayer = L.layerGroup().addTo(map);
-const facilityMarkerData = Object.create(null);
 
 const FacilitySearchControl = L.Control.extend({
     options: { position: 'topright' },
@@ -2219,7 +2205,6 @@ const FacilitySearchControl = L.Control.extend({
         L.DomEvent.on(clear, 'click', e => {
             L.DomEvent.stopPropagation(e);
             facilityResultLayer.clearLayers();
-            for (const key in facilityMarkerData) delete facilityMarkerData[key];
             status.textContent = '検索結果をクリアしました。';
         });
         L.DomEvent.on(keyword, 'keydown', e => {
@@ -2254,30 +2239,6 @@ const FACILITY_TAGS = {
 function overpassEscape(value) {
     return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
-
-
-// 施設検索結果を、このアプリの「マーカー追加」と同じマーカーへ変換する。
-window.addFacilityAsMarker = function(facilityId) {
-    const info = facilityMarkerData[facilityId];
-    if (!info) return;
-
-    // 施設検索結果のマーカーを削除（外側●と中心●の両方）。
-    const latlng = L.latLng(info.lat, info.lon);
-    facilityResultLayer.eachLayer(layer => {
-        if (layer.getLatLng && layer.getLatLng().equals(latlng)) {
-            facilityResultLayer.removeLayer(layer);
-        }
-    });
-
-    // 通常の「マーカー追加」と同じマーカーを作成し、施設名をそのまま名前にする。
-    const entry = addMarker(info.lat, info.lon, info.name);
-    delete facilityMarkerData[facilityId];
-
-    map.closePopup();
-    if (entry && entry.leafletMarker) {
-        entry.leafletMarker.openPopup();
-    }
-};
 
 async function searchFacilities(category, keyword, statusEl) {
     const zoom = map.getZoom();
@@ -2315,7 +2276,6 @@ async function searchFacilities(category, keyword, statusEl) {
 
     statusEl.textContent = '検索中…';
     facilityResultLayer.clearLayers();
-    for (const key in facilityMarkerData) delete facilityMarkerData[key];
 
     const endpoints = [
         'https://overpass-api.de/api/interpreter',
@@ -2357,12 +2317,13 @@ async function searchFacilities(category, keyword, statusEl) {
         const lon = el.lon ?? el.center.lon;
         const tags = el.tags || {};
         const name = tags.name || tags['name:ja'] || '名称未設定';
-        // 施設検索結果は「施設名」と「マーカー追加」だけを表示する。
-        const safeName = escapeFacilityHtml(name);
-        const facilityId = 'facility-' + el.type + '-' + el.id;
-        facilityMarkerData[facilityId] = { lat, lon, name };
-        const popup = `<strong>${safeName}</strong>` +
-            `<br><button type="button" class="facility-add-marker-btn" onclick="addFacilityAsMarker('${facilityId}')">マーカー追加</button>`;
+        const address = [tags['addr:postcode'], tags['addr:city'], tags['addr:town'], tags['addr:street']]
+            .filter(Boolean).join(' ');
+        const type = tags.amenity || tags.shop || tags.tourism || tags.leisure || tags.railway || '';
+        const popup = `<strong>${escapeFacilityHtml(name)}</strong>` +
+            (address ? `<br>${escapeFacilityHtml(address)}` : '') +
+            (type ? `<br><small>${escapeFacilityHtml(type)}</small>` : '') +
+            `<br><small>OpenStreetMap</small>`;
 
         const facilityMarker = L.circleMarker([lat, lon], {
             radius: 11,
@@ -2426,21 +2387,18 @@ const KMLMapControl = L.Control.extend({
 });
 new KMLMapControl().addTo(map);
 
-// 施設検索コントローラーの外側をクリックしたら「パネルだけ」を閉じる。
-// 施設検索ボタン自体は残す。
-map.on('click', function() {
+// 施設検索コントローラーの外側をクリックしたら閉じる
+map.on('click', function(e) {
     const control = document.querySelector('.facility-search-control');
-    if (!control) return;
+    if (!control || control.style.display === 'none') return;
 
-    const panel = control.querySelector('.facility-search-panel');
-    const button = control.querySelector('.facility-search-button');
+    if (e.originalEvent && e.originalEvent.target &&
+        e.originalEvent.target.closest &&
+        e.originalEvent.target.closest('.facility-search-control')) {
+        return;
+    }
 
-    if (panel && panel.classList.contains('open')) {
-        panel.classList.remove('open');
-    }
-    if (button) {
-        button.classList.remove('active');
-    }
+    control.style.display = 'none';
 });
 
 </script>
