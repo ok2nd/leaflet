@@ -2184,7 +2184,6 @@ const FacilitySearchControl = L.Control.extend({
                     <option value="station">駅</option>
                     <option value="bank">銀行</option>
                     <option value="atm">ATM</option>
-                    <option value="toilets">公衆トイレ</option>
                     <option value="post_office">郵便局</option>
                     <option value="tourism">観光施設</option>
 </select>
@@ -2247,7 +2246,6 @@ const FACILITY_TAGS = {
     station: '[railway=station]',
     bank: '[amenity=bank]',
     atm: '[amenity=atm]',
-    toilets: '[amenity=toilets]',
     post_office: '[amenity=post_office]',
     tourism: '[tourism=attraction]',
     bakery: '[shop=bakery]'
@@ -2296,31 +2294,24 @@ async function searchFacilities(category, keyword, statusEl) {
     const bbox = `${south},${west},${north},${east}`;
 
     let selector;
-
-    // 施設種類を指定した場合は、その条件を必須にする。
     if (category === 'ramen') {
         selector = '[name~"ラーメン|らーめん|ramen|Ramen",i]';
     } else if (category && FACILITY_TAGS[category]) {
         selector = FACILITY_TAGS[category];
     } else if (keyword) {
-        selector = '';
+        selector = `[name~"${overpassEscape(keyword)}",i]`;
     } else {
         statusEl.textContent = '施設の種類または施設名を指定してください。';
         return;
     }
 
-    // 施設種類＋施設名を指定した場合はAND条件にする。
-    // Overpassでは name 条件も [] で追加する。
-    if (keyword) {
-        selector += `[name~"${overpassEscape(keyword)}",i]`;
+    // キーワードが入力された場合は、施設名にも追加条件を付ける。
+    let query;
+    if (keyword && category && category !== 'ramen') {
+        query = `\n[out:json][timeout:25];\n(\n  nwr${selector}("name"~"${overpassEscape(keyword)}",i)(${bbox});\n);\nout center tags;`;
+    } else {
+        query = `\n[out:json][timeout:25];\n(\n  nwr${selector}(${bbox});\n);\nout center tags;`;
     }
-
-    const query =
-        `[out:json][timeout:25];\n` +
-        `(\n` +
-        `  nwr${selector}(${bbox});\n` +
-        `);\n` +
-        `out center tags;`;
 
     statusEl.textContent = '検索中…';
     facilityResultLayer.clearLayers();
