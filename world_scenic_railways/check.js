@@ -1,0 +1,192 @@
+const colors = {
+  "ヨーロッパ・アルプス":"#d73027",
+  "北欧・イギリス":"#4575b4",
+  "南・西ヨーロッパ":"#fdae61",
+  "日本":"#1a9850",
+  "アジア":"#984ea3",
+  "北米":"#8c6bb1",
+  "南米":"#a6611a"
+};
+
+const map = L.map("map", { zoomControl:false, closePopupOnClick:false }).setView([25,10],2);
+L.control.zoom({position:"topright"}).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+
+const markerLayer = L.layerGroup().addTo(map);
+const simpleRouteLayer = L.layerGroup().addTo(map);
+const markers = [];
+let railways = [];
+let activeRailPopup = null;
+let selectedRegion = "all";
+
+function getSearchNames(name) {
+  const parts = name.split("／").map(s => s.trim()).filter(Boolean);
+  const base = parts.length > 1 ? parts[1] : parts[0];
+  const aliases = {
+    "五能線":["五能線","Gono Line","Gonō Line"],
+    "只見線":["只見線","Tadami Line"],
+    "釧網本線":["釧網本線","Senmo Main Line"],
+    "大井川鐵道":["大井川鐵道","Oigawa Railway"],
+    "黒部峡谷鉄道":["黒部峡谷鉄道","Kurobe Gorge Railway"],
+    "嵯峨野トロッコ列車":["嵯峨野観光鉄道","Sagano Romantic Train"],
+    "飯山線":["飯山線","Iiyama Line"],
+    "小海線":["小海線","Koumi Line","Kōmi Line"],
+    "山口線":["山口線","Yamaguchi Line"],
+    "木次線":["木次線","Kisuki Line"],
+    "予土線":["予土線","Yodo Line"],
+    "土讃線":["土讃線","Dosan Line"],
+    "南阿蘇鉄道":["南阿蘇鉄道","Minami Aso Railway"],
+    "肥薩線":["肥薩線","Hisatsu Line"],
+    "指宿枕崎線":["指宿枕崎線","Ibusuki Makurazaki Line"],
+    "三陸鉄道":["三陸鉄道","Sanriku Railway"],
+    "箱根登山電車":["箱根登山鉄道","Hakone Tozan Railway"],
+    "阿里山森林鉄路":["阿里山森林鉄路","Alishan Forest Railway"],
+    "平渓線":["平渓線","Pingxi Line"],
+    "内湾線":["内湾線","Neiwan Line"],
+    "ダージリン・ヒマラヤ鉄道":["Darjeeling Himalayan Railway"],
+    "ニルギリ山岳鉄道":["Nilgiri Mountain Railway"],
+    "カルカ・シムラ鉄道":["Kalka Shimla Railway","Kalka–Shimla Railway"],
+    "青蔵鉄道":["青藏铁路","Qinghai Tibet Railway","Qinghai–Tibet Railway"],
+    "コルシカ鉄道":["Chemins de fer de la Corse","Corsican Railways"],
+    "フロム鉄道":["Flåmsbana","Flam Railway","Flåm Railway"],
+    "ベルゲン線":["Bergensbanen","Bergen Railway"],
+    "ラウマ線":["Raumabanen","Rauma Railway"],
+    "ウェスト・ハイランド線":["West Highland Line"],
+    "フェスティニオグ鉄道":["Ffestiniog Railway"],
+    "ウェールズ・ハイランド鉄道":["Welsh Highland Railway"],
+    "ベルニナ線":["Bernina","Bernina Express"],
+    "氷河急行":["Glacier Express"],
+    "アルブラ線":["Albula","Albula Railway"],
+    "セメリング鉄道":["Semmeringbahn","Semmering Railway"],
+    "トランツアルパイン":["TranzAlpine"],
+    "ロッキー・マウンテニア":["Rocky Mountaineer"],
+    "チェペ鉄道":["Chepe","Copper Canyon Railway"],
+    "ラ・トロチータ":["La Trochita","Old Patagonian Express"]
+  };
+  return aliases[name] || [base];
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
+}
+
+async function fetchRailwayData() {
+  const res = await fetch("railways.json", {cache:"no-store"});
+  if (!res.ok) throw new Error("railways.json HTTP " + res.status);
+  const data = await res.json();
+  if (!Array.isArray(data) || data.length !== 100) throw new Error("railways.json の路線数が不正です");
+  return data;
+}
+
+function fetchStations(r) {
+  return Array.isArray(r.stations) ? r.stations : [];
+}
+
+function railwayArray(r) {
+  return [r.no,r.name,r.country,r.region,r.lat,r.lng,r.type,r.desc];
+}
+
+async function fetchRailwayWikipedia(r) {
+  const exactUrls = {"フロム鉄道／Flåmsbana":"https://ja.wikipedia.org/wiki/フロム線"};
+  if (exactUrls[r[1]]) return exactUrls[r[1]];
+  const names = getSearchNames(r[1]);
+  for (const q of [...new Set(names)]) {
+    try {
+      const api="https://ja.wikipedia.org/w/api.php?action=query&list=search"+"&srsearch="+encodeURIComponent(q)+"&srlimit=3&format=json&origin=*";
+      const res=await fetch(api); if(!res.ok) continue;
+      const data=await res.json(); const hit=(data.query?.search||[])[0];
+      if(hit) return "https://ja.wikipedia.org/wiki/"+encodeURIComponent(hit.title.replace(/ /g,"_"));
+    } catch(e) {}
+  }
+  return null;
+}
+
+async function fetchCommonsPhoto(r) {
+  const names=getSearchNames(r[1]); const search=names[0]+" railway";
+  const api="https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch="+encodeURIComponent(search)+"&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url&iiurlwidth=420&format=json&origin=*";
+  try {
+    const res=await fetch(api); if(!res.ok) return null;
+    const data=await res.json(); const pages=data.query?.pages?Object.values(data.query.pages):[];
+    const page=pages.find(x=>x.imageinfo?.[0]?.thumburl)||pages.find(x=>x.imageinfo?.[0]?.url);
+    if(!page) return null; return {url:page.imageinfo[0].thumburl||page.imageinfo[0].url,title:page.title};
+  } catch(e) { return null; }
+}
+
+function stationInfoPopup(r, st, clickLatLng) {
+  const t=st.tags||{}; const esc=v=>escapeHtml(v); const rows=[];
+  if(t.operator) rows.push(`<tr><th>運営会社</th><td>${esc(t.operator)}</td></tr>`);
+  if(t.railway) rows.push(`<tr><th>駅種別</th><td>${esc(t.railway)}</td></tr>`);
+  if(t.public_transport) rows.push(`<tr><th>公共交通</th><td>${esc(t.public_transport)}</td></tr>`);
+  if(t.opening_date) rows.push(`<tr><th>開業</th><td>${esc(t.opening_date)}</td></tr>`);
+  if(t.network) rows.push(`<tr><th>ネットワーク</th><td>${esc(t.network)}</td></tr>`);
+  if(t.ref) rows.push(`<tr><th>駅番号</th><td>${esc(t.ref)}</td></tr>`);
+  if(t.alt_name) rows.push(`<tr><th>別名</th><td>${esc(t.alt_name)}</td></tr>`);
+  if(t["name:en"]) rows.push(`<tr><th>英語名</th><td>${esc(t["name:en"])}</td></tr>`);
+  const [no,name,country]=railwayArray(r);
+  const html=`<div style="min-width:250px;max-width:360px"><b>🚉 ${esc(st.name)}</b><br><small>${esc(country)} ／ ${esc(name)}</small>${rows.length?`<hr><table style="font-size:12px;border-collapse:collapse;width:100%">${rows.join("")}</table>`:""}<div style="margin-top:7px;font-size:11px;color:#666">駅の位置：${Number(st.lat).toFixed(5)}, ${Number(st.lng).toFixed(5)}</div></div>`;
+  if(activeRailPopup) map.closePopup(activeRailPopup);
+  activeRailPopup=L.popup({closeButton:true,autoPan:false,closeOnClick:false,maxWidth:420}).setLatLng(clickLatLng||[st.lat,st.lng]).setContent(html).openOn(map);
+}
+
+function openRailway(r, marker, clickLatLng) {
+  const [no,name,country,region,lat,lng,type,desc]=r;
+  const popupContent=`<div class="rail-popup" style="min-width:250px"><b>${escapeHtml(no)}. ${escapeHtml(name)}</b><br>${escapeHtml(country)}<br><small>${escapeHtml(type)}</small><hr style="margin:6px 0">${escapeHtml(desc)}<div style="margin-top:8px">🚆 簡易路線を表示中</div><div id="rail-stations-${no}" style="margin-top:5px">🚉 駅情報を表示中…</div><div id="rail-wiki-${no}" style="margin-top:8px"></div><div id="rail-photo-${no}" style="margin-top:8px"></div></div>`;
+  if(activeRailPopup) map.closePopup(activeRailPopup);
+  activeRailPopup=L.popup({closeButton:true,autoPan:false,closeOnClick:false,maxWidth:450}).setLatLng(clickLatLng||[lat,lng]).setContent(popupContent).openOn(map);
+  const stations=fetchStations(railways.find(x=>x.no===no)||{});
+  const sb=document.getElementById(`rail-stations-${no}`); if(sb) sb.textContent=`🚉 駅 ${stations.length}件（静的データ）`;
+  updateWikipedia(r); updatePhoto(r);
+}
+
+async function updateWikipedia(r) {
+  const box=document.getElementById(`rail-wiki-${r[0]}`); if(!box) return;
+  try { const url=await fetchRailwayWikipedia(r); box.innerHTML=url?`<a href="${url}" target="_blank" rel="noopener">Wikipediaで詳しく見る</a>`:`<small>Wikipediaの記事が見つかりませんでした。</small>`; } catch(e){}
+}
+
+async function updatePhoto(r) {
+  const box=document.getElementById(`rail-photo-${r[0]}`); if(!box) return;
+  try { const photo=await fetchCommonsPhoto(r); if(photo) box.innerHTML=`<img src="${photo.url}" alt="${escapeHtml(r[1])}" style="display:block;width:100%;max-width:420px;height:auto;border-radius:5px"><div style="font-size:10px;margin-top:3px;color:#666">写真：Wikimedia Commons / ${escapeHtml(photo.title)}</div>`; else box.innerHTML="<small>代表写真が見つかりませんでした。</small>"; } catch(e){}
+}
+
+function makeMarker(r) {
+  const [no,name,country,region,lat,lng]=r;
+  const icon=L.divIcon({className:"",html:`<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:${colors[region]};border:2px solid white;box-shadow:0 1px 4px #555;color:white;text-align:center;line-height:22px;font-size:10px;font-weight:bold">${no}</div><div class="railway-label">${escapeHtml(name)}</div></div>`,iconSize:[26,26],iconAnchor:[13,13]});
+  const marker=L.marker([lat,lng],{icon,riseOnHover:true}); marker._data=r;
+  marker.on("click",e=>{L.DomEvent.stopPropagation(e);openRailway(r,marker,e.latlng);}); return marker;
+}
+
+function drawSimpleRailway(r) {
+  const pts=Array.isArray(r.fallbackRoute)?r.fallbackRoute:[]; if(pts.length<2) return;
+  const group=L.layerGroup().addTo(simpleRouteLayer);
+  const hit=L.polyline(pts,{color:colors[r.region],weight:20,opacity:0,interactive:true}).addTo(group);
+  hit.on("click",e=>{L.DomEvent.stopPropagation(e);openRailway(railwayArray(r),null,e.latlng);});
+  L.polyline(pts,{color:colors[r.region],weight:5,opacity:.9,lineCap:"round",lineJoin:"round",interactive:false}).addTo(group);
+  fetchStations(r).forEach(st=>{
+    const hit=L.circleMarker([st.lat,st.lng],{radius:10,weight:0,opacity:0,fillOpacity:0,interactive:true}).addTo(group);
+    hit.bindTooltip(escapeHtml(st.name),{direction:"top",offset:[0,-8],sticky:true,opacity:.95});
+    hit.on("click",e=>{L.DomEvent.stopPropagation(e);stationInfoPopup(railwayArray(r),st,e.latlng);});
+  });
+}
+
+function zoomToRegion(region) {
+  if(region==="all") { map.fitBounds(L.latLngBounds(railways.map(r=>[r.lat,r.lng])),{padding:[25,25],maxZoom:3}); return; }
+  const selected=railways.filter(r=>r.region===region); if(!selected.length)return;
+  map.fitBounds(L.latLngBounds(selected.map(r=>[r.lat,r.lng])),{padding:[30,30],maxZoom:6});
+}
+
+function update() {
+  markerLayer.clearLayers(); markers.forEach(m=>markerLayer.addLayer(m));
+  document.getElementById("count").textContent="表示："+railways.length+" / 100路線";
+}
+
+document.querySelectorAll(".region-link").forEach(link=>link.addEventListener("click",e=>{e.preventDefault();selectedRegion=link.dataset.region;zoomToRegion(selectedRegion);}));
+map.on("click",()=>{if(activeRailPopup){map.closePopup(activeRailPopup);activeRailPopup=null;}});
+
+async function initRailways() {
+  try {
+    railways=await fetchRailwayData();
+    railways.forEach(r=>{const a=railwayArray(r); markers.push(makeMarker(a)); drawSimpleRailway(r);});
+    update();
+  } catch(e) { console.error(e); const err=document.getElementById("error"); if(err){err.textContent="railways.json の読み込みに失敗しました。";err.style.display="block";} document.getElementById("count").textContent="データ読み込みエラー"; }
+}
+initRailways();

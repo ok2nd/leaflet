@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鉄道＋絶景で選ぶ世界の地方鉄道100選</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+html, body { margin:0; padding:0; height:100%; font-family:Arial,"Noto Sans JP",sans-serif; }
+#map { width:100%; height:100%; }
+#panel {
+  position:absolute; z-index:1000; top:10px; left:10px;
+  width: max-content; max-width: none;
+  background:rgba(255,255,255,.95); padding: 8px 9px;
+  border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.25);
+}
+#panel h2 { margin:0 0 8px; font-size:16px; }
+#panel select, #panel input {
+  width:100%; box-sizing:border-box; padding:7px; margin:3px 0;
+  font-size:14px;
+}
+#count { white-space: nowrap; font-size:13px; margin-top:6px; }
+.legend { line-height:18px; font-size: 13px; }
+.legend i { width:12px; height:12px; float:left; margin:3px 6px 0 0; border-radius:50%; }
+.world-dot { background:#fff; border:1px solid #777; box-sizing:border-box; }
+.region-link { white-space: nowrap; }
+.legend a { color:#0645ad; text-decoration:none; cursor:pointer; display:block; padding: 1px 0; }
+.legend a .legend-text { text-decoration:underline; }
+.legend a:hover { color:#d00; }
+.station-label { font-size:11px; background:white; border:1px solid #777; border-radius:3px; padding:1px 3px; white-space:nowrap; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+@media(max-width:600px){
+  #panel { width: max-content; max-width: calc(100vw - 20px); }
+  #panel h2 { font-size:16px; }
+}
+.railway-label {
+  white-space:nowrap; background:rgba(255,255,255,.92); border:1px solid rgba(0,0,0,.25);
+  border-radius:3px; padding:1px 4px; font-size:11px; line-height:16px; color:#222;
+  box-shadow:0 1px 2px rgba(0,0,0,.18); pointer-events:none;
+}
+</style>
+</head>
+<body>
+<div id="panel">
+  <div id="count"></div>
+  <div class="legend">
+    <div><a href="#" class="region-link" data-region="all"><i class="world-dot"></i><span class="legend-text">全世界</span></a></div>
+    <div><a href="#" class="region-link" data-region="北欧・イギリス"><i style="background:#4575b4"></i><span class="legend-text">北欧・イギリス</span></a></div>
+    <div><a href="#" class="region-link" data-region="ヨーロッパ・アルプス"><i style="background:#d73027"></i><span class="legend-text">ヨーロッパ・アルプス</span></a></div>
+    <div><a href="#" class="region-link" data-region="南・西ヨーロッパ"><i style="background:#fdae61"></i><span class="legend-text">南・西ヨーロッパ</span></a></div>
+    <div><a href="#" class="region-link" data-region="日本"><i style="background:#1a9850"></i><span class="legend-text">日本</span></a></div>
+    <div><a href="#" class="region-link" data-region="アジア"><i style="background:#984ea3"></i><span class="legend-text">アジア</span></a></div>
+    <div><a href="#" class="region-link" data-region="北米"><i style="background:#8c6bb1"></i><span class="legend-text">北米</span></a></div>
+    <div><a href="#" class="region-link" data-region="南米"><i style="background:#a6611a"></i><span class="legend-text">南米</span></a></div>
+  </div>
+</div>
+<div id="map"></div>
+<div id="error" style="display:none;position:absolute;z-index:2000;top:10px;right:10px;background:#fff;padding:10px;border:1px solid #c00;border-radius:6px;color:#900">地図データの読み込みに失敗しました。</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const railways = [
+  /* 1-16 北欧・イギリス */
+  [1,"フロム鉄道／Flåmsbana","ノルウェー","北欧・イギリス",60.86,7.11,"山岳・氷河","フィヨルド、滝、急勾配"],
+  [2,"ベルゲン線／Bergensbanen","ノルウェー","北欧・イギリス",60.60,7.50,"高原・荒野","高原、雪原、フィヨルド"],
+  [3,"ラウマ線／Raumabanen","ノルウェー","北欧・イギリス",62.57,8.20,"森林・渓谷","山岳、渓谷、川"],
+  [4,"ノールラン線","ノルウェー","北欧・イギリス",66.32,14.14,"高原・荒野","北極圏、雪山、フィヨルド"],
+  [5,"ロフォーテン周辺鉄道","ノルウェー","北欧・イギリス",68.15,13.61,"海岸・湖","海岸、山岳、北極圏"],
+  [6,"インランド鉄道","スウェーデン","北欧・イギリス",62.39,14.25,"森林・渓谷","森林、湖、北欧の原野"],
+  [7,"マラム線／Malmbanan","スウェーデン","北欧・イギリス",68.43,18.83,"山岳・氷河","ラップランド、山岳、鉄鉱石"],
+  [8,"キルナ～ナルヴィク線","スウェーデン～ノルウェー","北欧・イギリス",68.44,17.43,"山岳・氷河","北極圏、フィヨルド、雪山"],
+  [9,"ウェスト・ハイランド線","スコットランド","北欧・イギリス",56.88,-5.43,"高原・荒野","ハイランド、湖、荒野"],
+  [10,"ジャコバイト蒸気鉄道","スコットランド","北欧・イギリス",56.88,-5.43,"歴史・鉄道遺産","グレンフィナン高架橋、湖、山"],
+  [11,"カイル・オブ・ロハルシュ線","スコットランド","北欧・イギリス",57.28,-5.71,"海岸・湖","海岸、山、島々"],
+  [12,"ノース・ハイランド線","スコットランド","北欧・イギリス",58.00,-4.40,"高原・荒野","荒野、海岸、湖"],
+  [13,"ストラスペイ鉄道","スコットランド","北欧・イギリス",57.25,-3.55,"森林・渓谷","ケアンゴームズ、森林"],
+  [14,"フェスティニオグ鉄道","ウェールズ","北欧・イギリス",52.99,-4.07,"森林・渓谷","スノードニア、森林、峡谷"],
+  [15,"ウェールズ・ハイランド鉄道","ウェールズ","北欧・イギリス",53.07,-4.07,"山岳・氷河","スノードン山、山岳、湖"],
+  [16,"コリス鉄道","ウェールズ","北欧・イギリス",52.66,-3.84,"森林・渓谷","森林、山岳、旧鉱山地域"],
+  /* 17-37 ヨーロッパ・アルプス */
+  [17,"ベルニナ線／Bernina Express","スイス～イタリア","ヨーロッパ・アルプス",46.45,9.82,"山岳・氷河","氷河、湖、アルプス、ループ橋"],
+  [18,"氷河急行／Glacier Express","スイス","ヨーロッパ・アルプス",46.60,8.04,"山岳・氷河","アルプス、ライン峡谷、ランドヴァッサー橋"],
+  [19,"アルブラ線／Albula Railway","スイス","ヨーロッパ・アルプス",46.63,9.76,"歴史・鉄道遺産","山岳橋梁、ループトンネル、谷"],
+  [20,"マッターホルン・ゴッタルド鉄道","スイス","ヨーロッパ・アルプス",46.30,7.75,"山岳・氷河","山岳集落、峡谷、アルプス"],
+  [21,"ゴルナーグラート鉄道","スイス","ヨーロッパ・アルプス",45.98,7.78,"山岳・氷河","マッターホルン、氷河、アルプス"],
+  [22,"ユングフラウ鉄道","スイス","ヨーロッパ・アルプス",46.55,7.99,"山岳・氷河","アイガー、メンヒ、ユングフラウ"],
+  [23,"ラウターブルンネン～グリンデルワルト線","スイス","ヨーロッパ・アルプス",46.63,8.03,"山岳・氷河","氷河、断崖、アルプスの村"],
+  [24,"ルツェルン～インターラーケン線","スイス","ヨーロッパ・アルプス",46.75,8.15,"海岸・湖","湖、峠、アルプス"],
+  [25,"ゴールデンパス線","スイス","ヨーロッパ・アルプス",46.43,7.00,"海岸・湖","湖、牧草地、山岳風景"],
+  [26,"モントルー～ツヴァイジンメン線","スイス","ヨーロッパ・アルプス",46.45,6.91,"海岸・湖","レマン湖、アルプス、牧草地"],
+  [27,"セメリング鉄道","オーストリア","ヨーロッパ・アルプス",47.64,15.83,"歴史・鉄道遺産","山岳、森林、石造アーチ橋"],
+  [28,"アールベルク鉄道","オーストリア","ヨーロッパ・アルプス",47.13,10.26,"山岳・氷河","アルプス、峡谷、雪山"],
+  [29,"チロル地方鉄道","オーストリア","ヨーロッパ・アルプス",47.35,11.70,"田園・集落","チロルの山村、アルプス"],
+  [30,"ドロミテ周辺鉄道","イタリア","ヨーロッパ・アルプス",46.54,12.14,"山岳・氷河","ドロミテ山塊、谷、牧草地"],
+  [31,"ヴァル・ヴェノスタ鉄道","イタリア","ヨーロッパ・アルプス",46.61,10.86,"田園・集落","南チロル、果樹園、山岳"],
+  [32,"チェントヴァッリ鉄道","スイス～イタリア","ヨーロッパ・アルプス",46.18,8.57,"森林・渓谷","深い谷、森林、石橋"],
+  [33,"トリノ～バルドネッキア周辺線","イタリア","ヨーロッパ・アルプス",45.08,6.70,"山岳・氷河","アルプス、谷、山岳集落"],
+  [34,"クールマイヨール周辺の山岳鉄道","イタリア","ヨーロッパ・アルプス",45.79,6.97,"山岳・氷河","モンブラン山群"],
+  [35,"ライン川左岸線","ドイツ","ヨーロッパ・アルプス",50.15,7.72,"海岸・湖","ライン川、城、葡萄畑"],
+  [36,"ライン川右岸線","ドイツ","ヨーロッパ・アルプス",50.20,7.70,"海岸・湖","古城、渓谷、葡萄畑"],
+  [37,"モンブラン・エクスプレス","フランス～スイス","ヨーロッパ・アルプス",46.02,6.92,"山岳・氷河","モンブラン、谷、氷河"],
+  /* 38-46 南・西ヨーロッパ */
+  [38,"トランスカンタブリコ","スペイン","南・西ヨーロッパ",43.25,-4.80,"海岸・湖","北スペイン、山、海岸"],
+  [39,"ラック鉄道／Train Jaune","フランス","南・西ヨーロッパ",42.51,2.22,"山岳・氷河","ピレネー、峡谷、山村"],
+  [40,"コルシカ鉄道","フランス","南・西ヨーロッパ",42.20,9.05,"海岸・湖","地中海、山岳、森林"],
+  [41,"ピレネー狭軌鉄道","フランス","南・西ヨーロッパ",43.05,0.15,"山岳・氷河","ピレネー山脈"],
+  [42,"ドウロ線","ポルトガル","南・西ヨーロッパ",41.16,-7.80,"田園・集落","ドウロ川、葡萄畑、渓谷"],
+  [43,"パノラミック・ドウロ鉄道","ポルトガル","南・西ヨーロッパ",41.18,-7.79,"田園・集落","葡萄畑、渓谷、川"],
+  [44,"メトロ・ドゥ・リグリア","イタリア","南・西ヨーロッパ",44.35,8.45,"海岸・湖","地中海沿岸、山"],
+  [45,"チンクエ・テッレ線","イタリア","南・西ヨーロッパ",44.12,9.71,"海岸・湖","地中海、断崖、村"],
+  [46,"エトナ鉄道／Circumetnea","イタリア","南・西ヨーロッパ",37.72,15.11,"山岳・氷河","エトナ山、溶岩地形、果樹園"],
+  /* 47-70 日本 */
+  [47,"五能線","日本","日本",40.70,140.04,"海岸・湖","日本海、白神山地"],
+  [48,"只見線","日本","日本",37.31,139.55,"森林・渓谷","只見川、山村、紅葉"],
+  [49,"釧網本線","日本","日本",43.90,144.65,"高原・荒野","釧路湿原、知床"],
+  [50,"大井川鐵道","日本","日本",34.98,138.13,"森林・渓谷","大井川、茶畑、山村、SL"],
+  [51,"黒部峡谷鉄道","日本","日本",36.82,137.58,"森林・渓谷","日本有数の深い峡谷"],
+  [52,"嵯峨野トロッコ列車","日本","日本",35.02,135.63,"森林・渓谷","保津川、渓谷、紅葉"],
+  [53,"飯山線","日本","日本",36.94,138.54,"田園・集落","千曲川、雪国、山村"],
+  [54,"小海線","日本","日本",36.03,138.47,"高原・荒野","八ヶ岳、清里、高原"],
+  [55,"八ヶ岳高原線","日本","日本",36.03,138.47,"高原・荒野","高原、八ヶ岳、森林"],
+  [56,"山陰本線・山陰海岸区間","日本","日本",35.60,134.65,"海岸・湖","日本海、断崖、砂丘"],
+  [57,"山陰本線・下関～長門市周辺","日本","日本",34.35,131.17,"海岸・湖","日本海、海岸"],
+  [58,"山口線","日本","日本",34.47,131.77,"歴史・鉄道遺産","山間部、SL、津和野"],
+  [59,"木次線","日本","日本",35.20,133.00,"森林・渓谷","中国山地、渓谷"],
+  [60,"予土線","日本","日本",33.19,132.73,"森林・渓谷","四万十川、山村"],
+  [61,"土讃線","日本","日本",33.78,133.69,"森林・渓谷","四国山地、吉野川"],
+  [62,"予讃線・愛ある伊予灘線","日本","日本",33.65,132.43,"海岸・湖","伊予灘、海岸、夕日"],
+  [63,"南阿蘇鉄道","日本","日本",32.84,131.04,"山岳・氷河","阿蘇山、カルデラ"],
+  [64,"肥薩線","日本","日本",32.00,130.77,"森林・渓谷","球磨川、山岳"],
+  [65,"指宿枕崎線","日本","日本",31.24,130.55,"海岸・湖","開聞岳、錦江湾、南国風景"],
+  [66,"三陸鉄道","日本","日本",39.80,141.82,"海岸・湖","太平洋、リアス海岸"],
+  [67,"えちごトキめき鉄道・日本海ひすいライン","日本","日本",37.00,137.75,"海岸・湖","日本海、北アルプス"],
+  [68,"箱根登山電車","日本","日本",35.23,139.10,"森林・渓谷","箱根の山、渓谷、紫陽花"],
+  [69,"天竜浜名湖鉄道","日本","日本",34.82,137.64,"田園・集落","湖、茶畑、田園"],
+  [70,"大井川鐵道・井川線","日本","日本",35.18,138.20,"森林・渓谷","南アルプス、ダム湖、渓谷"],
+  /* 71-85 アジア */
+  [71,"ダージリン・ヒマラヤ鉄道","インド","アジア",27.04,88.26,"山岳・氷河","ヒマラヤ、茶畑、山岳"],
+  [72,"ニルギリ山岳鉄道","インド","アジア",11.41,76.70,"山岳・氷河","南インドの山岳、茶畑"],
+  [73,"カルカ・シムラ鉄道","インド","アジア",31.10,77.17,"山岳・氷河","ヒマラヤ山麓、森林"],
+  [74,"カンディ～エラ線","スリランカ","アジア",7.87,80.76,"田園・集落","茶畑、山岳、渓谷"],
+  [75,"コロンボ～ゴール線","スリランカ","アジア",6.03,80.22,"海岸・湖","インド洋、海岸"],
+  [76,"青蔵鉄道","中国","アジア",32.30,90.00,"高原・荒野","チベット高原、雪山"],
+  [77,"昆明～大理線","中国","アジア",25.60,100.20,"高原・荒野","雲南高原、山、湖"],
+  [78,"麗江～大理周辺鉄道","中国","アジア",26.87,100.23,"山岳・氷河","玉龍雪山、高原"],
+  [79,"嘉陽炭鉱鉄道","中国","アジア",29.32,103.70,"歴史・鉄道遺産","山村、茶畑、蒸気機関車"],
+  [80,"阿里山森林鉄路","台湾","アジア",23.51,120.80,"森林・渓谷","森林、山岳、雲海"],
+  [81,"平渓線","台湾","アジア",25.02,121.74,"田園・集落","山村、渓谷、古い町並み"],
+  [82,"内湾線","台湾","アジア",24.70,121.18,"森林・渓谷","山岳、渓谷、森林"],
+  [83,"タイ国鉄・南線","タイ","アジア",13.75,99.90,"海岸・湖","海岸、熱帯風景"],
+  [84,"ハノイ～ラオカイ方面","ベトナム","アジア",22.34,103.84,"山岳・氷河","山岳、田園、少数民族地域"],
+  [85,"統一鉄道・北南線","ベトナム","アジア",16.05,108.20,"海岸・湖","海岸、山岳、田園"],
+  /* 86-94 北米 */
+  [86,"ロッキー・マウンテニア","カナダ","北米",51.17,-115.57,"山岳・氷河","カナディアン・ロッキー"],
+  [87,"カナディアン号","カナダ","北米",52.12,-106.67,"森林・渓谷","ロッキー、湖、森林"],
+  [88,"ホワイト・パス＆ユーコン・ルート","米国～カナダ","北米",59.46,-135.31,"山岳・氷河","山岳、氷河、ゴールドラッシュ"],
+  [89,"ドゥランゴ＆シルバートン狭軌鉄道","米国","北米",37.47,-107.88,"歴史・鉄道遺産","ロッキー山脈、峡谷、SL"],
+  [90,"カンブレス＆トルテック・シーニック鉄道","米国","北米",37.02,-106.28,"森林・渓谷","ロッキー、森林、渓谷"],
+  [91,"コロラド鉄道・パイクスピーク線","米国","北米",38.84,-105.04,"山岳・氷河","山頂、ロッキー"],
+  [92,"アラスカ鉄道","米国","北米",61.21,-149.90,"山岳・氷河","氷河、山、荒野"],
+  [93,"ホワイトパス鉄道","米国～カナダ","北米",59.46,-135.31,"山岳・氷河","氷河、山岳、峡谷"],
+  [94,"チェペ鉄道／Chepe","メキシコ","北米",27.51,-108.28,"森林・渓谷","コッパーキャニオン"],
+  /* 95-100 南米 */
+  [95,"ペルー・レイル／クスコ～マチュピチュ","ペルー","南米",-13.16,-72.55,"山岳・氷河","アンデス、ウルバンバ川"],
+  [96,"トレン・ア・ラス・ヌベス","アルゼンチン","南米",-24.19,-65.30,"高原・荒野","アンデス、高原、雲上"],
+  [97,"ラ・トロチータ","アルゼンチン","南米",-41.13,-71.31,"高原・荒野","パタゴニアの大草原"],
+  [98,"アリカ～ラパス鉄道周辺","チリ～ボリビア","南米",-18.48,-69.05,"高原・荒野","アンデス高原、火山"],
+  [99,"チリ南部鉄道","チリ","南米",-38.74,-72.60,"森林・渓谷","湖、火山、森林"],
+  [100,"クスコ～プーノ線","ペルー","南米",-15.84,-70.02,"高原・荒野","アンデス高原、チチカカ湖"]
+];
+
+const colors = {
+  "ヨーロッパ・アルプス":"#d73027",
+  "北欧・イギリス":"#4575b4",
+  "南・西ヨーロッパ":"#fdae61",
+  "日本":"#1a9850",
+  "アジア":"#984ea3",
+  "北米":"#8c6bb1",
+  "南米":"#a6611a"
+};
+
+const map = L.map("map", { zoomControl:false, closePopupOnClick:false }).setView([25, 10], 2);
+L.control.zoom({ position:"topright" }).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const markers = [];
+const layer = L.layerGroup().addTo(map);
+
+const routeLayers = L.layerGroup().addTo(map);
+const embeddedAllLayer = L.layerGroup().addTo(map);
+const routeCache = new Map();
+
+function escapeOverpassRegex(s) {
+  return s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
+function getSearchNames(name) {
+  const parts = name.split("／").map(s => s.trim()).filter(Boolean);
+  const base = parts.length > 1 ? parts[1] : parts[0];
+  const aliases = {
+    "五能線":["五能線","Gono Line","Gonō Line"],
+    "只見線":["只見線","Tadami Line"],
+    "釧網本線":["釧網本線","Senmo Main Line"],
+    "大井川鐵道":["大井川鐵道","Oigawa Railway"],
+    "黒部峡谷鉄道":["黒部峡谷鉄道","Kurobe Gorge Railway"],
+    "嵯峨野トロッコ列車":["嵯峨野観光鉄道","Sagano Romantic Train"],
+    "飯山線":["飯山線","Iiyama Line"],
+    "小海線":["小海線","Koumi Line","Kōmi Line"],
+    "山口線":["山口線","Yamaguchi Line"],
+    "木次線":["木次線","Kisuki Line"],
+    "予土線":["予土線","Yodo Line"],
+    "土讃線":["土讃線","Dosan Line"],
+    "南阿蘇鉄道":["南阿蘇鉄道","Minami Aso Railway"],
+    "肥薩線":["肥薩線","Hisatsu Line"],
+    "指宿枕崎線":["指宿枕崎線","Ibusuki Makurazaki Line"],
+    "三陸鉄道":["三陸鉄道","Sanriku Railway"],
+    "箱根登山電車":["箱根登山鉄道","Hakone Tozan Railway"],
+    "阿里山森林鉄路":["阿里山森林鉄路","Alishan Forest Railway"],
+    "平渓線":["平渓線","Pingxi Line"],
+    "内湾線":["内湾線","Neiwan Line"],
+    "ダージリン・ヒマラヤ鉄道":["Darjeeling Himalayan Railway"],
+    "ニルギリ山岳鉄道":["Nilgiri Mountain Railway"],
+    "カルカ・シムラ鉄道":["Kalka Shimla Railway","Kalka–Shimla Railway"],
+    "青蔵鉄道":["青藏铁路","Qinghai Tibet Railway","Qinghai–Tibet Railway"],
+    "コルシカ鉄道":["Chemins de fer de la Corse","Corsican Railways"],
+    "フロム鉄道":["Flåmsbana","Flam Railway","Flåm Railway"],
+    "ベルゲン線":["Bergensbanen","Bergen Railway"],
+    "ラウマ線":["Raumabanen","Rauma Railway"],
+    "ウェスト・ハイランド線":["West Highland Line"],
+    "フェスティニオグ鉄道":["Ffestiniog Railway"],
+    "ウェールズ・ハイランド鉄道":["Welsh Highland Railway"],
+    "ベルニナ線":["Bernina","Bernina Express"],
+    "氷河急行":["Glacier Express"],
+    "アルブラ線":["Albula","Albula Railway"],
+    "セメリング鉄道":["Semmeringbahn","Semmering Railway"],
+    "トランツアルパイン":["TranzAlpine"],
+    "ロッキー・マウンテニア":["Rocky Mountaineer"],
+    "チェペ鉄道":["Chepe","Copper Canyon Railway"],
+    "ラ・トロチータ":["La Trochita","Old Patagonian Express"]
+  };
+  return aliases[name] || [base];
+}
+
+// Overpassは公開サーバーの混雑・429が発生することがあるため、
+// POST + 複数エンドポイント + 短いタイムアウトで取得する。
+
+const routePromiseCache = new Map();
+const stationPromiseCache = new Map();
+const displayedRouteLayers = new Map();
+let activeRailPopup = null;
+
+// 地図上の通常クリックでは詳細ポップアップを一旦閉じる。
+// マーカー・駅・鉄道路線自身のクリックは stopPropagation() するので閉じない。
+map.on("click", function() {
+  if (activeRailPopup) {
+    map.closePopup(activeRailPopup);
+    activeRailPopup = null;
+  }
+});
+
+
+
+const EMBEDDED_ROUTES = {"1":[[60.8627,7.1139],[60.7351,7.1335]],"2":[[60.3913,5.3221],[60.6295,6.421],[60.7351,7.1335],[60.6012,7.5036]],"3":[[62.0755,9.1271],[62.5671,7.6878]],"4":[[66.3128,14.1428],[67.2804,14.4049]],"5":[[68.4385,17.4272],[68.15,13.61]],"6":[[61.0045,14.537],[63.1792,14.6357]],"7":[[67.8558,20.2253],[68.357,18.83]],"8":[[67.8558,20.2253],[68.4385,17.4272]],"9":[[55.8642,-4.2518],[56.8198,-5.1052],[57.0058,-5.8302]],"10":[[56.8198,-5.1052],[56.8706,-5.448],[57.0058,-5.8302]],"11":[[57.4778,-4.2257],[57.2794,-5.7146]],"12":[[57.4778,-4.2257],[58.441,-3.094],[58.5927,-3.5263]],"13":[[57.1887,-3.8286],[57.249,-3.756]],"14":[[52.9295,-4.1304],[52.9944,-3.94]],"15":[[53.1408,-4.2731],[52.9295,-4.1304],[53.0116,-4.0765]],"16":[[52.5875,-4.087],[52.675,-3.844]],"17":[[46.4972,9.8411],[46.495,9.9017],[46.2165,10.167]],"18":[[46.0177,7.748],[46.317,7.987],[46.8508,9.532]],"19":[[46.8508,9.532],[46.678,9.513],[46.4972,9.8411]],"20":[[46.317,7.987],[46.634,8.594]],"21":[[46.0177,7.748],[45.983,7.784]],"22":[[46.69,7.867],[46.5853,7.9615],[46.5476,7.9856]],"23":[[46.597,7.907],[46.6244,8.0413]],"24":[[47.0502,8.3103],[46.69,7.867]],"25":[[46.433,6.9107],[46.5578,7.3725]],"26":[[46.433,6.9107],[46.5578,7.3725]],"27":[[47.6747,15.8265],[47.607,15.83]],"28":[[47.263,11.401],[47.139,10.565],[47.505,9.749]],"29":[[47.263,11.401],[47.33,11.188]],"30":[[46.445,12.376],[46.54,12.14]],"31":[[46.67,11.16],[46.683,10.545]],"32":[[46.17,8.799],[46.116,8.292]],"33":[[45.062,7.678],[45.074,6.704]],"34":[[45.786,6.968],[45.79,6.97]],"35":[[50.943,6.958],[50.35,7.589],[49.967,7.896]],"36":[[50.071,8.243],[50.35,7.589],[50.732,7.096]],"37":[[45.923,6.869],[46.024,6.983],[46.102,7.072]],"38":[[43.3614,-5.8494],[43.461,-3.81]],"39":[[42.588,2.352],[42.502,2.035]],"40":[[42.7013,9.446],[41.926,8.738],[42.566,8.758]],"41":[[43.2951,-0.3708],[42.46,1.903]],"42":[[41.1455,-8.61],[41.19,-7.548],[41.09,-7.061]],"43":[[41.1455,-8.61],[41.162,-7.787],[41.09,-7.061]],"44":[[44.406,8.947],[44.109,9.811]],"45":[[44.11,9.812],[44.146,9.655],[44.119,9.728]],"46":[[37.73,15.206],[37.501,15.086]],"47":[[40.205,140.027],[40.558,139.923],[40.599,140.486]],"48":[[37.441,139.699],[37.346,139.315],[37.241,138.957]],"49":[[44.02,144.259],[43.91,144.667],[42.99,144.382]],"50":[[34.819,138.126],[35.164,138.138]],"51":[[36.816,137.582],[36.744,137.664]],"52":[[35.018,135.68],[35.014,135.568]],"53":[[36.85,138.364],[37.127,138.758],[37.275,138.857]],"54":[[35.864,138.315],[35.908,138.441],[35.955,138.472]],"55":[[35.864,138.315],[35.955,138.472]],"56":[[35.494,134.226],[35.623,134.812],[35.622,134.451]],"57":[[34.371,131.184],[34.414,131.4],[33.95,130.923]],"58":[[34.094,131.399],[34.471,131.772],[34.676,131.842]],"59":[[35.202,132.903],[35.179,133.09],[35.013,133.1]],"60":[[33.211,133.136],[33.18,132.783],[33.223,132.56]],"61":[[34.272,133.756],[33.878,133.766],[33.567,133.544]],"62":[[34.351,134.046],[33.616,132.486],[33.84,132.75]],"63":[[32.885,131.041],[32.821,131.12]],"64":[[32.505,130.601],[32.218,130.754],[31.909,130.737]],"65":[[31.583,130.542],[31.245,130.635],[31.272,130.297]],"66":[[40.193,141.776],[39.64,141.946],[39.278,141.708]],"67":[[37.043,137.862],[37.168,138.242]],"68":[[35.233,139.103],[35.25,139.048]],"69":[[34.769,138.014],[34.86,137.817],[34.693,137.521]],"70":[[35.164,138.138],[35.164,138.22],[35.18,138.239]],"71":[[27.041,88.263],[27.041,88.263]],"72":[[11.301,76.938],[11.406,76.695]],"73":[[30.834,76.931],[31.104,77.166]],"74":[[7.2906,80.6337],[6.8667,81.0466]],"75":[[6.9344,79.85],[6.0329,80.2168]],"76":[[36.616,101.778],[29.65,91.132]],"77":[[25.013,102.718],[25.597,100.229]],"78":[[26.451,100.184],[25.597,100.229]],"79":[[29.324,103.733],[29.3,103.7]],"80":[[23.479,120.441],[23.505,120.7],[23.508,120.803]],"81":[[25.024,121.721],[25.046,121.775],[25.108,121.805]],"82":[[24.783,121.047],[24.705,121.183]],"83":[[13.737,100.517],[9.134,99.333],[7.008,100.474]],"84":[[21.024,105.841],[22.486,103.975]],"85":[[21.024,105.841],[16.468,107.595],[16.069,108.207],[10.782,106.681]],"86":[[49.273,-123.098],[51.178,-115.57],[52.874,-118.082]],"87":[[43.645,-79.38],[49.889,-97.133],[52.874,-118.082]],"88":[[59.458,-135.314],[59.949,-135.159]],"89":[[37.275,-107.881],[37.811,-107.665]],"90":[[36.904,-106.581],[37.035,-106.503]],"91":[[38.859,-104.918],[38.84,-105.043]],"92":[[61.218,-149.895],[63.731,-148.912],[64.837,-147.722]],"93":[[59.458,-135.314],[59.949,-135.159]],"94":[[28.635,-106.077],[27.749,-107.635],[26.421,-108.616]],"95":[[-13.532,-71.967],[-13.155,-72.525]],"96":[[-24.788,-65.411],[-24.22,-66.319]],"97":[[-42.912,-71.319],[-42.876,-71.282]],"98":[[-18.479,-70.313],[-16.495,-68.133]],"99":[[-38.735,-72.59],[-41.469,-72.942]],"100":[[-13.532,-71.967],[-15.499,-70.133],[-15.84,-70.021]]};
+
+function fetchRouteGeometry(r) {
+  const key = String(r[0]);
+  const lines = EMBEDDED_ROUTES[key] || [];
+  if (!lines.length) return Promise.resolve({lines:[], relationId:null, exact:false});
+  return Promise.resolve({
+    lines: [lines],
+    relationId: null,
+    exact: true
+  });
+}
+
+const EMBEDDED_STATIONS = {"1":[["フロム駅",60.8627,7.1139],["ミュルダール駅",60.7351,7.1335]],"2":[["ベルゲン駅",60.3913,5.3221],["ヴォス駅",60.6295,6.421],["ミュルダール駅",60.7351,7.1335],["フィンセ駅",60.6012,7.5036]],"3":[["ドンボース駅",62.0755,9.1271],["アンドスネス駅",62.5671,7.6878]],"4":[["モー・イ・ラーナ駅",66.3128,14.1428],["ボードー駅",67.2804,14.4049]],"5":[["ナルヴィク駅",68.4385,17.4272]],"6":[["モーラ駅",61.0045,14.537],["エステルスンド中央駅",63.1792,14.6357]],"7":[["キルナ駅",67.8558,20.2253],["アビスコ・トゥーリスト駅",68.357,18.83]],"8":[["キルナ駅",67.8558,20.2253],["ナルヴィク駅",68.4385,17.4272]],"9":[["グラスゴー・クイーンストリート駅",55.8642,-4.2518],["フォート・ウィリアム駅",56.8198,-5.1052],["マレイグ駅",57.0058,-5.8302]],"10":[["フォート・ウィリアム駅",56.8198,-5.1052],["グレンフィナン駅",56.8706,-5.448],["マレイグ駅",57.0058,-5.8302]],"11":[["インヴァネス駅",57.4778,-4.2257],["カイル・オブ・ロハルシュ駅",57.2794,-5.7146]],"12":[["インヴァネス駅",57.4778,-4.2257],["ウィック駅",58.441,-3.094],["サーソー駅",58.5927,-3.5263]],"13":[["アヴィモア駅",57.1887,-3.8286],["ボート・オブ・ガーテン駅",57.249,-3.756]],"14":[["ポースマドッグ駅",52.9295,-4.1304],["ブライナイ・フェスティニオグ駅",52.9944,-3.94]],"15":[["カーナーヴォン駅",53.1408,-4.2731],["ポースマドッグ駅",52.9295,-4.1304],["ベズゲラート駅",53.0116,-4.0765]],"16":[["タウィン駅",52.5875,-4.087],["コリス駅",52.675,-3.844]],"17":[["サンモリッツ駅",46.4972,9.8411],["ポントレジーナ駅",46.495,9.9017],["ティラーノ駅",46.2165,10.167]],"18":[["ツェルマット駅",46.0177,7.748],["ブリーク駅",46.317,7.987],["クール駅",46.8508,9.532]],"19":[["クール駅",46.8508,9.532],["ティーフェンカステル駅",46.678,9.513],["サンモリッツ駅",46.4972,9.8411]],"20":[["ブリーク駅",46.317,7.987],["アンデルマット駅",46.634,8.594]],"21":[["ツェルマット駅",46.0177,7.748],["ゴルナーグラート駅",45.983,7.784]],"22":[["インターラーケン・オスト駅",46.69,7.867],["クライネ・シャイデック駅",46.5853,7.9615],["ユングフラウヨッホ駅",46.5476,7.9856]],"23":[["ラウターブルンネン駅",46.597,7.907],["グリンデルワルト駅",46.6244,8.0413]],"24":[["ルツェルン駅",47.0502,8.3103],["インターラーケン・オスト駅",46.69,7.867]],"25":[["モントルー駅",46.433,6.9107],["ツヴァイジンメン駅",46.5578,7.3725]],"26":[["モントルー駅",46.433,6.9107],["ツヴァイジンメン駅",46.5578,7.3725]],"27":[["グログニッツ駅",47.6747,15.8265],["ミュルツシュラーク駅",47.607,15.83]],"28":[["インスブルック中央駅",47.263,11.401],["ランデック駅",47.139,10.565],["ブリーデンツ駅",47.505,9.749]],"29":[["インスブルック中央駅",47.263,11.401],["ゼーフェルト駅",47.33,11.188]],"30":[["カラルツォ・ディ・カドーレ駅",46.445,12.376]],"31":[["メラーノ駅",46.67,11.16],["マルレス駅",46.683,10.545]],"32":[["ロカルノ駅",46.17,8.799],["ドモドッソラ駅",46.116,8.292]],"33":[["トリノ・ポルタ・ヌオーヴァ駅",45.062,7.678],["バルドネッキア駅",45.074,6.704]],"34":[["クールマイヨール・バス駅",45.786,6.968]],"35":[["ケルン中央駅",50.943,6.958],["コブレンツ中央駅",50.35,7.589],["ビンゲン駅",49.967,7.896]],"36":[["ヴィースバーデン中央駅",50.071,8.243],["コブレンツ中央駅",50.35,7.589],["ボン中央駅",50.732,7.096]],"37":[["シャモニー・モンブラン駅",45.923,6.869],["ヴァロルシーヌ駅",46.024,6.983],["マルティニー駅",46.102,7.072]],"38":[["オビエド駅",43.3614,-5.8494],["サンタンデール駅",43.461,-3.81]],"39":[["ヴィルフランシュ・ヴェルネ・レ・バン駅",42.588,2.352],["フォン・ロムー駅",42.502,2.035]],"40":[["バスティア駅",42.7013,9.446],["アジャクシオ駅",41.926,8.738],["カルヴィ駅",42.566,8.758]],"41":[["ポー駅",43.2951,-0.3708],["ラ・トゥール＝ド＝キャロル駅",42.46,1.903]],"42":[["ポルト・サン・ベント駅",41.1455,-8.61],["ピニョン駅",41.19,-7.548],["ポシーニョ駅",41.09,-7.061]],"43":[["ポルト・サン・ベント駅",41.1455,-8.61],["レグア駅",41.162,-7.787],["ポシーニョ駅",41.09,-7.061]],"44":[["ジェノヴァ・ブリニョーレ駅",44.406,8.947],["ラ・スペツィア駅",44.109,9.811]],"45":[["ラ・スペツィア中央駅",44.11,9.812],["モンテロッソ駅",44.146,9.655],["マナローラ駅",44.119,9.728]],"46":[["リポスト駅",37.73,15.206],["カターニア中央駅",37.501,15.086]],"47":[["東能代駅",40.205,140.027],["十二湖駅",40.558,139.923],["弘前駅",40.599,140.486]],"48":[["会津川口駅",37.441,139.699],["只見駅",37.346,139.315],["小出駅",37.241,138.957]],"49":[["網走駅",44.02,144.259],["知床斜里駅",43.91,144.667],["釧路駅",42.99,144.382]],"50":[["金谷駅",34.819,138.126],["千頭駅",35.164,138.138]],"51":[["宇奈月駅",36.816,137.582],["欅平駅",36.744,137.664]],"52":[["嵯峨嵐山駅",35.018,135.68],["トロッコ亀岡駅",35.014,135.568]],"53":[["飯山駅",36.85,138.364],["十日町駅",37.127,138.758],["越後川口駅",37.275,138.857]],"54":[["小淵沢駅",35.864,138.315],["清里駅",35.908,138.441],["野辺山駅",35.955,138.472]],"55":[["小淵沢駅",35.864,138.315],["野辺山駅",35.955,138.472]],"56":[["鳥取駅",35.494,134.226],["城崎温泉駅",35.623,134.812],["浜坂駅",35.622,134.451]],"57":[["長門市駅",34.371,131.184],["東萩駅",34.414,131.4],["下関駅",33.95,130.923]],"58":[["新山口駅",34.094,131.399],["津和野駅",34.471,131.772],["益田駅",34.676,131.842]],"59":[["木次駅",35.202,132.903],["出雲横田駅",35.179,133.09],["備後落合駅",35.013,133.1]],"60":[["窪川駅",33.211,133.136],["江川崎駅",33.18,132.783],["宇和島駅",33.223,132.56]],"61":[["多度津駅",34.272,133.756],["大歩危駅",33.878,133.766],["高知駅",33.567,133.544]],"62":[["高松駅",34.351,134.046],["伊予長浜駅",33.616,132.486],["松山駅",33.84,132.75]],"63":[["立野駅",32.885,131.041],["高森駅",32.821,131.12]],"64":[["八代駅",32.505,130.601],["人吉駅",32.218,130.754],["吉松駅",31.909,130.737]],"65":[["鹿児島中央駅",31.583,130.542],["指宿駅",31.245,130.635],["枕崎駅",31.272,130.297]],"66":[["久慈駅",40.193,141.776],["宮古駅",39.64,141.946],["盛駅",39.278,141.708]],"67":[["糸魚川駅",37.043,137.862],["直江津駅",37.168,138.242]],"68":[["箱根湯本駅",35.233,139.103],["強羅駅",35.25,139.048]],"69":[["掛川駅",34.769,138.014],["天竜二俣駅",34.86,137.817],["新所原駅",34.693,137.521]],"70":[["千頭駅",35.164,138.138],["奥大井湖上駅",35.164,138.22],["井川駅",35.18,138.239]],"71":[["ニュージャルパイグリ駅",27.041,88.263],["ダージリン駅",27.041,88.263]],"72":[["メットゥパーラヤム駅",11.301,76.938],["ウーティ駅",11.406,76.695]],"73":[["カルカ駅",30.834,76.931],["シムラー駅",31.104,77.166]],"74":[["キャンディ駅",7.2906,80.6337],["エラ駅",6.8667,81.0466]],"75":[["コロンボ・フォート駅",6.9344,79.85],["ゴール駅",6.0329,80.2168]],"76":[["西寧駅",36.616,101.778],["ラサ駅",29.65,91.132]],"77":[["昆明駅",25.013,102.718],["大理駅",25.597,100.229]],"78":[["麗江駅",26.451,100.184],["大理駅",25.597,100.229]],"79":[["芭溝駅",29.324,103.733],["蜜蜂岩駅",29.3,103.7]],"80":[["嘉義駅",23.479,120.441],["奮起湖駅",23.505,120.7],["阿里山駅",23.508,120.803]],"81":[["菁桐駅",25.024,121.721],["十分駅",25.046,121.775],["瑞芳駅",25.108,121.805]],"82":[["竹中駅",24.783,121.047],["内湾駅",24.705,121.183]],"83":[["バンコク駅",13.737,100.517],["スラートターニー駅",9.134,99.333],["ハジャイ駅",7.008,100.474]],"84":[["ハノイ駅",21.024,105.841],["ラオカイ駅",22.486,103.975]],"85":[["ハノイ駅",21.024,105.841],["フエ駅",16.468,107.595],["ダナン駅",16.069,108.207],["サイゴン駅",10.782,106.681]],"86":[["バンクーバー駅",49.273,-123.098],["バンフ駅",51.178,-115.57],["ジャスパー駅",52.874,-118.082]],"87":[["トロント・ユニオン駅",43.645,-79.38],["ウィニペグ駅",49.889,-97.133],["ジャスパー駅",52.874,-118.082]],"88":[["スキャグウェイ駅",59.458,-135.314],["フレーザー駅",59.949,-135.159]],"89":[["デュランゴ駅",37.275,-107.881],["シルバートン駅",37.811,-107.665]],"90":[["チャマ駅",36.904,-106.581],["オシエル駅",37.035,-106.503]],"91":[["マニトゥスプリングス駅",38.859,-104.918],["パイクスピーク頂上駅",38.84,-105.043]],"92":[["アンカレッジ駅",61.218,-149.895],["デナリ駅",63.731,-148.912],["フェアバンクス駅",64.837,-147.722]],"93":[["スキャグウェイ駅",59.458,-135.314],["フレーザー駅",59.949,-135.159]],"94":[["チワワ駅",28.635,-106.077],["クリール駅",27.749,-107.635],["エル・フエルテ駅",26.421,-108.616]],"95":[["クスコ駅",-13.532,-71.967],["マチュピチュ駅",-13.155,-72.525]],"96":[["サルタ駅",-24.788,-65.411],["サン・アントニオ・デ・ロス・コブレス駅",-24.22,-66.319]],"97":[["エスケル駅",-42.912,-71.319],["ナウエル・パン駅",-42.876,-71.282]],"98":[["アリカ駅",-18.479,-70.313],["ラパス駅",-16.495,-68.133]],"99":[["テムコ駅",-38.735,-72.59],["プエルト・モント駅",-41.469,-72.942]],"100":[["クスコ駅",-13.532,-71.967],["フリアカ駅",-15.499,-70.133],["プーノ駅",-15.84,-70.021]]};
+function fetchStations(r, geo) {
+  const data = EMBEDDED_STATIONS[String(r[0])] || [];
+  return Promise.resolve(data.map(x => ({
+    name:x[0],
+    lat:x[1],
+    lng:x[2],
+    tags:{
+      railway:"station",
+      "name:en":"",
+      embedded:"yes"
+    }
+  })));
+}
+function dedupeStations(stations) {
+  const seen = new Set();
+  return stations.filter(st => {
+    const key = `${st.name}|${st.lat.toFixed(5)}|${st.lng.toFixed(5)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function fetchRailwayWikipedia(r) {
+  const exactUrls = {
+    "フロム鉄道／Flåmsbana": "https://ja.wikipedia.org/wiki/フロム線"
+  };
+  if (exactUrls[r[1]]) return exactUrls[r[1]];
+
+  const names = getSearchNames(r[1]);
+  for (const q of [...new Set(names)]) {
+    try {
+      const api = "https://ja.wikipedia.org/w/api.php?action=query&list=search"
+        + "&srsearch=" + encodeURIComponent(q)
+        + "&srlimit=3&format=json&origin=*";
+      const res = await fetch(api);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const hit = (data.query?.search || [])[0];
+      if (hit) return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(hit.title.replace(/ /g,"_"));
+    } catch(e) { console.warn("Wikipedia lookup failed:", q, e); }
+  }
+  return null;
+}
+
+async function fetchCommonsPhoto(r) {
+  const names = getSearchNames(r[1]);
+  const search = names[0] + " railway";
+  const api = "https://commons.wikimedia.org/w/api.php?action=query&generator=search"
+    + "&gsrsearch=" + encodeURIComponent(search)
+    + "&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url"
+    + "&iiurlwidth=420&format=json&origin=*";
+  try {
+    const res = await fetch(api);
+    if (!res.ok) throw new Error("Commons HTTP " + res.status);
+    const data = await res.json();
+    const pages = data.query && data.query.pages ? Object.values(data.query.pages) : [];
+    const page = pages.find(x => x.imageinfo && x.imageinfo[0] && x.imageinfo[0].thumburl)
+              || pages.find(x => x.imageinfo && x.imageinfo[0] && x.imageinfo[0].url);
+    if (!page) return null;
+    return {
+      url: page.imageinfo[0].thumburl || page.imageinfo[0].url,
+      title: page.title
+    };
+  } catch(e) {
+    console.warn("Commons photo lookup failed:", r[1], e);
+    return null;
+  }
+}
+
+let openRailwaySerial = 0;
+
+function stationInfoPopup(r, st, clickLatLng) {
+  const t = st.tags || {};
+  const esc = v => escapeHtml(String(v));
+  const rows = [];
+  if (t.operator) rows.push(`<tr><th>運営会社</th><td>${esc(t.operator)}</td></tr>`);
+  if (t.railway) rows.push(`<tr><th>駅種別</th><td>${esc(t.railway)}</td></tr>`);
+  if (t.public_transport) rows.push(`<tr><th>公共交通</th><td>${esc(t.public_transport)}</td></tr>`);
+  if (t.opening_date) rows.push(`<tr><th>開業</th><td>${esc(t.opening_date)}</td></tr>`);
+  if (t.network) rows.push(`<tr><th>ネットワーク</th><td>${esc(t.network)}</td></tr>`);
+  if (t.ref) rows.push(`<tr><th>駅番号</th><td>${esc(t.ref)}</td></tr>`);
+  if (t.alt_name) rows.push(`<tr><th>別名</th><td>${esc(t.alt_name)}</td></tr>`);
+  if (t['name:en']) rows.push(`<tr><th>英語名</th><td>${esc(t['name:en'])}</td></tr>`);
+  if (t['name:fr']) rows.push(`<tr><th>仏語名</th><td>${esc(t['name:fr'])}</td></tr>`);
+  if (t.website) rows.push(`<tr><th>Web</th><td><a href="${esc(t.website)}" target="_blank" rel="noopener">公式サイト</a></td></tr>`);
+  if (t.wikipedia) rows.push(`<tr><th>Wikipedia</th><td>${esc(t.wikipedia)}</td></tr>`);
+
+  const [no,name,country] = r;
+  const html = `<div class="station-popup" style="min-width:250px;max-width:360px">
+    <b>🚉 ${esc(st.name)}</b><br>
+    <small>${esc(country)} ／ ${esc(name)}</small>
+    ${rows.length ? `<hr style="margin:7px 0"><table style="font-size:12px;border-collapse:collapse;width:100%">${rows.join('')}</table>` : `<hr style="margin:7px 0"><small>OpenStreetMapに登録された駅情報は限られています。</small>`}
+    <div style="margin-top:7px;font-size:11px;color:#666">駅の位置：${st.lat.toFixed(5)}, ${st.lng.toFixed(5)}</div>
+    <div style="margin-top:7px"><a href="#" class="back-to-rail" data-no="${esc(no)}">← 鉄道の詳細に戻る</a></div>
+  </div>`;
+
+  if (activeRailPopup) map.closePopup(activeRailPopup);
+  activeRailPopup = L.popup({closeButton:true, autoPan:false, closeOnClick:false, maxWidth:420})
+    .setLatLng(clickLatLng || [st.lat,st.lng]).setContent(html).openOn(map);
+
+  const back = activeRailPopup.getElement()?.querySelector('.back-to-rail');
+  if (back) back.addEventListener('click', e => {
+    e.preventDefault();
+    openRailway(r, null, clickLatLng || [st.lat,st.lng]);
+  });
+}
+
+async function openRailway(r, marker, clickLatLng) {
+  const [no,name,country,region,lat,lng,type,desc] = r;
+  const popupLatLng = clickLatLng || [lat,lng];
+  const popupContent = `
+    <div class="rail-popup" style="min-width:250px">
+      <b>${escapeHtml(no)}. ${escapeHtml(name)}</b><br>
+      ${escapeHtml(country)}<br>
+      <small>${escapeHtml(type)}</small>
+      <hr style="margin:6px 0">
+      ${escapeHtml(desc)}
+      <div id="rail-status-${no}" style="margin-top:8px">🚉 内蔵駅データを表示中…</div>
+      <div id="rail-wiki-${no}" style="margin-top:8px"></div>
+      <div id="rail-photo-${no}" style="margin-top:8px"></div>
+    </div>`;
+
+  // Markerを何度クリックしても、同じ路線の詳細を必ず再表示する。
+  if (activeRailPopup) map.closePopup(activeRailPopup);
+  activeRailPopup = L.popup({closeButton:true, autoPan:false, closeOnClick:false, maxWidth:450})
+    .setLatLng(popupLatLng)
+    .setContent(popupContent)
+    .openOn(map);
+
+  // 既に表示済みなら、路線図・駅を残したまま詳細だけ再表示。
+  if (displayedRouteLayers.has(no)) {
+    const existing = displayedRouteLayers.get(no);
+    const status = document.getElementById(`rail-status-${no}`);
+    if (status) {
+      status.innerHTML = existing.routeDone
+        ? `🚆 鉄道路線を表示中<br>🚉 駅 ${existing.stationCount}件を表示`
+        : `🚉 駅 ${existing.stationCount}件を表示中<br>🚆 鉄道路線を表示中…`;
+    }
+    updatePhoto(r);
+    updateWikipedia(r);
+    return;
+  }
+
+  // ここが重要：駅はOverpassの路線取得を待たず、HTML内蔵データから即座に表示する。
+  const group = L.featureGroup().addTo(routeLayers);
+  const stations = await fetchStations(r, null);
+  stations.forEach(st => {
+    // 透明な14pxのヒット領域。白丸そのものより大幅に選択しやすい。
+    const stationHit = L.circleMarker([st.lat, st.lng], {
+      radius:14, weight:0, opacity:0, fillOpacity:0, interactive:true
+    }).addTo(group);
+    stationHit.bindTooltip(escapeHtml(st.name), {
+      direction:"top", offset:[0,-10], sticky:true, opacity:.95
+    });
+    stationHit.on("click", function(e) {
+      L.DomEvent.stopPropagation(e);
+      stationInfoPopup(r, st, e.latlng);
+    });
+
+    // 見た目の白丸。
+    L.circleMarker([st.lat, st.lng], {
+      radius:4, weight:2, color:"#333", fillColor:"#fff", fillOpacity:1,
+      interactive:false
+    }).addTo(group);
+  });
+
+  const layerInfo = {group, stationCount:stations.length, routeDone:false};
+  displayedRouteLayers.set(no, layerInfo);
+
+  let status = document.getElementById(`rail-status-${no}`);
+  if (status) {
+    status.innerHTML = `🚉 駅 ${stations.length}件を表示中<br>🚆 鉄道路線を表示中…`;
+  }
+
+  // 写真・Wikipediaは路線取得とは独立して処理する。
+  updatePhoto(r);
+  updateWikipedia(r);
+
+  // 路線図もHTML内蔵データだけで表示する。外部APIには接続しない。
+  const geo = await fetchRouteGeometry(r);
+  if (geo.lines.length) {
+    geo.lines.forEach(line => {
+      const hitLine = L.polyline(line, {
+        color: colors[region], weight:22, opacity:0, interactive:true
+      }).addTo(group);
+      hitLine.on("click", function(e) {
+        L.DomEvent.stopPropagation(e);
+        openRailway(r, marker, e.latlng);
+      });
+      L.polyline(line, {
+        color: colors[region], weight:5, opacity:.9,
+        lineCap:"round", lineJoin:"round", interactive:false
+      }).addTo(group);
+    });
+    layerInfo.routeDone = true;
+    if (status) status.innerHTML = `🚆 内蔵の鉄道路線を表示中<br>🚉 駅 ${stations.length}件を表示`;
+  } else {
+    layerInfo.routeDone = true;
+    if (status) status.innerHTML = `⚠ 内蔵鉄道路線データがありません<br>🚉 駅 ${stations.length}件を表示`;
+  }
+}
+
+async function updateWikipedia(r) {
+  const no = r[0];
+  const box = document.getElementById(`rail-wiki-${no}`);
+  if (!box) return;
+  try {
+    const url = await fetchRailwayWikipedia(r);
+    if (url) box.innerHTML = `<a href="${url}" target="_blank" rel="noopener">Wikipediaで詳しく見る</a>`;
+    else box.innerHTML = `<small>Wikipediaの記事が見つかりませんでした。</small>`;
+  } catch(e) {}
+}
+
+async function updatePhoto(r) {
+  const [no,name] = r;
+  try {
+    const photo = await fetchCommonsPhoto(r);
+    const photoBox = document.getElementById(`rail-photo-${no}`);
+    if (photoBox && photo) {
+      photoBox.innerHTML =
+        `<img src="${photo.url}" alt="${escapeHtml(name)}" style="display:block;width:100%;max-width:420px;height:auto;border-radius:5px">` +
+        `<div style="font-size:10px;margin-top:3px;color:#666">写真：Wikimedia Commons / ${escapeHtml(photo.title)}</div>`;
+    } else if (photoBox) {
+      photoBox.innerHTML = `<small>代表写真が見つかりませんでした。</small>`;
+    }
+  } catch(e) {}
+}
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
+}
+
+function drawEmbeddedRailway(r) {
+  const [no,name,country,region] = r;
+  if (displayedRouteLayers.has(no)) return;
+  const group = L.featureGroup().addTo(embeddedAllLayer);
+  const stations = (EMBEDDED_STATIONS[String(no)] || []).map(x => ({name:x[0],lat:x[1],lng:x[2],tags:{railway:"station",embedded:"yes"}}));
+  stations.forEach(st => {
+    const hit=L.circleMarker([st.lat,st.lng],{radius:14,weight:0,opacity:0,fillOpacity:0,interactive:true}).addTo(group);
+    hit.bindTooltip(escapeHtml(st.name),{direction:"top",offset:[0,-10],sticky:true,opacity:.95});
+    hit.on("click",e=>{L.DomEvent.stopPropagation(e);stationInfoPopup(r,st,e.latlng);});
+    L.circleMarker([st.lat,st.lng],{radius:4,weight:2,color:"#333",fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(group);
+  });
+  const pts=EMBEDDED_ROUTES[String(no)]||[];
+  if(pts.length>=2){
+    const hit=L.polyline(pts,{color:colors[region],weight:22,opacity:0,interactive:true}).addTo(group);
+    hit.on("click",e=>{L.DomEvent.stopPropagation(e);openRailway(r,null,e.latlng);});
+    L.polyline(pts,{color:colors[region],weight:5,opacity:.9,lineCap:"round",lineJoin:"round",interactive:false}).addTo(group);
+  }
+  displayedRouteLayers.set(no,{group,stationCount:stations.length,routeDone:pts.length>=2});
+}
+function drawAllEmbeddedRailways(){railways.forEach(drawEmbeddedRailway);}
+
+function makeMarker(r) {
+  const [no,name,country,region,lat,lng,type,desc] = r;
+  const icon = L.divIcon({
+    className:"",
+    html:`<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+      <div style="flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:${colors[region]};border:2px solid white;box-shadow:0 1px 4px #555;color:white;text-align:center;line-height:22px;font-size:10px;font-weight:bold">${no}</div>
+      <div class="railway-label">${escapeHtml(name)}</div>
+    </div>`,
+    iconSize:[26,26], iconAnchor:[13,13]
+  });
+  const marker = L.marker([lat,lng], {icon, riseOnHover:true});
+  marker._data = r;
+  marker.on("click", function(e) {
+    L.DomEvent.stopPropagation(e);
+    openRailway(r, marker, e.latlng);
+  });
+  return marker;
+}
+function zoomToRegion(region) {
+  if (region === "all") {
+    map.fitBounds(L.latLngBounds(railways.map(r => [r[4], r[5]])), { padding:[25,25], maxZoom:3 });
+    return;
+  }
+  const selected = railways.filter(r => r[3] === region);
+  if (!selected.length) return;
+  map.fitBounds(L.latLngBounds(selected.map(r => [r[4], r[5]])), { padding:[30,30], maxZoom:6 });
+}
+
+let selectedRegion = "all";
+
+document.querySelectorAll(".region-link").forEach(link => {
+  link.addEventListener("click", e => {
+    e.preventDefault();
+    selectedRegion = link.dataset.region;
+    update();
+    zoomToRegion(selectedRegion);
+  });
+});
+
+function update() {
+  layer.clearLayers();
+  const visible = [];
+  markers.forEach(m => {
+    const r = m._data;
+    const okRegion = selectedRegion === "all" || String(r[3]).trim() === selectedRegion;
+    if (okRegion) { layer.addLayer(m); visible.push(r); }
+  });
+  document.getElementById("count").textContent = `表示：${visible.length} / 100路線`;
+}
+
+// 100路線のマーカーを生成
+railways.forEach(r => markers.push(makeMarker(r)));
+
+drawAllEmbeddedRailways();
+
+update();
+</script>
+<div style="position:absolute;z-index:900;bottom:5px;left:5px;background:rgba(255,255,255,.88);padding:4px 7px;border-radius:4px;font-size:10px;color:#555">
+鉄道路線・駅：HTML内蔵データ　写真：Wikimedia Commons
+</div>
+</body>
+</html>
