@@ -176,11 +176,9 @@ function stationInfoPopup(r, st, clickLatLng) {
 
 function openRailway(r, marker, clickLatLng) {
   const [no,name,country,region,lat,lng,type,desc]=r;
-  const popupContent=`<div class="rail-popup" style="min-width:250px"><b>${escapeHtml(no)}. ${escapeHtml(name)}</b><br>${escapeHtml(country)}<br><small>${escapeHtml(type)}</small><hr style="margin:6px 0">${escapeHtml(desc)}<div style="margin-top:8px">🚆 簡易路線を表示中</div><div id="rail-stations-${no}" style="margin-top:5px">🚉 駅情報を表示中…</div><div id="rail-wiki-${no}" style="margin-top:8px"></div><div id="rail-photo-${no}" style="margin-top:8px"></div></div>`;
+  const popupContent=`<div class="rail-popup" style="min-width:250px"><b>${escapeHtml(no)}. ${escapeHtml(name)}</b><br>${escapeHtml(country)}<br><small>${escapeHtml(type)}</small><hr style="margin:6px 0">${escapeHtml(desc)}<div id="rail-wiki-${no}" style="margin-top:8px"></div><div id="rail-photo-${no}" style="margin-top:8px"></div></div>`;
   if(activeRailPopup) map.closePopup(activeRailPopup);
   activeRailPopup=L.popup({closeButton:true,autoPan:false,closeOnClick:false,maxWidth:450}).setLatLng(clickLatLng||[lat,lng]).setContent(popupContent).openOn(map);
-  const stations=fetchStations(railways.find(x=>x.no===no)||{});
-  const sb=document.getElementById(`rail-stations-${no}`); if(sb) sb.textContent=`🚉 駅 ${stations.length}件（静的データ）`;
   updateWikipedia(r); updatePhoto(r);
 }
 
