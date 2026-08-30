@@ -683,10 +683,8 @@ function update() {
   const visible = [];
   markers.forEach(m => {
     const r = m._data;
-    // エリア選択時も、全世界のマーカーをすべて表示したままにする。
-    // 選択されたエリアは地図の移動・ズームだけに使用する。
-    layer.addLayer(m);
-    visible.push(r);
+    const okRegion = selectedRegion === "all" || String(r[3]).trim() === selectedRegion;
+    if (okRegion) { layer.addLayer(m); visible.push(r); }
   });
   document.getElementById("count").textContent = `表示：${visible.length} / 100路線`;
 }
