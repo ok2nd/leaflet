@@ -10,11 +10,11 @@ html, body { margin:0; padding:0; height:100%; font-family:Arial,"Noto Sans JP",
 #map { width:100%; height:100%; }
 #panel {
   position:absolute; z-index:1000; top:10px; left:10px;
-  width:330px; max-width:calc(100vw - 20px);
-  background:rgba(255,255,255,.95); padding:12px;
+  width:300px; max-width:calc(100vw - 20px);
+  background:rgba(255,255,255,.95); padding:10px;
   border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.25);
 }
-#panel h2 { margin:0 0 8px; font-size:18px; }
+#panel h2 { margin:0 0 8px; font-size:16px; }
 #panel select, #panel input {
   width:100%; box-sizing:border-box; padding:7px; margin:3px 0;
   font-size:14px;
@@ -22,47 +22,39 @@ html, body { margin:0; padding:0; height:100%; font-family:Arial,"Noto Sans JP",
 #count { font-size:13px; margin-top:6px; }
 .legend { line-height:18px; font-size:12px; }
 .legend i { width:12px; height:12px; float:left; margin:3px 6px 0 0; border-radius:50%; }
+.world-dot { background:#fff; border:1px solid #777; box-sizing:border-box; }
+.legend a { color:#0645ad; text-decoration:none; cursor:pointer; display:block; padding:2px 0; }
+.legend a .legend-text { text-decoration:underline; }
+.legend a:hover { color:#d00; }
+.station-label { font-size:11px; background:white; border:1px solid #777; border-radius:3px; padding:1px 3px; white-space:nowrap; box-shadow:0 1px 2px rgba(0,0,0,.25); }
 @media(max-width:600px){
   #panel { width:270px; }
   #panel h2 { font-size:16px; }
+}
+.railway-label {
+  white-space:nowrap; background:rgba(255,255,255,.92); border:1px solid rgba(0,0,0,.25);
+  border-radius:3px; padding:1px 4px; font-size:11px; line-height:16px; color:#222;
+  box-shadow:0 1px 2px rgba(0,0,0,.18); pointer-events:none;
 }
 </style>
 </head>
 <body>
 <div id="panel">
   <h2>🌍 鉄道＋絶景 世界の地方鉄道100選</h2>
-  <input id="search" type="search" placeholder="路線名・国名で検索">
-  <select id="region">
-    <option value="all">すべての地域</option>
-    <option>ヨーロッパ・アルプス</option>
-    <option>北欧・イギリス</option>
-    <option>南・西ヨーロッパ</option>
-    <option>日本</option>
-    <option>アジア</option>
-    <option>北米</option>
-    <option>南米</option>
-  </select>
-  <select id="type">
-    <option value="all">すべての絶景タイプ</option>
-    <option>山岳・氷河</option>
-    <option>海岸・湖</option>
-    <option>森林・渓谷</option>
-    <option>高原・荒野</option>
-    <option>歴史・鉄道遺産</option>
-    <option>田園・集落</option>
-  </select>
   <div id="count"></div>
   <div class="legend">
-    <div><i style="background:#d73027"></i>ヨーロッパ・アルプス</div>
-    <div><i style="background:#4575b4"></i>北欧・イギリス</div>
-    <div><i style="background:#fdae61"></i>南・西ヨーロッパ</div>
-    <div><i style="background:#1a9850"></i>日本</div>
-    <div><i style="background:#984ea3"></i>アジア</div>
-    <div><i style="background:#8c6bb1"></i>北米</div>
-    <div><i style="background:#a6611a"></i>南米</div>
+    <div><a href="#" class="region-link" data-region="all"><i class="world-dot"></i><span class="legend-text">全世界</span></a></div>
+    <div><a href="#" class="region-link" data-region="北欧・イギリス"><i style="background:#4575b4"></i><span class="legend-text">北欧・イギリス</span></a></div>
+    <div><a href="#" class="region-link" data-region="ヨーロッパ・アルプス"><i style="background:#d73027"></i><span class="legend-text">ヨーロッパ・アルプス</span></a></div>
+    <div><a href="#" class="region-link" data-region="南・西ヨーロッパ"><i style="background:#fdae61"></i><span class="legend-text">南・西ヨーロッパ</span></a></div>
+    <div><a href="#" class="region-link" data-region="日本"><i style="background:#1a9850"></i><span class="legend-text">日本</span></a></div>
+    <div><a href="#" class="region-link" data-region="アジア"><i style="background:#984ea3"></i><span class="legend-text">アジア</span></a></div>
+    <div><a href="#" class="region-link" data-region="北米"><i style="background:#8c6bb1"></i><span class="legend-text">北米</span></a></div>
+    <div><a href="#" class="region-link" data-region="南米"><i style="background:#a6611a"></i><span class="legend-text">南米</span></a></div>
   </div>
 </div>
 <div id="map"></div>
+<div id="error" style="display:none;position:absolute;z-index:2000;top:10px;right:10px;background:#fff;padding:10px;border:1px solid #c00;border-radius:6px;color:#900">地図データの読み込みに失敗しました。</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -111,7 +103,7 @@ const railways = [
 [37,"トランスカンタブリコ","スペイン","南・西ヨーロッパ",43.25,-4.80,"海岸・湖","北スペイン、山、海岸"],
 [38,"ラック鉄道／Train Jaune","フランス","南・西ヨーロッパ",42.51,2.22,"山岳・氷河","ピレネー、峡谷、山村"],
 [39,"コルシカ鉄道","フランス","南・西ヨーロッパ",42.20,9.05,"海岸・湖","地中海、山岳、森林"],
-[40,"モンブラン・エクスプレス","フランス～スイス","南・西ヨーロッパ",46.02,6.92,"山岳・氷河","モンブラン、谷、氷河"],
+[40,"モンブラン・エクスプレス","フランス～スイス","ヨーロッパ・アルプス",46.02,6.92,"山岳・氷河","モンブラン、谷、氷河"],
 [41,"ピレネー狭軌鉄道","フランス","南・西ヨーロッパ",43.05,0.15,"山岳・氷河","ピレネー山脈"],
 [42,"ドウロ線","ポルトガル","南・西ヨーロッパ",41.16,-7.80,"田園・集落","ドウロ川、葡萄畑、渓谷"],
 [43,"パノラミック・ドウロ鉄道","ポルトガル","南・西ヨーロッパ",41.18,-7.79,"田園・集落","葡萄畑、渓谷、川"],
@@ -173,7 +165,7 @@ const railways = [
 [93,"ホワイトパス鉄道","米国～カナダ","北米",59.46,-135.31,"山岳・氷河","氷河、山岳、峡谷"],
 
 /* 94-100 South America */
-[94,"チェペ鉄道／Chepe","メキシコ","南米",27.51,-108.28,"森林・渓谷","コッパーキャニオン"],
+[94,"チェペ鉄道／Chepe","メキシコ","北米",27.51,-108.28,"森林・渓谷","コッパーキャニオン"],
 [95,"ペルー・レイル／クスコ～マチュピチュ","ペルー","南米",-13.16,-72.55,"山岳・氷河","アンデス、ウルバンバ川"],
 [96,"トレン・ア・ラス・ヌベス","アルゼンチン","南米",-24.19,-65.30,"高原・荒野","アンデス、高原、雲上"],
 [97,"ラ・トロチータ","アルゼンチン","南米",-41.13,-71.31,"高原・荒野","パタゴニアの大草原"],
@@ -192,7 +184,8 @@ const colors = {
   "南米":"#a6611a"
 };
 
-const map = L.map("map", { zoomControl:true }).setView([25, 10], 2);
+const map = L.map("map", { zoomControl:false, closePopupOnClick:false }).setView([25, 10], 2);
+L.control.zoom({ position:"topright" }).addTo(map);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: '&copy; OpenStreetMap contributors'
@@ -201,54 +194,514 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const markers = [];
 const layer = L.layerGroup().addTo(map);
 
+const routeLayers = L.layerGroup().addTo(map);
+const routeCache = new Map();
+
+function escapeOverpassRegex(s) {
+  return s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
+function getSearchNames(name) {
+  const parts = name.split("／").map(s => s.trim()).filter(Boolean);
+  const base = parts.length > 1 ? parts[1] : parts[0];
+  const aliases = {
+    "五能線":["五能線","Gono Line","Gonō Line"],
+    "只見線":["只見線","Tadami Line"],
+    "釧網本線":["釧網本線","Senmo Main Line"],
+    "大井川鐵道":["大井川鐵道","Oigawa Railway"],
+    "黒部峡谷鉄道":["黒部峡谷鉄道","Kurobe Gorge Railway"],
+    "嵯峨野トロッコ列車":["嵯峨野観光鉄道","Sagano Romantic Train"],
+    "飯山線":["飯山線","Iiyama Line"],
+    "小海線":["小海線","Koumi Line","Kōmi Line"],
+    "山口線":["山口線","Yamaguchi Line"],
+    "木次線":["木次線","Kisuki Line"],
+    "予土線":["予土線","Yodo Line"],
+    "土讃線":["土讃線","Dosan Line"],
+    "南阿蘇鉄道":["南阿蘇鉄道","Minami Aso Railway"],
+    "肥薩線":["肥薩線","Hisatsu Line"],
+    "指宿枕崎線":["指宿枕崎線","Ibusuki Makurazaki Line"],
+    "三陸鉄道":["三陸鉄道","Sanriku Railway"],
+    "箱根登山電車":["箱根登山鉄道","Hakone Tozan Railway"],
+    "阿里山森林鉄路":["阿里山森林鉄路","Alishan Forest Railway"],
+    "平渓線":["平渓線","Pingxi Line"],
+    "内湾線":["内湾線","Neiwan Line"],
+    "ダージリン・ヒマラヤ鉄道":["Darjeeling Himalayan Railway"],
+    "ニルギリ山岳鉄道":["Nilgiri Mountain Railway"],
+    "カルカ・シムラ鉄道":["Kalka Shimla Railway","Kalka–Shimla Railway"],
+    "青蔵鉄道":["青藏铁路","Qinghai Tibet Railway","Qinghai–Tibet Railway"],
+    "コルシカ鉄道":["Chemins de fer de la Corse","Corsican Railways"],
+    "フロム鉄道":["Flåmsbana","Flam Railway","Flåm Railway"],
+    "ベルゲン線":["Bergensbanen","Bergen Railway"],
+    "ラウマ線":["Raumabanen","Rauma Railway"],
+    "ウェスト・ハイランド線":["West Highland Line"],
+    "フェスティニオグ鉄道":["Ffestiniog Railway"],
+    "ウェールズ・ハイランド鉄道":["Welsh Highland Railway"],
+    "ベルニナ線":["Bernina","Bernina Express"],
+    "氷河急行":["Glacier Express"],
+    "アルブラ線":["Albula","Albula Railway"],
+    "セメリング鉄道":["Semmeringbahn","Semmering Railway"],
+    "トランツアルパイン":["TranzAlpine"],
+    "ロッキー・マウンテニア":["Rocky Mountaineer"],
+    "チェペ鉄道":["Chepe","Copper Canyon Railway"],
+    "ラ・トロチータ":["La Trochita","Old Patagonian Express"]
+  };
+  return aliases[name] || [base];
+}
+
+// Overpassは公開サーバーの混雑・429が発生することがあるため、
+// POST + 複数エンドポイント + 短いタイムアウトで取得する。
+const OVERPASS_ENDPOINTS = [
+  "https://z.overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass-api.de/api/interpreter"
+];
+let overpassIndex = 0;
+const routePromiseCache = new Map();
+const stationPromiseCache = new Map();
+const displayedRouteLayers = new Map();
+let activeRailPopup = null;
+
+// 地図上の通常クリックでは詳細ポップアップを一旦閉じる。
+// マーカー・駅・鉄道路線自身のクリックは stopPropagation() するので閉じない。
+map.on("click", function() {
+  if (activeRailPopup) {
+    map.closePopup(activeRailPopup);
+    activeRailPopup = null;
+  }
+});
+
+async function overpassFetch(query, timeoutMs=16000) {
+  let lastError = null;
+  for (let n=0; n<OVERPASS_ENDPOINTS.length; n++) {
+    const endpoint = OVERPASS_ENDPOINTS[(overpassIndex + n) % OVERPASS_ENDPOINTS.length];
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},
+        body: "data=" + encodeURIComponent(query),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+
+      if (res.status === 429 || res.status === 503 || res.status === 504) {
+        lastError = new Error("Overpass HTTP " + res.status);
+        continue;
+      }
+      if (!res.ok) {
+        lastError = new Error("Overpass HTTP " + res.status);
+        continue;
+      }
+
+      overpassIndex = (overpassIndex + n + 1) % OVERPASS_ENDPOINTS.length;
+      return await res.json();
+    } catch(e) {
+      clearTimeout(timer);
+      lastError = e;
+    }
+  }
+  throw lastError || new Error("Overpass取得失敗");
+}
+
+async function fetchRouteGeometry(r) {
+  const key = r[0];
+  if (routeCache.has(key)) return routeCache.get(key);
+  if (routePromiseCache.has(key)) return routePromiseCache.get(key);
+
+  const promise = (async () => {
+    const names = getSearchNames(r[1]);
+    const regex = names.map(escapeOverpassRegex).join("|");
+    const [lat,lng] = [r[4],r[5]];
+
+    try {
+      // Relation本体とそのメンバーを1回の問い合わせで取得する。
+      // 以前の「relation検索→geometry検索」の2回構成より軽く、失敗しにくい。
+      const q = `[out:json][timeout:25];
+        rel(around:80000,${lat},${lng})["route"="train"]["name"~"${regex}",i];
+        (._; >;);
+        out body geom qt;`;
+      const data = await overpassFetch(q, 28000);
+      const rel = (data.elements || []).find(e => e.type === "relation" && e.tags);
+      const lines = [];
+      const stations = [];
+
+      (data.elements || []).forEach(e => {
+        if (e.type === "way" && e.geometry && e.geometry.length > 1 &&
+            e.tags && e.tags.railway && /^(rail|narrow_gauge|light_rail)$/.test(e.tags.railway)) {
+          lines.push(e.geometry.map(pt => [pt.lat,pt.lon]));
+        }
+        if ((e.type === "node" || e.type === "way") && e.tags) {
+          const isStation = /^(station|halt|stop)$/.test(e.tags.railway || "") ||
+            e.tags.public_transport === "stop_position" || e.tags.public_transport === "platform";
+          if (isStation) {
+            const slat = e.lat ?? e.center?.lat;
+            const slng = e.lon ?? e.center?.lon;
+            if (Number.isFinite(slat) && Number.isFinite(slng)) {
+              stations.push({lat:slat,lng:slng,name:e.tags.name || e.tags["name:en"] || "駅", tags:e.tags || {}});
+            }
+          }
+        }
+      });
+
+      if (lines.length) {
+        const result = {
+          lines,
+          relationId: rel ? rel.id : null,
+          exact: !!rel,
+          stations: dedupeStations(stations)
+        };
+        routeCache.set(key,result);
+        return result;
+      }
+    } catch(e) {
+      console.warn("Route lookup failed:", r[1], e);
+    }
+
+    // Relationが見つからない場合は、代表地点周辺の実在線路を1回だけ取得。
+    try {
+      const q2 = `[out:json][timeout:20];
+        way(around:18000,${lat},${lng})["railway"~"^(rail|narrow_gauge|light_rail)$"];
+        out geom tags qt;`;
+      const d2 = await overpassFetch(q2, 22000);
+      const lines = [];
+      (d2.elements || []).forEach(w => {
+        if (w.geometry && w.geometry.length > 1)
+          lines.push(w.geometry.map(pt => [pt.lat,pt.lon]));
+      });
+      const result = {lines, exact:false, relationId:null, stations:[]};
+      routeCache.set(key,result);
+      return result;
+    } catch(e) {
+      console.warn("Railway fallback failed:", r[1], e);
+      const result = {lines:[], exact:false, relationId:null, stations:[], error:true};
+      routeCache.set(key,result);
+      return result;
+    }
+  })();
+
+  routePromiseCache.set(key, promise);
+  try { return await promise; }
+  finally { routePromiseCache.delete(key); }
+}
+async function fetchStations(r, geo) {
+  const key = r[0];
+  if (stationPromiseCache.has(key)) return stationPromiseCache.get(key);
+
+  const promise = (async () => {
+    if (geo && geo.stations && geo.stations.length) return geo.stations;
+
+    const [lat,lng] = [r[4],r[5]];
+    try {
+      // Relation取得に失敗した場合だけ、代表地点周辺の駅を取得する。
+      const q = `[out:json][timeout:15];
+        nwr(around:30000,${lat},${lng})["railway"~"^(station|halt|stop)$"];
+        out center tags qt;`;
+      const data = await overpassFetch(q, 17000);
+      const stations = (data.elements || []).map(e => ({
+        lat:e.lat ?? e.center?.lat,
+        lng:e.lon ?? e.center?.lon,
+        name:e.tags?.name || e.tags?.["name:en"] || "駅",
+        tags:e.tags || {}
+      })).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
+      return dedupeStations(stations);
+    } catch(e) {
+      console.warn("Station lookup failed:", r[1], e);
+      return [];
+    }
+  })();
+
+  stationPromiseCache.set(key,promise);
+  try { return await promise; }
+  finally { stationPromiseCache.delete(key); }
+}
+function dedupeStations(stations) {
+  const seen = new Set();
+  return stations.filter(st => {
+    const key = `${st.name}|${st.lat.toFixed(5)}|${st.lng.toFixed(5)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function fetchRailwayWikipedia(r) {
+  const exactUrls = {
+    "フロム鉄道／Flåmsbana": "https://ja.wikipedia.org/wiki/フロム線"
+  };
+  if (exactUrls[r[1]]) return exactUrls[r[1]];
+
+  const names = getSearchNames(r[1]);
+  for (const q of [...new Set(names)]) {
+    try {
+      const api = "https://ja.wikipedia.org/w/api.php?action=query&list=search"
+        + "&srsearch=" + encodeURIComponent(q)
+        + "&srlimit=3&format=json&origin=*";
+      const res = await fetch(api);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const hit = (data.query?.search || [])[0];
+      if (hit) return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(hit.title.replace(/ /g,"_"));
+    } catch(e) { console.warn("Wikipedia lookup failed:", q, e); }
+  }
+  return null;
+}
+
+async function fetchCommonsPhoto(r) {
+  const names = getSearchNames(r[1]);
+  const search = names[0] + " railway";
+  const api = "https://commons.wikimedia.org/w/api.php?action=query&generator=search"
+    + "&gsrsearch=" + encodeURIComponent(search)
+    + "&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url"
+    + "&iiurlwidth=420&format=json&origin=*";
+  try {
+    const res = await fetch(api);
+    if (!res.ok) throw new Error("Commons HTTP " + res.status);
+    const data = await res.json();
+    const pages = data.query && data.query.pages ? Object.values(data.query.pages) : [];
+    const page = pages.find(x => x.imageinfo && x.imageinfo[0] && x.imageinfo[0].thumburl)
+              || pages.find(x => x.imageinfo && x.imageinfo[0] && x.imageinfo[0].url);
+    if (!page) return null;
+    return {
+      url: page.imageinfo[0].thumburl || page.imageinfo[0].url,
+      title: page.title
+    };
+  } catch(e) {
+    console.warn("Commons photo lookup failed:", r[1], e);
+    return null;
+  }
+}
+
+let openRailwaySerial = 0;
+
+function stationInfoPopup(r, st, clickLatLng) {
+  const t = st.tags || {};
+  const esc = v => escapeHtml(String(v));
+  const rows = [];
+  if (t.operator) rows.push(`<tr><th>運営会社</th><td>${esc(t.operator)}</td></tr>`);
+  if (t.railway) rows.push(`<tr><th>駅種別</th><td>${esc(t.railway)}</td></tr>`);
+  if (t.public_transport) rows.push(`<tr><th>公共交通</th><td>${esc(t.public_transport)}</td></tr>`);
+  if (t.opening_date) rows.push(`<tr><th>開業</th><td>${esc(t.opening_date)}</td></tr>`);
+  if (t.network) rows.push(`<tr><th>ネットワーク</th><td>${esc(t.network)}</td></tr>`);
+  if (t.ref) rows.push(`<tr><th>駅番号</th><td>${esc(t.ref)}</td></tr>`);
+  if (t.alt_name) rows.push(`<tr><th>別名</th><td>${esc(t.alt_name)}</td></tr>`);
+  if (t['name:en']) rows.push(`<tr><th>英語名</th><td>${esc(t['name:en'])}</td></tr>`);
+  if (t['name:fr']) rows.push(`<tr><th>仏語名</th><td>${esc(t['name:fr'])}</td></tr>`);
+  if (t.website) rows.push(`<tr><th>Web</th><td><a href="${esc(t.website)}" target="_blank" rel="noopener">公式サイト</a></td></tr>`);
+  if (t.wikipedia) rows.push(`<tr><th>Wikipedia</th><td>${esc(t.wikipedia)}</td></tr>`);
+
+  const [no,name,country] = r;
+  const html = `<div class="station-popup" style="min-width:250px;max-width:360px">
+    <b>🚉 ${esc(st.name)}</b><br>
+    <small>${esc(country)} ／ ${esc(name)}</small>
+    ${rows.length ? `<hr style="margin:7px 0"><table style="font-size:12px;border-collapse:collapse;width:100%">${rows.join('')}</table>` : `<hr style="margin:7px 0"><small>OpenStreetMapに登録された駅情報は限られています。</small>`}
+    <div style="margin-top:7px;font-size:11px;color:#666">駅の位置：${st.lat.toFixed(5)}, ${st.lng.toFixed(5)}</div>
+    <div style="margin-top:7px"><a href="#" class="back-to-rail" data-no="${esc(no)}">← 鉄道の詳細に戻る</a></div>
+  </div>`;
+
+  if (activeRailPopup) map.closePopup(activeRailPopup);
+  activeRailPopup = L.popup({closeButton:true, autoPan:false, closeOnClick:false, maxWidth:420})
+    .setLatLng(clickLatLng || [st.lat,st.lng]).setContent(html).openOn(map);
+
+  const back = activeRailPopup.getElement()?.querySelector('.back-to-rail');
+  if (back) back.addEventListener('click', e => {
+    e.preventDefault();
+    openRailway(r, null, clickLatLng || [st.lat,st.lng]);
+  });
+}
+
+async function openRailway(r, marker, clickLatLng) {
+  const [no,name,country,region,lat,lng,type,desc] = r;
+  const popupLatLng = clickLatLng || [lat,lng];
+  const popupContent = `
+    <div class="rail-popup" style="min-width:250px">
+      <b>${escapeHtml(no)}. ${escapeHtml(name)}</b><br>
+      ${escapeHtml(country)}<br>
+      <small>${escapeHtml(type)}</small>
+      <hr style="margin:6px 0">
+      ${escapeHtml(desc)}
+      <div id="rail-status-${no}" style="margin-top:8px">🚆 鉄道路線を取得中…</div>
+      <div id="rail-wiki-${no}" style="margin-top:8px"></div>
+      <div id="rail-photo-${no}" style="margin-top:8px"></div>
+    </div>`;
+
+  // MarkerのbindPopupは使わず、独立したPopupを使う。
+  // これにより同じマーカーを2回以上クリックしても閉じるだけにならない。
+  if (activeRailPopup) map.closePopup(activeRailPopup);
+  activeRailPopup = L.popup({closeButton:true, autoPan:false, closeOnClick:false, maxWidth:450})
+    .setLatLng(popupLatLng)
+    .setContent(popupContent)
+    .openOn(map);
+
+  // 既に取得済みなら即表示。過去に表示した路線は消さない。
+  if (displayedRouteLayers.has(no)) {
+    const existing = displayedRouteLayers.get(no);
+    const status = document.getElementById(`rail-status-${no}`);
+    if (status) status.innerHTML = `🚆 OSMの鉄道路線を表示中<br>🚉 駅 ${existing.stationCount}件を表示`;
+    updatePhoto(r);
+    updateWikipedia(r);
+    return;
+  }
+
+  try {
+    const geo = await fetchRouteGeometry(r);
+    const group = L.featureGroup();
+    let stationCount = 0;
+
+    if (geo.lines.length) {
+      geo.lines.forEach(line => {
+        // 透明な太いヒット領域を置き、線路の「近く」をクリックしても選択できるようにする。
+        const hitLine = L.polyline(line, {
+          color: colors[region], weight:22, opacity:0, interactive:true
+        }).addTo(group);
+        hitLine.on("click", function(e) {
+          L.DomEvent.stopPropagation(e);
+          openRailway(r, marker, e.latlng);
+        });
+
+        L.polyline(line, {
+          color: colors[region], weight:5, opacity:.9,
+          lineCap:"round", lineJoin:"round", interactive:false
+        }).addTo(group);
+      });
+    }
+
+    let stations = geo.stations || [];
+    if (!stations.length) stations = await fetchStations(r, geo);
+
+    stations.forEach(st => {
+      // 見た目は小さな白丸だが、クリック判定は半径14pxまで広げる。
+      const stationHit = L.circleMarker([st.lat, st.lng], {
+        radius:14, weight:0, opacity:0, fillOpacity:0, interactive:true
+      }).addTo(group);
+      stationHit.bindTooltip(escapeHtml(st.name), {
+        direction:"top", offset:[0,-10], sticky:true, opacity:.95
+      });
+      stationHit.on("click", function(e) {
+        L.DomEvent.stopPropagation(e);
+        stationInfoPopup(r, st, e.latlng);
+      });
+
+      L.circleMarker([st.lat, st.lng], {
+        radius:4, weight:2, color:"#333", fillColor:"#fff", fillOpacity:1,
+        interactive:false
+      }).addTo(group);
+    });
+    stationCount = stations.length;
+
+    // 一度表示した路線・駅は、他の路線をクリックしても残す。
+    group.addTo(routeLayers);
+    displayedRouteLayers.set(no, {group, stationCount});
+
+    const status = document.getElementById(`rail-status-${no}`);
+    if (status) {
+      if (geo.lines.length) {
+        status.innerHTML = geo.exact
+          ? `🚆 OSMの鉄道路線を表示中<br>🚉 駅 ${stationCount}件を表示`
+          : `🚆 代表地点周辺のOSM鉄道路線を表示中<br>🚉 駅 ${stationCount}件を表示`;
+      } else {
+        status.innerHTML = `⚠ 鉄道路線を取得できませんでした<br><small>OSM/Overpass APIが混雑している可能性があります。</small>`;
+      }
+    }
+  } catch(e) {
+    console.error("Railway display failed:", e);
+    const status = document.getElementById(`rail-status-${no}`);
+    if (status) status.innerHTML = `⚠ 鉄道路線の取得に失敗しました<br><small>${escapeHtml(e.message || "通信エラー")}</small>`;
+  }
+
+  updatePhoto(r);
+  updateWikipedia(r);
+}
+
+async function updateWikipedia(r) {
+  const no = r[0];
+  const box = document.getElementById(`rail-wiki-${no}`);
+  if (!box) return;
+  try {
+    const url = await fetchRailwayWikipedia(r);
+    if (url) box.innerHTML = `<a href="${url}" target="_blank" rel="noopener">Wikipediaで詳しく見る</a>`;
+    else box.innerHTML = `<small>Wikipediaの記事が見つかりませんでした。</small>`;
+  } catch(e) {}
+}
+
+async function updatePhoto(r) {
+  const [no,name] = r;
+  try {
+    const photo = await fetchCommonsPhoto(r);
+    const photoBox = document.getElementById(`rail-photo-${no}`);
+    if (photoBox && photo) {
+      photoBox.innerHTML =
+        `<img src="${photo.url}" alt="${escapeHtml(name)}" style="display:block;width:100%;max-width:420px;height:auto;border-radius:5px">` +
+        `<div style="font-size:10px;margin-top:3px;color:#666">写真：Wikimedia Commons / ${escapeHtml(photo.title)}</div>`;
+    } else if (photoBox) {
+      photoBox.innerHTML = `<small>代表写真が見つかりませんでした。</small>`;
+    }
+  } catch(e) {}
+}
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
+}
+
 function makeMarker(r) {
   const [no,name,country,region,lat,lng,type,desc] = r;
   const icon = L.divIcon({
     className:"",
-    html:`<div style="width:22px;height:22px;border-radius:50%;background:${colors[region]};border:2px solid white;box-shadow:0 1px 4px #555;color:white;text-align:center;line-height:22px;font-size:10px;font-weight:bold">${no}</div>`,
+    html:`<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+      <div style="flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:${colors[region]};border:2px solid white;box-shadow:0 1px 4px #555;color:white;text-align:center;line-height:22px;font-size:10px;font-weight:bold">${no}</div>
+      <div class="railway-label">${escapeHtml(name)}</div>
+    </div>`,
     iconSize:[26,26], iconAnchor:[13,13]
   });
-  const marker = L.marker([lat,lng], {icon});
-  marker.bindPopup(`
-    <div style="min-width:220px">
-      <b>${no}. ${name}</b><br>
-      ${country}<br>
-      <small>${type}</small>
-      <hr style="margin:6px 0">
-      ${desc}
-    </div>
-  `);
+  const marker = L.marker([lat,lng], {icon, riseOnHover:true});
   marker._data = r;
+  marker.on("click", function(e) {
+    L.DomEvent.stopPropagation(e);
+    openRailway(r, marker, e.latlng);
+  });
   return marker;
 }
+function zoomToRegion(region) {
+  if (region === "all") {
+    map.fitBounds(L.latLngBounds(railways.map(r => [r[4], r[5]])), { padding:[25,25], maxZoom:3 });
+    return;
+  }
+  const selected = railways.filter(r => r[3] === region);
+  if (!selected.length) return;
+  map.fitBounds(L.latLngBounds(selected.map(r => [r[4], r[5]])), { padding:[30,30], maxZoom:6 });
+}
 
-railways.forEach(r => markers.push(makeMarker(r)));
+let selectedRegion = "all";
+
+document.querySelectorAll(".region-link").forEach(link => {
+  link.addEventListener("click", e => {
+    e.preventDefault();
+    selectedRegion = link.dataset.region;
+    update();
+    zoomToRegion(selectedRegion);
+  });
+});
 
 function update() {
-  const q = document.getElementById("search").value.trim().toLowerCase();
-  const region = document.getElementById("region").value;
-  const type = document.getElementById("type").value;
   layer.clearLayers();
-
-  let visible = [];
+  const visible = [];
   markers.forEach(m => {
     const r = m._data;
-    const text = r.join(" ").toLowerCase();
-    const okSearch = !q || text.includes(q);
-    const okRegion = region === "all" || r[3] === region;
-    const okType = type === "all" || r[6] === type;
-    if (okSearch && okRegion && okType) {
-      layer.addLayer(m);
-      visible.push(r);
-    }
+    const okRegion = selectedRegion === "all" || String(r[3]).trim() === selectedRegion;
+    if (okRegion) { layer.addLayer(m); visible.push(r); }
   });
   document.getElementById("count").textContent = `表示：${visible.length} / 100路線`;
 }
 
-document.getElementById("search").addEventListener("input", update);
-document.getElementById("region").addEventListener("change", update);
-document.getElementById("type").addEventListener("change", update);
+// 100路線のマーカーを生成
+railways.forEach(r => markers.push(makeMarker(r)));
+
 update();
 </script>
+<div style="position:absolute;z-index:900;bottom:5px;left:5px;background:rgba(255,255,255,.88);padding:4px 7px;border-radius:4px;font-size:10px;color:#555">
+OSM鉄道路線：OpenStreetMap / Overpass API　写真：Wikimedia Commons
+</div>
 </body>
 </html>
