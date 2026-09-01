@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全国鉄道駅マップ（駅名ホバー表示版）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+	html, body {
+		margin: 0;
+		padding: 0;
+		height: 100%;
+		width: 100%;
+		font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+	}
+	#map {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+	}
+
+	/* ---- 左上：現在地／全国表示ボタン ---- */
+	.custom-ctrl-box {
+		background: none;
+		border: none;
+	}
+	.custom-btn {
+		background: #fff;
+		width: 34px;
+		height: 34px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+		border-radius: 4px;
+		cursor: pointer;
+		margin-top: 8px;
+		font-size: 18px;
+		user-select: none;
+		transition: background 0.15s;
+	}
+	.custom-btn:hover {
+		background: #f0f0f0;
+	}
+	.custom-btn:active {
+		background: #dcdcdc;
+	}
+	.custom-btn svg {
+		width: 18px;
+		height: 18px;
+		fill: #333;
+	}
+
+	/* ---- 右上：検索 ---- */
+	.search-box {
+		background: #fff;
+		border-radius: 4px;
+		box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+		padding: 6px;
+		width: 220px;
+		box-sizing: border-box;
+	}
+	.search-box input[type="text"] {
+		width: 100%;
+		box-sizing: border-box;
+		padding: 6px 8px;
+		font-size: 13px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		outline: none;
+	}
+	.search-box input[type="text"]:focus {
+		border-color: #4a90d9;
+	}
+	.search-results {
+		max-height: 260px;
+		overflow-y: auto;
+		margin-top: 4px;
+		border-top: 1px solid #eee;
+	}
+	.search-results:empty {
+		border-top: none;
+		margin-top: 0;
+	}
+	.search-item {
+		padding: 6px 6px;
+		font-size: 12px;
+		cursor: pointer;
+		border-bottom: 1px solid #f2f2f2;
+		line-height: 1.4;
+	}
+	.search-item:last-child {
+		border-bottom: none;
+	}
+	.search-item:hover {
+		background: #f0f6ff;
+	}
+	.search-item .s-name {
+		font-weight: bold;
+		color: #222;
+	}
+	.search-item .s-sub {
+		color: #777;
+		font-size: 11px;
+	}
+	.search-empty {
+		padding: 6px;
+		font-size: 12px;
+		color: #999;
+	}
+
+	/* ---- 右上：フィルタ ---- */
+	.filter-box {
+		background: #fff;
+		border-radius: 4px;
+		box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+		padding: 8px 10px;
+		margin-top: 8px;
+		font-size: 12px;
+	}
+	.filter-box .filter-title {
+		font-weight: bold;
+		font-size: 12px;
+		margin-bottom: 4px;
+		color: #333;
+	}
+	.filter-box label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 3px 0;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	.filter-box input[type="radio"] {
+		margin: 0;
+		cursor: pointer;
+	}
+	.color-dot {
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex: none;
+		border: 1px solid rgba(0,0,0,0.25);
+	}
+
+	/* ---- ポップアップ ---- */
+	.leaflet-popup-content-wrapper {
+		border-radius: 6px;
+	}
+	.leaflet-popup-content {
+		margin: 8px 10px;
+		font-size: 12px;
+		line-height: 1.5;
+	}
+	.popup-station-name {
+		font-weight: bold;
+		font-size: 14px;
+		margin-bottom: 3px;
+		color: #111;
+	}
+	.popup-lines {
+		max-height: 140px;
+		overflow-y: auto;
+	}
+	.popup-line-row {
+		padding: 1px 0;
+		white-space: nowrap;
+	}
+	.popup-line-row .company {
+		color: #555;
+	}
+	.popup-line-row .line {
+		color: #111;
+	}
+
+	/* ---- 現在地マーカー ---- */
+	.current-loc-dot {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: #1a73e8;
+		border: 2px solid #fff;
+		box-shadow: 0 0 0 2px rgba(26,115,232,0.5);
+	}
+
+	/* ---- 左下：データ出典表記 ---- */
+	#data-credit {
+		position: absolute;
+		left: 8px;
+		bottom: 4px;
+		z-index: 999;
+		font-size: 11px;
+		color: #333;
+		background: rgba(255,255,255,0.75);
+		padding: 2px 7px;
+		border-radius: 3px;
+		pointer-events: none;
+	}
+
+	/* ---- 駅名ホバー表示 ---- */
+	.station-hover-tooltip {
+		background: rgba(255,255,255,0.95);
+		border: 1px solid rgba(0,0,0,0.28);
+		border-radius: 3px;
+		box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+		color: #111;
+		font-size: 12px;
+		font-weight: 600;
+		padding: 2px 5px;
+		white-space: nowrap;
+	}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="data-credit"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+(function () {
+	"use strict";
+
+// 駅マーカーにマウスを重ねると、駅名だけをマーカー右側に表示する別バージョン。
+
+	/* ===================== 基本設定 ===================== */
+
+	/* 画面左下に表示するデータ出典表記。ここを書き換えれば表示文言を変更できます。 */
+	var DATA_CREDIT_TEXT = "駅データ.jp 2026-07-31駅データ使用";
+	document.getElementById("data-credit").textContent = DATA_CREDIT_TEXT;
+
+	var CATS = {
+		JR:      { label: "JR",           color: "#e5342a" },
+		PRIVATE: { label: "私鉄",          color: "#1e7fe0" },
+		SUBWAY:  { label: "地下鉄・公営",   color: "#2fa84f" },
+		OTHER:   { label: "その他・地方鉄道", color: "#f28c1e" }
+	};
+	var MIXED_COLOR = "#8e3fc9";
+
+	var JAPAN_BOUNDS = [
+		[24.0, 122.5],
+		[46.0, 146.5]
+	];
+
+	var map = L.map("map", {
+		preferCanvas: true,
+		zoomControl: true,
+		center: [37.0, 138.0],
+		zoom: 6,
+		minZoom: 4,
+		maxZoom: 18
+	});
+
+	L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+		maxZoom: 19,
+		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+	}).addTo(map);
+
+	map.fitBounds(JAPAN_BOUNDS, { animate: false });
+
+	var canvasRenderer = L.canvas({ padding: 0.5 });
+
+	/* ===================== マーカー表示・ポップアップ ===================== */
+
+	function radiusForZoom(z) {
+		if (z <= 6) return 2;
+		if (z <= 8) return 2.6;
+		if (z <= 9) return 3.2;
+		if (z <= 10) return 4;
+		if (z <= 11) return 4.8;
+		if (z <= 12) return 5.6;
+		if (z <= 13) return 6.6;
+		if (z <= 14) return 7.6;
+		if (z <= 15) return 8.8;
+		return 10;
+	}
+
+	function colorForCats(cats) {
+		if (cats.length === 1 && CATS[cats[0]]) return CATS[cats[0]].color;
+		return MIXED_COLOR;
+	}
+
+	function escapeHtml(s) {
+		return String(s)
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
+	}
+
+	function buildPopupHtml(st) {
+		var html = '<div class="popup-station-name">' + escapeHtml(st.n) + '</div>';
+		html += '<div class="popup-lines">';
+		for (var i = 0; i < st.l.length; i++) {
+			var lineName = st.l[i][0];
+			var companyName = st.l[i][1];
+			html += '<div class="popup-line-row"><span class="company">' + escapeHtml(companyName) + '</span> <span class="line">' + escapeHtml(lineName) + '</span></div>';
+		}
+		html += '</div>';
+		return html;
+	}
+
+	var allMarkers = [];   // { marker, cats, name, lat, lon }
+	var searchIndex = [];  // { name, normalizedName, sub, rec }
+
+	/* ===================== CSV読み込み ===================== */
+
+	async function loadCsv(filename) {
+		var response = await fetch(filename, { cache: "no-cache" });
+		if (!response.ok) throw new Error(filename + ": HTTP " + response.status);
+		return parseCsv(await response.text());
+	}
+
+	function parseCsv(text) {
+		text = text.replace(/^\uFEFF/, "");
+		var rows = [], row = [], field = "", quoted = false;
+		for (var i = 0; i < text.length; i++) {
+			var c = text[i];
+			if (quoted) {
+				if (c === '"') {
+					if (text[i + 1] === '"') { field += '"'; i++; }
+					else quoted = false;
+				} else field += c;
+			} else {
+				if (c === '"') quoted = true;
+				else if (c === ',') { row.push(field); field = ""; }
+				else if (c === '\n') {
+					row.push(field);
+					if (row.length > 1 || row[0] !== "") rows.push(row);
+					row = []; field = "";
+				} else if (c !== '\r') field += c;
+			}
+		}
+		if (field !== "" || row.length) {
+			row.push(field);
+			if (row.length > 1 || row[0] !== "") rows.push(row);
+		}
+		if (!rows.length) return [];
+		var headers = rows[0];
+		return rows.slice(1).map(function (r) {
+			var obj = {};
+			headers.forEach(function (h, i) { obj[h] = r[i] !== undefined ? r[i] : ""; });
+			return obj;
+		});
+	}
+
+	function makeLookup(rows, key) {
+		var result = new Map();
+		for (var i = 0; i < rows.length; i++) result.set(String(rows[i][key]), rows[i]);
+		return result;
+	}
+
+	function normalizeStationName(value) {
+		return String(value || "").normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+	}
+
+	function categoryFromCompany(company) {
+		var companyName = company ? String(company.company_name || "") : "";
+		var companyType = company ? Number(company.company_type) : NaN;
+		var isSubway = companyName.indexOf("交通局") !== -1 ||
+			companyName.indexOf("地下鉄") !== -1 ||
+			companyName.indexOf("メトロ") !== -1 ||
+			companyName.indexOf("Metro") !== -1;
+		if (companyType === 1) return "JR";
+		if ((companyType === 2 || companyType === 3) && !isSubway) return "PRIVATE";
+		if (isSubway) return "SUBWAY";
+		return "OTHER";
+	}
+
+	function addUnique(arr, value) {
+		if (arr.indexOf(value) === -1) arr.push(value);
+	}
+
+	function buildStationData(stations, lines, companies) {
+		var lineMap = makeLookup(lines, "line_cd");
+		var companyMap = makeLookup(companies, "company_cd");
+		var groupMap = new Map();
+		var groups = [];
+
+		// 緯度・経度が完全に同じ駅だけを1つのマーカーにまとめる。
+		for (var i = 0; i < stations.length; i++) {
+			var s = stations[i];
+			var lat = Number(s.lat), lon = Number(s.lon);
+			if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+			var line = lineMap.get(String(s.line_cd));
+			var company = line ? companyMap.get(String(line.company_cd)) : null;
+			var lineName = line && line.line_name ? line.line_name : "路線不明";
+			var companyName = company && company.company_name ? company.company_name : "事業者不明";
+			var category = categoryFromCompany(company);
+			var key = String(lat) + "," + String(lon);
+			var group = groupMap.get(key);
+			if (!group) {
+				group = { n: s.station_name || "", lat: lat, lon: lon, c: [], l: [], searchName: "", marker: null };
+				groupMap.set(key, group);
+				groups.push(group);
+			}
+			if (!group.n && s.station_name) group.n = s.station_name;
+			addUnique(group.c, category);
+			var routeKey = lineName + "\u0001" + companyName + "\u0001" + category;
+			var exists = false;
+			for (var j = 0; j < group.l.length; j++) {
+				if (group.l[j]._key === routeKey) { exists = true; break; }
+			}
+			if (!exists) {
+				var route = [lineName, companyName, category];
+				route._key = routeKey;
+				group.l.push(route);
+			}
+		}
+		for (var g = 0; g < groups.length; g++) groups[g].searchName = normalizeStationName(groups[g].n);
+		return groups;
+	}
+
+	function createStationMarkers(groups) {
+		var initialRadius = radiusForZoom(map.getZoom());
+		for (var i = 0; i < groups.length; i++) {
+			var st = groups[i];
+			var marker = L.circleMarker([st.lat, st.lon], {
+				renderer: canvasRenderer,
+				radius: initialRadius,
+				color: "#ffffff", weight: 1, opacity: 1,
+				fillColor: colorForCats(st.c), fillOpacity: 0.9
+			});
+			marker.bindPopup(buildPopupHtml(st), { maxWidth: 240, maxHeight: 200 });
+			marker.bindTooltip(st.n || "", {
+				direction: "right",
+				offset: [8, 0],
+				className: "station-hover-tooltip",
+				permanent: false,
+				sticky: false,
+				opacity: 0.98
+			});
+			marker._containsPoint = function (p) {
+				return p.distanceTo(this._point) <= this._radius + this._clickTolerance() + 2;
+			};
+			marker.addTo(map);
+			st.marker = marker;
+			var rec = { marker: marker, cats: st.c, name: st.n, lat: st.lat, lon: st.lon };
+			allMarkers.push(rec);
+			var firstRoute = st.l.length ? st.l[0] : ["", "", "OTHER"];
+			var subLabel = firstRoute[1] + " " + firstRoute[0] + (st.l.length > 1 ? " ほか" + (st.l.length - 1) + "路線" : "");
+			searchIndex.push({ name: st.n, normalizedName: st.searchName, sub: subLabel, rec: rec });
+		}
+	}
+
+	async function initStationData() {
+		try {
+			// HTMLと同じディレクトリのCSVを毎回読み込む。
+			var data = await Promise.all([
+				loadCsv("company.csv"),
+				loadCsv("line.csv"),
+				loadCsv("station.csv"),
+				loadCsv("join.csv")
+			]);
+			var companies = data[0], lines = data[1], stations = data[2], joins = data[3];
+			var groups = buildStationData(stations, lines, companies);
+			createStationMarkers(groups);
+			console.log("駅データ読み込み完了", {
+				companies: companies.length, lines: lines.length, stations: stations.length,
+				joins: joins.length, markers: groups.length
+			});
+		} catch (error) {
+			console.error(error);
+			alert("駅データの読み込みに失敗しました。\nindex.html と同じフォルダに company.csv / line.csv / station.csv / join.csv を置いてください。" +
+				(location.protocol === "file:" ? "\n\nCSVを読み込むため、XAMPPなどのWebサーバー経由で開いてください。" : ""));
+		}
+	}
+
+	initStationData();
+
+	/* ===================== ズームで大きさを変える ===================== */
+
+	map.on("zoomend", function () {
+		var r = radiusForZoom(map.getZoom());
+		for (var i = 0; i < allMarkers.length; i++) {
+			allMarkers[i].marker.setRadius(r);
+		}
+	});
+
+	/* ===================== フィルタ（ラジオボタン） ===================== */
+
+	var FilterControl = L.Control.extend({
+		options: { position: "topright" },
+		onAdd: function () {
+			var div = L.DomUtil.create("div", "filter-box");
+			L.DomEvent.disableClickPropagation(div);
+			L.DomEvent.disableScrollPropagation(div);
+
+			var options = [
+				{ value: "ALL", label: "すべて", color: null },
+				{ value: "JR", label: "JR", color: CATS.JR.color },
+				{ value: "PRIVATE", label: "私鉄", color: CATS.PRIVATE.color },
+				{ value: "SUBWAY", label: "地下鉄・公営", color: CATS.SUBWAY.color },
+				{ value: "OTHER", label: "その他・地方鉄道", color: CATS.OTHER.color }
+			];
+
+			options.forEach(function (opt, idx) {
+				var label = L.DomUtil.create("label", "", div);
+				var input = L.DomUtil.create("input", "", label);
+				input.type = "radio";
+				input.name = "line-filter";
+				input.value = opt.value;
+				if (idx === 0) input.checked = true;
+
+				if (opt.color) {
+					var dot = L.DomUtil.create("span", "color-dot", label);
+					dot.style.background = opt.color;
+				} else {
+					var dot2 = L.DomUtil.create("span", "color-dot", label);
+					dot2.style.background = "linear-gradient(135deg, " + CATS.JR.color + ", " + CATS.PRIVATE.color + " 50%, " + CATS.SUBWAY.color + ")";
+				}
+
+				var span = L.DomUtil.create("span", "", label);
+				span.textContent = opt.label;
+
+				L.DomEvent.on(input, "change", function () {
+					applyFilter(opt.value);
+				});
+			});
+
+			return div;
+		}
+	});
+
+	function applyFilter(value) {
+		for (var i = 0; i < allMarkers.length; i++) {
+			var rec = allMarkers[i];
+			var match = (value === "ALL") || (rec.cats.indexOf(value) !== -1);
+
+			if (match) {
+				if (!map.hasLayer(rec.marker)) {
+					rec.marker.addTo(map);
+				}
+				var color = (value === "ALL") ? colorForCats(rec.cats) : CATS[value].color;
+				rec.marker.setStyle({ fillColor: color });
+			} else {
+				if (map.hasLayer(rec.marker)) {
+					map.removeLayer(rec.marker);
+				}
+			}
+		}
+	}
+
+	/* ===================== 駅名検索 ===================== */
+
+	var SearchControl = L.Control.extend({
+		options: { position: "topright" },
+		onAdd: function () {
+			var div = L.DomUtil.create("div", "search-box");
+			L.DomEvent.disableClickPropagation(div);
+			L.DomEvent.disableScrollPropagation(div);
+
+			var input = L.DomUtil.create("input", "", div);
+			input.type = "text";
+			input.placeholder = "駅名で検索";
+
+			var results = L.DomUtil.create("div", "search-results", div);
+
+			function runSearch() {
+				var q = input.value.trim();
+				results.innerHTML = "";
+				if (q.length === 0) return;
+
+				var matches = [];
+				for (var i = 0; i < searchIndex.length && matches.length < 30; i++) {
+					if (searchIndex[i].normalizedName.indexOf(normalizeStationName(q)) !== -1) {
+						matches.push(searchIndex[i]);
+					}
+				}
+
+				if (matches.length === 0) {
+					var empty = L.DomUtil.create("div", "search-empty", results);
+					empty.textContent = "見つかりません";
+					return;
+				}
+
+				matches.forEach(function (m) {
+					var item = L.DomUtil.create("div", "search-item", results);
+					var nameEl = L.DomUtil.create("div", "s-name", item);
+					nameEl.textContent = m.name;
+					var subEl = L.DomUtil.create("div", "s-sub", item);
+					subEl.textContent = m.sub;
+
+					L.DomEvent.on(item, "click", function () {
+						var marker = m.rec.marker;
+						var latLng = marker.getLatLng();
+						// フィルターで非表示でも、検索結果から選択した駅は表示する。
+						if (!map.hasLayer(marker)) marker.addTo(map);
+						map.setView(latLng, 16, { animate: false });
+						// setView直後の描画タイミングを避け、確実にポップアップを開く。
+						setTimeout(function () { marker.openPopup(); }, 0);
+						results.innerHTML = "";
+						input.value = m.name;
+					});
+				});
+			}
+
+			// 入力のたびに検索し、入力欄に再度カーソルを入れたときも
+			// （検索済み文字列が残っている場合）候補を再表示する
+			L.DomEvent.on(input, "input", runSearch);
+			L.DomEvent.on(input, "focus", runSearch);
+
+			return div;
+		}
+	});
+	map.addControl(new SearchControl());
+	map.addControl(new FilterControl());
+
+	/* ===================== 左上：現在地／全国表示ボタン ===================== */
+
+	var currentLocMarker = null;
+
+	var LeftButtonsControl = L.Control.extend({
+		options: { position: "topleft" },
+		onAdd: function () {
+			var div = L.DomUtil.create("div", "custom-ctrl-box");
+			L.DomEvent.disableClickPropagation(div);
+
+			var locBtn = L.DomUtil.create("div", "custom-btn", div);
+			locBtn.title = "現在地へ移動";
+			locBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
+
+			L.DomEvent.on(locBtn, "click", function () {
+				if (!navigator.geolocation) {
+					alert("この端末では現在地を取得できません。");
+					return;
+				}
+				locBtn.style.opacity = "0.5";
+				navigator.geolocation.getCurrentPosition(function (pos) {
+					locBtn.style.opacity = "1";
+					var lat = pos.coords.latitude;
+					var lon = pos.coords.longitude;
+
+					if (currentLocMarker) {
+						map.removeLayer(currentLocMarker);
+					}
+					currentLocMarker = L.marker([lat, lon], {
+						icon: L.divIcon({
+							className: "",
+							html: '<div class="current-loc-dot"></div>',
+							iconSize: [14, 14],
+							iconAnchor: [7, 7]
+						})
+					}).addTo(map);
+
+					map.setView([lat, lon], 15, { animate: false });
+				}, function () {
+					locBtn.style.opacity = "1";
+					alert("現在地を取得できませんでした。位置情報の利用を許可してください。");
+				}, { enableHighAccuracy: true, timeout: 10000 });
+			});
+
+			var japanBtn = L.DomUtil.create("div", "custom-btn", div);
+			japanBtn.title = "全国表示";
+			japanBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6H15.7a15.9 15.9 0 00-1.44-3.8A8.03 8.03 0 0118.93 8zM12 4.04c.83 1.2 1.5 2.53 1.94 3.96h-3.88c.44-1.43 1.11-2.76 1.94-3.96zM4.26 14a7.9 7.9 0 010-4h3.68a16.6 16.6 0 000 4H4.26zm.81 2h3.23c.34 1.36.86 2.64 1.44 3.8A8.03 8.03 0 015.07 16zm3.23-8H5.07a8.03 8.03 0 014.6-3.8A15.9 15.9 0 008.3 8zM12 19.96a15.7 15.7 0 01-1.94-3.96h3.88A15.7 15.7 0 0112 19.96zM10.06 14a14.6 14.6 0 010-4h3.88a14.6 14.6 0 010 4h-3.88zm4.2 5.8c.58-1.16 1.1-2.44 1.44-3.8h3.23a8.03 8.03 0 01-4.67 3.8zM15.74 14a16.6 16.6 0 000-4h3.68a7.9 7.9 0 010 4h-3.68z"/></svg>';
+
+			L.DomEvent.on(japanBtn, "click", function () {
+				map.fitBounds(JAPAN_BOUNDS, { animate: false });
+			});
+
+			return div;
+		}
+	});
+	map.addControl(new LeftButtonsControl());
+
+})();
+</script>
+</body>
+</html>
