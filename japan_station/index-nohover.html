@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全国鉄道駅マップ（駅名ホバー表示版）</title>
+<title>全国鉄道駅マップ</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
 	html, body {
@@ -200,19 +200,6 @@
 		border-radius: 3px;
 		pointer-events: none;
 	}
-
-	/* ---- 駅名ホバー表示 ---- */
-	.station-hover-tooltip {
-		background: rgba(255,255,255,0.95);
-		border: 1px solid rgba(0,0,0,0.28);
-		border-radius: 3px;
-		box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-		color: #111;
-		font-size: 12px;
-		font-weight: 600;
-		padding: 2px 5px;
-		white-space: nowrap;
-	}
 </style>
 </head>
 <body>
@@ -225,8 +212,6 @@
 <script>
 (function () {
 	"use strict";
-
-// 駅マーカーにマウスを重ねると、駅名だけをマーカー右側に表示する別バージョン。
 
 	/* ===================== 基本設定 ===================== */
 
@@ -428,14 +413,6 @@
 				fillColor: colorForCats(st.c), fillOpacity: 0.9
 			});
 			marker.bindPopup(buildPopupHtml(st), { maxWidth: 240, maxHeight: 200 });
-			marker.bindTooltip(st.n || "", {
-				direction: "right",
-				offset: [8, 0],
-				className: "station-hover-tooltip",
-				permanent: false,
-				sticky: false,
-				opacity: 0.98
-			});
 			marker._containsPoint = function (p) {
 				return p.distanceTo(this._point) <= this._radius + this._clickTolerance() + 2;
 			};
