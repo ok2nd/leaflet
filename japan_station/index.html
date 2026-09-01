@@ -3,216 +3,216 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全国鉄道駅マップ（駅名ホバー表示版）</title>
+<title>全国鉄道駅マップ</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-	html, body {
-		margin: 0;
-		padding: 0;
-		height: 100%;
-		width: 100%;
-		font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
-	}
-	#map {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-	}
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+	font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+}
+#map {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
 
-	/* ---- 左上：現在地／全国表示ボタン ---- */
-	.custom-ctrl-box {
-		background: none;
-		border: none;
-	}
-	.custom-btn {
-		background: #fff;
-		width: 34px;
-		height: 34px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-		border-radius: 4px;
-		cursor: pointer;
-		margin-top: 8px;
-		font-size: 18px;
-		user-select: none;
-		transition: background 0.15s;
-	}
-	.custom-btn:hover {
-		background: #f0f0f0;
-	}
-	.custom-btn:active {
-		background: #dcdcdc;
-	}
-	.custom-btn svg {
-		width: 18px;
-		height: 18px;
-		fill: #333;
-	}
+/* ---- 左上：現在地／全国表示ボタン ---- */
+.custom-ctrl-box {
+	background: none;
+	border: none;
+}
+.custom-btn {
+	background: #fff;
+	width: 34px;
+	height: 34px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	border-radius: 4px;
+	cursor: pointer;
+	margin-top: 8px;
+	font-size: 18px;
+	user-select: none;
+	transition: background 0.15s;
+}
+.custom-btn:hover {
+	background: #f0f0f0;
+}
+.custom-btn:active {
+	background: #dcdcdc;
+}
+.custom-btn svg {
+	width: 18px;
+	height: 18px;
+	fill: #333;
+}
 
-	/* ---- 右上：検索 ---- */
-	.search-box {
-		background: #fff;
-		border-radius: 4px;
-		box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-		padding: 6px;
-		width: 220px;
-		box-sizing: border-box;
-	}
-	.search-box input[type="text"] {
-		width: 100%;
-		box-sizing: border-box;
-		padding: 6px 8px;
-		font-size: 13px;
-		border: 1px solid #ccc;
-		border-radius: 3px;
-		outline: none;
-	}
-	.search-box input[type="text"]:focus {
-		border-color: #4a90d9;
-	}
-	.search-results {
-		max-height: 260px;
-		overflow-y: auto;
-		margin-top: 4px;
-		border-top: 1px solid #eee;
-	}
-	.search-results:empty {
-		border-top: none;
-		margin-top: 0;
-	}
-	.search-item {
-		padding: 6px 6px;
-		font-size: 12px;
-		cursor: pointer;
-		border-bottom: 1px solid #f2f2f2;
-		line-height: 1.4;
-	}
-	.search-item:last-child {
-		border-bottom: none;
-	}
-	.search-item:hover {
-		background: #f0f6ff;
-	}
-	.search-item .s-name {
-		font-weight: bold;
-		color: #222;
-	}
-	.search-item .s-sub {
-		color: #777;
-		font-size: 11px;
-	}
-	.search-empty {
-		padding: 6px;
-		font-size: 12px;
-		color: #999;
-	}
+/* ---- 右上：検索 ---- */
+.search-box {
+	background: #fff;
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	padding: 6px;
+	width: 220px;
+	box-sizing: border-box;
+}
+.search-box input[type="text"] {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 6px 8px;
+	font-size: 13px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	outline: none;
+}
+.search-box input[type="text"]:focus {
+	border-color: #4a90d9;
+}
+.search-results {
+	max-height: 260px;
+	overflow-y: auto;
+	margin-top: 4px;
+	border-top: 1px solid #eee;
+}
+.search-results:empty {
+	border-top: none;
+	margin-top: 0;
+}
+.search-item {
+	padding: 6px 6px;
+	font-size: 12px;
+	cursor: pointer;
+	border-bottom: 1px solid #f2f2f2;
+	line-height: 1.4;
+}
+.search-item:last-child {
+	border-bottom: none;
+}
+.search-item:hover {
+	background: #f0f6ff;
+}
+.search-item .s-name {
+	font-weight: bold;
+	color: #222;
+}
+.search-item .s-sub {
+	color: #777;
+	font-size: 11px;
+}
+.search-empty {
+	padding: 6px;
+	font-size: 12px;
+	color: #999;
+}
 
-	/* ---- 右上：フィルタ ---- */
-	.filter-box {
-		background: #fff;
-		border-radius: 4px;
-		box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-		padding: 8px 10px;
-		margin-top: 8px;
-		font-size: 12px;
-	}
-	.filter-box .filter-title {
-		font-weight: bold;
-		font-size: 12px;
-		margin-bottom: 4px;
-		color: #333;
-	}
-	.filter-box label {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 3px 0;
-		cursor: pointer;
-		white-space: nowrap;
-	}
-	.filter-box input[type="radio"] {
-		margin: 0;
-		cursor: pointer;
-	}
-	.color-dot {
-		display: inline-block;
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		flex: none;
-		border: 1px solid rgba(0,0,0,0.25);
-	}
+/* ---- 右上：フィルタ ---- */
+.filter-box {
+	background: #fff;
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	padding: 8px 10px;
+	margin-top: 8px;
+	font-size: 12px;
+}
+.filter-box .filter-title {
+	font-weight: bold;
+	font-size: 12px;
+	margin-bottom: 4px;
+	color: #333;
+}
+.filter-box label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 0;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.filter-box input[type="radio"] {
+	margin: 0;
+	cursor: pointer;
+}
+.color-dot {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex: none;
+	border: 1px solid rgba(0,0,0,0.25);
+}
 
-	/* ---- ポップアップ ---- */
-	.leaflet-popup-content-wrapper {
-		border-radius: 6px;
-	}
-	.leaflet-popup-content {
-		margin: 8px 10px;
-		font-size: 12px;
-		line-height: 1.5;
-	}
-	.popup-station-name {
-		font-weight: bold;
-		font-size: 14px;
-		margin-bottom: 3px;
-		color: #111;
-	}
-	.popup-lines {
-		max-height: 140px;
-		overflow-y: auto;
-	}
-	.popup-line-row {
-		padding: 1px 0;
-		white-space: nowrap;
-	}
-	.popup-line-row .company {
-		color: #555;
-	}
-	.popup-line-row .line {
-		color: #111;
-	}
+/* ---- ポップアップ ---- */
+.leaflet-popup-content-wrapper {
+	border-radius: 6px;
+}
+.leaflet-popup-content {
+	margin: 8px 10px;
+	font-size: 12px;
+	line-height: 1.5;
+}
+.popup-station-name {
+	font-weight: bold;
+	font-size: 14px;
+	margin-bottom: 3px;
+	color: #111;
+}
+.popup-lines {
+	max-height: 140px;
+	overflow-y: auto;
+}
+.popup-line-row {
+	padding: 1px 0;
+	white-space: nowrap;
+}
+.popup-line-row .company {
+	color: #555;
+}
+.popup-line-row .line {
+	color: #111;
+}
 
-	/* ---- 現在地マーカー ---- */
-	.current-loc-dot {
-		width: 14px;
-		height: 14px;
-		border-radius: 50%;
-		background: #1a73e8;
-		border: 2px solid #fff;
-		box-shadow: 0 0 0 2px rgba(26,115,232,0.5);
-	}
+/* ---- 現在地マーカー ---- */
+.current-loc-dot {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #1a73e8;
+	border: 2px solid #fff;
+	box-shadow: 0 0 0 2px rgba(26,115,232,0.5);
+}
 
-	/* ---- 左下：データ出典表記 ---- */
-	#data-credit {
-		position: absolute;
-		left: 8px;
-		bottom: 4px;
-		z-index: 999;
-		font-size: 11px;
-		color: #333;
-		background: rgba(255,255,255,0.75);
-		padding: 2px 7px;
-		border-radius: 3px;
-		pointer-events: none;
-	}
+/* ---- 左下：データ出典表記 ---- */
+#data-credit {
+	position: absolute;
+	left: 8px;
+	bottom: 4px;
+	z-index: 999;
+	font-size: 11px;
+	color: #333;
+	background: rgba(255,255,255,0.75);
+	padding: 2px 7px;
+	border-radius: 3px;
+	pointer-events: none;
+}
 
-	/* ---- 駅名ホバー表示 ---- */
-	.station-hover-tooltip {
-		background: rgba(255,255,255,0.95);
-		border: 1px solid rgba(0,0,0,0.28);
-		border-radius: 3px;
-		box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-		color: #111;
-		font-size: 12px;
-		font-weight: 600;
-		padding: 2px 5px;
-		white-space: nowrap;
-	}
+/* ---- 駅名ホバー表示 ---- */
+.station-hover-tooltip {
+	background: rgba(255,255,255,0.95);
+	border: 1px solid rgba(0,0,0,0.28);
+	border-radius: 3px;
+	box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+	color: #111;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 5px;
+	white-space: nowrap;
+}
 </style>
 </head>
 <body>
