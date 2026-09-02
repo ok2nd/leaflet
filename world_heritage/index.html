@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界遺産地図</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+html, body, #map {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+#map {
+    background: #e9edf2;
+}
+.panel {
+    position: absolute;
+    z-index: 1000;
+    top: 10px;
+    left: 50px;
+    width: max-content;
+    max-width: calc(100vw - 70px);
+    box-sizing: border-box;
+    padding: 12px 14px;
+    background: rgba(255,255,255,.95);
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.3);
+    font-size: 14px;
+}
+.panel h1 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+.legend {
+    line-height: 1.8;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid rgba(0,0,0,.35);
+}
+.cultural { background: #d94b4b; }
+.natural { background: #2f8f5b; }
+.mixed { background: #8a55b7; }
+.unknown { background: #777; }
+
+.popup-title {
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 1.45;
+    margin-bottom: 7px;
+}
+.popup-category {
+    margin-bottom: 7px;
+    font-size: 13px;
+}
+.popup-image {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    max-height: 240px;
+    object-fit: cover;
+    margin: 7px 0;
+    border-radius: 4px;
+    background: #eee;
+}
+.popup-caption {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.35;
+    margin-bottom: 7px;
+}
+.popup-link {
+    font-size: 13px;
+}
+.status {
+    margin-top: 6px;
+    color: #555;
+    font-size: 12px;
+}
+.search-panel {
+    position: absolute;
+    z-index: 1000;
+    top: 10px;
+    right: 10px;
+    width: 300px;
+    max-width: calc(100vw - 20px);
+    box-sizing: border-box;
+}
+
+.search-box {
+    position: relative;
+    background: rgba(255,255,255,.95);
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.3);
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+#search-input-wrap {
+    position: relative;
+    width: 100%;
+}
+
+#heritage-search {
+    display: block;
+    width: 100%;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 7px 34px 7px 10px;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    font-size: 14px;
+    outline: none;
+}
+
+#heritage-search:focus {
+    border-color: #777;
+}
+
+#search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #777;
+    font-size: 18px;
+    line-height: 20px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#search-clear.visible {
+    display: flex;
+}
+
+#search-clear:hover {
+    color: #222;
+}
+
+#search-results {
+    display: none;
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 52px;
+    max-height: 360px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+.search-result {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    background: #fff;
+}
+
+.search-result:last-child {
+    border-bottom: 0;
+}
+
+.search-result:hover {
+    background: #f0f0f0;
+}
+
+.search-result .ja {
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.search-result .en {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.35;
+    margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+    .panel {
+        top: 8px;
+        left: 8px;
+        width: max-content;
+        max-width: calc(100vw - 16px);
+        padding: 10px 12px;
+    }
+    .panel h1 { font-size: 16px; }
+
+    .search-panel {
+        top: 8px;
+        right: 8px;
+        width: 280px;
+        max-width: calc(100vw - 16px);
+    }
+
+    #search-input-wrap {
+        position: relative;
+        width: 100%;
+    }
+
+    #heritage-search {
+        width: 100%;
+        height: 36px;
+        box-sizing: border-box;
+        padding: 7px 34px 7px 10px;
+        border: 1px solid #aaa;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 14px;
+        outline: none;
+    }
+
+    #heritage-search:focus {
+        border-color: #777;
+    }
+
+    #search-clear {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #777;
+        font-size: 18px;
+        line-height: 20px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #search-clear.visible {
+        display: flex;
+    }
+
+    #search-clear:hover {
+        color: #222;
+    }
+
+    #search-results {
+        display: none;
+        position: absolute;
+        top: 40px;
+        left: 0;
+        right: 0;
+        max-height: 360px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.25);
+        z-index: 1001;
+    }
+
+    .search-result {
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        background: #fff;
+    }
+
+    .search-result:last-child {
+        border-bottom: 0;
+    }
+
+    .search-result:hover {
+        background: #f2f2f2;
+    }
+
+    .search-result .ja {
+        font-weight: bold;
+    }
+
+    .search-result .en {
+        margin-top: 2px;
+        font-size: 12px;
+        color: #666;
+    }
+}
+</style>
+
+</head>
+
+<body>
+<div id="map"></div>
+
+<div class="panel">
+    <h1>世界遺産地図</h1>
+    <div class="legend">
+        <div class="legend-item"><span class="dot cultural"></span>文化遺産</div>
+        <div class="legend-item"><span class="dot natural"></span>自然遺産</div>
+        <div class="legend-item"><span class="dot mixed"></span>複合遺産</div>
+    </div>
+    <div id="status" class="status">CSVを読み込んでいます…</div>
+</div>
+
+<div class="search-panel">
+    <div class="search-box">
+        <div id="search-input-wrap">
+            <input id="heritage-search" type="text" placeholder="世界遺産名を検索（日本語・英語）" autocomplete="off">
+            <button id="search-clear" type="button" aria-label="検索文字列を削除" title="検索文字列を削除">×</button>
+        </div>
+        <div id="search-results"></div>
+    </div>
+</div>
+
+<script>
+const map = L.map('map', {
+    worldCopyJump: true,
+    minZoom: 2
+}).setView([25, 10], 2);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+}
+
+function markerColor(category) {
+    const c = (category || '').toLowerCase();
+    if (c.includes('文化')) return '#d94b4b';
+    if (c.includes('自然')) return '#2f8f5b';
+    if (c.includes('複合')) return '#8a55b7';
+    return '#777';
+}
+
+function categoryLabel(category) {
+    if (!category) return '';
+    return escapeHtml(category);
+}
+
+function popupHtml(row) {
+    const name = row['Name JA'] || row['Name En'] || '';
+    const category = row['Category JA'] || '';
+    const image = row['Main Image'] || '';
+    const caption = row['Main Image Caption EN'] || '';
+    const url = row['UNESCO URL'] || '';
+
+    let h = '<div class="popup-title">' + escapeHtml(name) + '</div>';
+    if (category) {
+        h += '<div class="popup-category">' + categoryLabel(category) + '</div>';
+    }
+
+    if (image) {
+        h += '<img class="popup-image" src="' + escapeHtml(image) +
+             '" alt="' + escapeHtml(name) +
+             '" loading="lazy" onerror="this.style.display=\'none\'">';
+    }
+
+    if (caption) {
+        h += '<div class="popup-caption">' + escapeHtml(caption) + '</div>';
+    }
+
+    if (url) {
+        h += '<div class="popup-link"><a href="' + escapeHtml(url) +
+             '" target="_blank" rel="noopener noreferrer">UNESCO公式ページ</a></div>';
+    }
+    return h;
+}
+
+fetch('world_heritage.csv', {cache: 'no-store'})
+.then(response => {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.text();
+})
+.then(text => {
+    const rows = parseCSV(text);
+    const status = document.getElementById('status');
+    const searchInput = document.getElementById('heritage-search');
+    const searchClear = document.getElementById('search-clear');
+    const searchResults = document.getElementById('search-results');
+    const heritageItems = [];
+    let count = 0;
+
+    rows.forEach(row => {
+        const lat = parseFloat(row['Latitude']);
+        const lon = parseFloat(row['Longitude']);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+        const visibleMarker = L.circleMarker([lat, lon], {
+            radius: 5,
+            weight: 1,
+            color: '#333',
+            fillColor: markerColor(row['Category JA']),
+            fillOpacity: 0.9
+        });
+
+        /*
+         * 見た目の半径は5pxのまま、クリック判定だけ半径9px
+         * （マーカー半径＋4px）に広げる。
+         */
+        const hitMarker = L.circleMarker([lat, lon], {
+            radius: 9,
+            weight: 0,
+            opacity: 0,
+            fillOpacity: 0
+        });
+
+        const popupOptions = {
+            maxWidth: 380,
+            minWidth: 220
+        };
+
+        hitMarker.bindPopup(popupHtml(row), popupOptions);
+        visibleMarker.addTo(map);
+        hitMarker.addTo(map);
+
+        heritageItems.push({
+            row: row,
+            marker: hitMarker,
+            visibleMarker: visibleMarker,
+            nameJa: String(row['Name JA'] || ''),
+            nameEn: String(row['Name En'] || '')
+        });
+
+        count++;
+    });
+
+    status.textContent = count.toLocaleString() + '件の世界遺産を表示';
+
+    function showSearchResults() {
+        const q = searchInput.value.trim().toLocaleLowerCase();
+
+        if (!q) {
+            searchResults.innerHTML = '';
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        const matches = heritageItems.filter(item =>
+            item.nameJa.toLocaleLowerCase().includes(q) ||
+            item.nameEn.toLocaleLowerCase().includes(q)
+        ).slice(0, 30);
+
+        if (!matches.length) {
+            searchResults.innerHTML =
+                '<div class="search-result">該当する世界遺産がありません</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+
+        searchResults.innerHTML = matches.map((item, index) => {
+            const ja = escapeHtml(item.nameJa);
+            const en = escapeHtml(item.nameEn);
+            const title = item.nameJa || item.nameEn;
+            return '<div class="search-result" data-index="' + index + '">' +
+                   (ja ? '<div class="ja">' + ja + '</div>' : '') +
+                   (en ? '<div class="en">' + en + '</div>' : '') +
+                   '</div>';
+        }).join('');
+
+        searchResults.style.display = 'block';
+
+        Array.from(searchResults.querySelectorAll('.search-result[data-index]'))
+            .forEach((el, index) => {
+                el.addEventListener('click', () => {
+                    const item = matches[index];
+                    const row = item.row;
+                    const lat = parseFloat(row['Latitude']);
+                    const lon = parseFloat(row['Longitude']);
+
+                    map.setView([lat, lon], Math.max(map.getZoom(), 6));
+                    item.marker.openPopup();
+
+                    searchResults.style.display = 'none';
+                    searchInput.value = item.nameJa || item.nameEn;
+                });
+            });
+    }
+
+    function updateSearchClear() {
+        searchClear.classList.toggle('visible', searchInput.value.length > 0);
+    }
+
+    searchInput.addEventListener('input', () => {
+        updateSearchClear();
+        showSearchResults();
+    });
+    searchInput.addEventListener('focus', updateSearchClear);
+
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        searchResults.style.display = 'none';
+        searchClear.classList.remove('visible');
+        searchInput.focus();
+    });
+    searchInput.addEventListener('focus', showSearchResults);
+
+    document.addEventListener('click', event => {
+        if (!event.target.closest('.search-panel')) {
+            searchResults.style.display = 'none';
+        }
+    });
+
+    searchInput.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            searchResults.style.display = 'none';
+            searchInput.blur();
+        }
+    });
+})
+.catch(error => {
+    document.getElementById('status').textContent =
+        'world_heritage.csv の読み込みに失敗しました';
+    console.error(error);
+});
+
+/* RFC4180に対応した簡易CSVパーサー */
+function parseCSV(text) {
+    text = text.replace(/^\uFEFF/, '');
+    const rows = [];
+    let row = [];
+    let field = '';
+    let quoted = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+
+        if (quoted) {
+            if (ch === '"') {
+                if (text[i + 1] === '"') {
+                    field += '"';
+                    i++;
+                } else {
+                    quoted = false;
+                }
+            } else {
+                field += ch;
+            }
+        } else {
+            if (ch === '"') {
+                quoted = true;
+            } else if (ch === ',') {
+                row.push(field);
+                field = '';
+            } else if (ch === '\n') {
+                row.push(field);
+                rows.push(row);
+                row = [];
+                field = '';
+            } else if (ch === '\r') {
+                if (text[i + 1] === '\n') i++;
+                row.push(field);
+                rows.push(row);
+                row = [];
+                field = '';
+            } else {
+                field += ch;
+            }
+        }
+    }
+
+    if (field !== '' || row.length) {
+        row.push(field);
+        rows.push(row);
+    }
+
+    if (!rows.length) return [];
+
+    const headers = rows[0];
+    return rows.slice(1).filter(r => r.some(v => v !== '')).map(r => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = r[i] ?? '');
+        return obj;
+    });
+}
+</script>
+</body>
+</html>
