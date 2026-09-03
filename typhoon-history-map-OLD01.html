@@ -625,12 +625,6 @@
                 }
             }
 
-            // 台風リストで開いた最盛期情報ポップアップは、
-            // パネル以外の地図部分をクリックしたら閉じる
-            map.on('click', function () {
-                closeStormPopup();
-            });
-
             function findStrongestPoint(sr) {
                 var best = null;
                 sr.points.forEach(function (p) {
