@@ -16,6 +16,10 @@ body {
 	width: 100%;
 }
 .toggle-button {
+	position: fixed;
+	top: 5px;
+	right: 5px;
+	z-index: 1001;
 	background: #007bff;
 	color: white;
 	border: none;
@@ -45,15 +49,15 @@ button:not(.toggle-button) {
 	display: none;
 }
 .control-panel {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	z-index: 1000;
 	background: white;
-	padding: 8px;
-	border-radius: 4px;
-	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-	width: 140px;
-	box-sizing: border-box;
-}
-.leaflet-top.leaflet-right .leaflet-control {
-	clear: both;
+	padding: 15px;
+	border-radius: 8px;
+	box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+	min-width: 200px;
 }
 .control-group {
 	margin-bottom: 10px;
@@ -63,9 +67,6 @@ label {
 	margin-bottom: 5px;
 	font-weight: bold;
 	color: #333;
-}
-.leaflet-control-layers label {
-	font-weight: normal;
 }
 input[type="number"] {
 	width: 100%;
@@ -117,7 +118,17 @@ button:hover {
 </head>
 <body>
 <div id="map"></div>
-<div id="control-panel-content" class="control-panel">
+<button id="toggle-panel" class="toggle-button" onclick="togglePanel()">隠す</button>
+<div class="control-panel">
+	<div class="control-group">
+		<label for="map-type">地図タイプ:</label>
+		<select id="map-type" onchange="changeMapType()">
+			<option value="GoogleMap">GoogleMap</option>
+			<option value="osm">OpenStreetMap</option>
+			<option value="satellite">OSM衛星写真</option>
+			<option value="terrain">OTM地形図</option>
+		</select>
+	</div>
 	<div class="control-group">
 		<label for="radius">半径 (km):</label>
 		<input type="number" id="radius" step="0.1" value="10.0" min="0.1" max="1000">
@@ -139,23 +150,36 @@ let currentCircle = null;
 let circleCenter = null;
 let isCircleDrawn = false;
 let currentTileLayer = null;
-// 地図タイル定義
-var GoogleMap = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
-	attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>"
-});
-var OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-	continuousWorld: false
-});
-var KokudoChiriin = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
-});
-var KokudoChiriinSatellite = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-	attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>"
-});
-var EsriMap = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-	attribution: 'Tiles &copy; <a href="http://www.esrij.com/"> Esri Japan </a>'
-});
+// 地図タイプの定義
+const mapTypes = {
+	GoogleMap: {
+		url: 'https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}',
+		attribution: '<a href="https://developers.google.com/maps/documentation" target="_blank">Google Map</a>'
+	},
+	osm: {
+		url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+		attribution: 'c OpenStreetMap contributors'
+	},
+	satellite: {
+		url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+		attribution: 'c Esri, c OpenStreetMap contributors'
+	},
+	terrain: {
+		url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+		attribution: 'c OpenTopoMap contributors'
+	}
+};
+// 地図タイプを変更
+function changeMapType() {
+	const selectedType = document.getElementById('map-type').value;
+	const mapConfig = mapTypes[selectedType];
+	if (currentTileLayer) {
+		map.removeLayer(currentTileLayer);
+	}
+	currentTileLayer = L.tileLayer(mapConfig.url, {
+		attribution: mapConfig.attribution
+	}).addTo(map);
+}
 // 3桁カンマ区切りの数値フォーマット
 function formatNumber(num) {
 	return num.toLocaleString('ja-JP', {
@@ -201,39 +225,9 @@ function initMap() {
 function createMap(lat, lon) {
 	map = L.map('map').setView([lat, lon], 12);
 	// 初期タイルレイヤーを設定
-	currentTileLayer = GoogleMap.addTo(map);
-	var baseMap = {
-		"Google マップ": GoogleMap,
-		"OpenStreetMap": OpenStreetMap,
-		"国土地理院 標準地図": KokudoChiriin,
-		"国土地理院 写真": KokudoChiriinSatellite,
-		"Esri World Topo Map": EsriMap
-	};
-	L.control.layers(baseMap, null, {position: 'topright'}).addTo(map);
-
-	// 半径指定パネルをLeaflet標準コントローラーとして追加
-	const radiusControl = L.control({position: 'topright'});
-	radiusControl.onAdd = function() {
-		const div = document.getElementById('control-panel-content');
-		L.DomEvent.disableClickPropagation(div);
-		return div;
-	};
-	radiusControl.addTo(map);
-
-	// 隠すボタンをLeaflet標準コントローラーとして追加
-	const toggleControl = L.control({position: 'topright'});
-	toggleControl.onAdd = function() {
-		const div = L.DomUtil.create('div', 'leaflet-control');
-		const button = L.DomUtil.create('button', 'toggle-button', div);
-		button.id = 'toggle-panel';
-		button.type = 'button';
-		button.textContent = '隠す';
-		L.DomEvent.disableClickPropagation(div);
-		L.DomEvent.on(button, 'click', togglePanel);
-		return div;
-	};
-	toggleControl.addTo(map);
-
+	currentTileLayer = L.tileLayer(mapTypes.GoogleMap.url, {
+		attribution: mapTypes.GoogleMap.attribution
+	}).addTo(map);
 	// 現在地マーカーを追加
 	//	L.marker([lat, lon]).addTo(map)
 	//		.bindPopup('現在地')
@@ -337,7 +331,7 @@ window.onload = function() {
 };
 // コントロールパネルの表示/非表示切り替え
 function togglePanel() {
-	const panel = document.getElementById('control-panel-content');
+	const panel = document.querySelector('.control-panel');
 	const button = document.getElementById('toggle-panel');
 	
 	if (panel.classList.contains('hidden')) {
