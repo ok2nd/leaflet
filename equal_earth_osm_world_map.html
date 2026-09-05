@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equal Earth × OpenStreetMap 世界地図</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.8.0/ol.css">
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, "Noto Sans JP", sans-serif;
+}
+#map {
+    width: 100%;
+    height: 100%;
+    background: #dfeaf0;
+}
+#title {
+    position: absolute;
+    z-index: 1000;
+    top: 12px;
+    left: 50px;
+    padding: 8px 13px;
+    background: rgba(255,255,255,.92);
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.25);
+    font-size: 16px;
+    font-weight: bold;
+}
+#info {
+    position: absolute;
+    z-index: 1000;
+    left: 10px;
+    bottom: 10px;
+    max-width: 420px;
+    padding: 7px 10px;
+    background: rgba(255,255,255,.9);
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    font-size: 12px;
+    line-height: 1.45;
+}
+#searchBox {
+    position: absolute;
+    z-index: 1000;
+    top: 12px;
+    right: 12px;
+    width: 300px;
+    display: flex;
+    gap: 5px;
+}
+#searchInput {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 14px;
+    background: rgba(255,255,255,.96);
+}
+#searchButton {
+    padding: 8px 12px;
+    border: 1px solid #777;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+}
+#searchButton:hover {
+    background: #eee;
+}
+#status {
+    position: absolute;
+    z-index: 1000;
+    right: 12px;
+    top: 53px;
+    width: 300px;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    background: rgba(255,255,255,.92);
+    border-radius: 4px;
+    display: none;
+    font-size: 12px;
+}
+.ol-zoom {
+    top: 60px !important;
+}
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<div id="title">Equal Earth × OpenStreetMap</div>
+
+<div id="searchBox">
+    <input id="searchInput" type="text" placeholder="都市・国・地域を検索">
+    <button id="searchButton">検索</button>
+</div>
+<div id="status"></div>
+
+<div id="info">
+    Equal Earth（EPSG:8857）で表示。OpenStreetMapの道路・地名・都市名を含む標準地図タイルをクライアント側で再投影している。
+    地図はドラッグ・ホイール・ピンチで移動／拡大縮小できる。
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.16.2/dist/proj4.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ol@10.8.0/dist/ol.js"></script>
+
+<script>
+proj4.defs(
+    'EPSG:8857',
+    '+proj=eqearth +lon_0=0 +x_0=0 +y_0=0 +R=6371008.7714 +units=m +no_defs +type=crs'
+);
+ol.proj.proj4.register(proj4);
+
+const extent = [
+    -17243959.06,
+    -8392927.60,
+    17243959.06,
+    8392927.60
+];
+
+const projection = ol.proj.get('EPSG:8857');
+projection.setGlobal(true);
+projection.setExtent(extent);
+projection.setWorldExtent([-90, -180, 90, 180]);
+
+const osmLayer = new ol.layer.Tile({
+    source: new ol.source.OSM({
+        attributions: '© OpenStreetMap contributors'
+    })
+});
+
+const searchLayer = new ol.layer.Vector({
+    source: new ol.source.Vector(),
+    style: new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 8,
+            fill: new ol.style.Fill({color: '#d7191c'}),
+            stroke: new ol.style.Stroke({color: '#ffffff', width: 2})
+        })
+    })
+});
+
+const map = new ol.Map({
+    target: 'map',
+    layers: [osmLayer, searchLayer],
+    view: new ol.View({
+        projection: projection,
+        center: [0, 0],
+        zoom: 0
+    }),
+    controls: ol.control.defaults.defaults({
+        attribution: true,
+        zoom: true,
+        rotate: false
+    }),
+    loadTilesWhileAnimating: true,
+    loadTilesWhileInteracting: true
+});
+
+function showStatus(text) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.style.display = 'block';
+}
+
+function hideStatus() {
+    document.getElementById('status').style.display = 'none';
+}
+
+async function searchPlace() {
+    const input = document.getElementById('searchInput');
+    const q = input.value.trim();
+    if (!q) return;
+
+    showStatus('検索中…');
+
+    try {
+        const url =
+            'https://nominatim.openstreetmap.org/search' +
+            '?format=jsonv2&limit=1&accept-language=ja&q=' +
+            encodeURIComponent(q);
+
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) throw new Error('検索に失敗しました');
+
+        const results = await response.json();
+
+        if (!results.length) {
+            showStatus('該当する場所が見つかりませんでした。');
+            return;
+        }
+
+        const r = results[0];
+        const lon = Number(r.lon);
+        const lat = Number(r.lat);
+
+        const coordinate = ol.proj.transform(
+            [lon, lat],
+            'EPSG:4326',
+            'EPSG:8857'
+        );
+
+        searchLayer.getSource().clear();
+        searchLayer.getSource().addFeature(
+            new ol.Feature(new ol.geom.Point(coordinate))
+        );
+
+        map.getView().animate({
+            center: coordinate,
+            zoom: 6,
+            duration: 800
+        });
+
+        showStatus(r.display_name);
+    } catch (e) {
+        showStatus('検索エラー：' + e.message);
+    }
+}
+
+document.getElementById('searchButton').addEventListener('click', searchPlace);
+
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchPlace();
+});
+
+map.on('singleclick', function(evt) {
+    const coordinate = evt.coordinate;
+    const lonLat = ol.proj.transform(
+        coordinate,
+        'EPSG:8857',
+        'EPSG:4326'
+    );
+
+    const lon = lonLat[0].toFixed(5);
+    const lat = lonLat[1].toFixed(5);
+
+    showStatus('経度 ' + lon + '° / 緯度 ' + lat + '°');
+});
+</script>
+</body>
+</html>
