@@ -655,31 +655,20 @@ function addMarker(lat, lng, name, id) {
 		const popup = leafletMarker.getPopup();
 		popup.setContent(buildPopup(entry));
 	});
-	// 徒歩・車ルート検索モードでは、マーカークリックでポップアップを表示しない。
-	// クリック自体は地図側のルート地点指定として扱う。
-	leafletMarker.on('click', () => {
-		if (routeMode !== 'off') {
-			leafletMarker.closePopup();
-		}
-	});
 	markers.push(entry);
 	return entry;
 }
 function buildPopup(entry) {
 	const div = document.createElement('div');
 	div.className = 'marker-popup';
-	if (routeMode !== 'off') {
-		div.innerHTML = '';
-	} else {
-		div.innerHTML = `
-			<div class="name-display">${escapeHtml(entry.name) || '（名前なし）'}</div>
-			<input type="text" id="popup-name-${entry.id}" value="${escapeHtml(entry.name)}" placeholder="名前を入力">
-			<div class="popup-btns">
-				<button class="btn-save" onclick="saveMarkerName(${entry.id})">💾 保存</button>
-				<button class="btn-delete" onclick="deleteMarker(${entry.id})">🗑 削除</button>
-			</div>
-		`;
-	}
+	div.innerHTML = `
+		<div class="name-display">${escapeHtml(entry.name) || '（名前なし）'}</div>
+		<input type="text" id="popup-name-${entry.id}" value="${escapeHtml(entry.name)}" placeholder="名前を入力">
+		<div class="popup-btns">
+			<button class="btn-save" onclick="saveMarkerName(${entry.id})">💾 保存</button>
+			<button class="btn-delete" onclick="deleteMarker(${entry.id})">🗑 削除</button>
+		</div>
+	`;
 	return div;
 }
 window.saveMarkerName = function(id) {
