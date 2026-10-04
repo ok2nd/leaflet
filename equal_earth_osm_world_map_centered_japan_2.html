@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equal Earth × OpenStreetMap 世界地図</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.8.0/ol.css">
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, "Noto Sans JP", sans-serif;
+}
+#map {
+    width: 100%;
+    height: 100%;
+    background: #e9edf0; /* 球体の外側 */
+}
+#title {
+    position: absolute;
+    z-index: 1000;
+    top: 12px;
+    left: 50px;
+    padding: 8px 13px;
+    background: rgba(255,255,255,.92);
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.25);
+    font-size: 16px;
+    font-weight: bold;
+}
+#info {
+    position: absolute;
+    z-index: 1000;
+    left: 10px;
+    bottom: 10px;
+    max-width: 420px;
+    padding: 7px 10px;
+    background: rgba(255,255,255,.9);
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    font-size: 12px;
+    line-height: 1.45;
+}
+#searchBox {
+    position: absolute;
+    z-index: 1000;
+    top: 12px;
+    right: 12px;
+    width: 300px;
+    display: flex;
+    gap: 5px;
+}
+#searchInput {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 14px;
+    background: rgba(255,255,255,.96);
+}
+#searchButton {
+    padding: 8px 12px;
+    border: 1px solid #777;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+}
+#searchButton:hover { background: #eee; }
+#status {
+    position: absolute;
+    z-index: 1000;
+    right: 12px;
+    top: 53px;
+    width: 300px;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    background: rgba(255,255,255,.92);
+    border-radius: 4px;
+    display: none;
+    font-size: 12px;
+}
+.ol-zoom { top: 60px !important; }
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<div id="title">Equal Earth × OpenStreetMap</div>
+
+<div id="searchBox">
+    <input id="searchInput" type="text" placeholder="都市・国・地域を検索">
+    <button id="searchButton">検索</button>
+</div>
+<div id="status"></div>
+
+<div id="info">
+    Equal Earth図法で表示。OpenStreetMapのタイルをクライアント側で再投影している。
+    移動を止めると、画面中央の経線が中央経線に切り替わる。
+    OSMタイルは緯度±85.05°までのため、極域は単色で補っている。
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.16.2/dist/proj4.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ol@10.8.0/dist/ol.js"></script>
+
+<script>
+ol.proj.proj4.register(proj4);
+
+/* ---------- 定数 ---------- */
+const R = 6371008.7714;
+// Equal Earth の外接矩形（中央経線に依存しない）
+const EXTENT = [-17243959.06, -8392927.60, 17243959.06, 8392927.60];
+const TILE_LAT_LIMIT = 85.0511287798;   // Webメルカトルタイルの北限・南限
+const PAD_TOP = 60, PAD = 10;           // 全球表示時の余白(px)
+
+const initialLon = 135;                 // 初期の中央経線（日本）
+
+/* ---------- 投影（中央経線ごとにキャッシュ） ---------- */
+const projCache = new Map();
+function getProjection(centerLon) {
+    const lon = Math.round(centerLon * 10) / 10;       // 0.1°単位に丸めて再利用
+    const code = 'EQEARTH_' + String(lon).replace('-', 'm').replace('.', 'p');
+    if (projCache.has(code)) return projCache.get(code);
+
+    proj4.defs(code, '+proj=eqearth +lon_0=' + lon +
+        ' +x_0=0 +y_0=0 +R=' + R + ' +units=m +no_defs +type=crs');
+    ol.proj.proj4.register(proj4);
+
+    const pr = ol.proj.get(code);
+    if (!pr) throw new Error('Equal Earth projection could not be created: ' + code);
+    pr.setGlobal(true);
+    pr.setExtent(EXTENT);
+    pr.setWorldExtent([-180, -90, 180, 90]);
+    projCache.set(code, pr);
+    return pr;
+}
+
+/* ---------- 球体と極域の背景（中央経線に依存しない座標で1回だけ作る） ---------- */
+const base = proj4('+proj=eqearth +lon_0=0 +R=' + R + ' +units=m +no_defs');
+function fwd(lon, lat) { return base.forward([lon, lat]); }
+
+function lineLon(lon, lat0, lat1) {   // 経線に沿った点列
+    const pts = [], step = lat1 >= lat0 ? 1 : -1;
+    for (let lat = lat0; step > 0 ? lat <= lat1 : lat >= lat1; lat += step) pts.push(fwd(lon, lat));
+    return pts;
+}
+function lineLat(lat, lon0, lon1) {   // 緯線に沿った点列
+    const pts = [], step = lon1 >= lon0 ? 1 : -1;
+    for (let lon = lon0; step > 0 ? lon <= lon1 : lon >= lon1; lon += step) pts.push(fwd(lon, lat));
+    return pts;
+}
+
+const spherePoly = new ol.geom.Polygon([[].concat(
+    lineLon(-180, -90, 90),
+    lineLat(90, -180, 180),
+    lineLon(180, 90, -90),
+    lineLat(-90, 180, -180)
+)]);
+const northCapPoly = new ol.geom.Polygon([[].concat(
+    lineLat(TILE_LAT_LIMIT, -180, 180),
+    lineLat(90, 180, -180)
+)]);
+const southCapPoly = new ol.geom.Polygon([[].concat(
+    lineLat(-TILE_LAT_LIMIT, -180, 180),
+    lineLat(-90, 180, -180)
+)]);
+
+const sphereFeature = new ol.Feature(spherePoly);
+sphereFeature.setStyle(new ol.style.Style({
+    fill: new ol.style.Fill({ color: '#aad3df' }),
+    stroke: new ol.style.Stroke({ color: '#8aa5b0', width: 1 })
+}));
+const northCapFeature = new ol.Feature(northCapPoly);
+northCapFeature.setStyle(new ol.style.Style({ fill: new ol.style.Fill({ color: '#aad3df' }) })); // 北極海
+const southCapFeature = new ol.Feature(southCapPoly);
+southCapFeature.setStyle(new ol.style.Style({ fill: new ol.style.Fill({ color: '#f2efe9' }) })); // 南極大陸
+
+const backgroundLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({ features: [sphereFeature, northCapFeature, southCapFeature] }),
+    zIndex: 0
+});
+
+/* ---------- レイヤー（投影切替でも再生成せず使い回す） ---------- */
+const osmLayer = new ol.layer.Tile({
+    source: new ol.source.OSM({ attributions: '© OpenStreetMap contributors' }),
+    extent: EXTENT,        // 世界を横に繰り返さない（二重表示の防止）
+    zIndex: 1
+});
+
+const searchLayer = new ol.layer.Vector({
+    source: new ol.source.Vector(),
+    zIndex: 2,
+    style: new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 8,
+            fill: new ol.style.Fill({ color: '#d7191c' }),
+            stroke: new ol.style.Stroke({ color: '#ffffff', width: 2 })
+        })
+    })
+});
+
+/* ---------- ビュー ---------- */
+function fitResolution(size) {
+    return Math.max(
+        (EXTENT[2] - EXTENT[0]) / Math.max(size[0] - 2 * PAD, 100),
+        (EXTENT[3] - EXTENT[1]) / Math.max(size[1] - PAD_TOP - PAD, 100)
+    );
+}
+
+function createView(projection, center, resolution, size) {
+    const fitRes = fitResolution(size);
+    return new ol.View({
+        projection: projection,
+        center: center,
+        resolution: Math.min(resolution, fitRes),
+        maxResolution: fitRes,        // 地球全体が収まるところまでしか縮小できない
+        maxZoom: 18,
+        extent: EXTENT,
+        constrainOnlyCenter: true,
+        multiWorld: false
+    });
+}
+
+let projection = getProjection(initialLon);
+let currentLon = initialLon;
+
+const map = new ol.Map({
+    target: 'map',
+    layers: [backgroundLayer, osmLayer, searchLayer],
+    controls: ol.control.defaults.defaults({ attribution: true, zoom: true, rotate: false }),
+    loadTilesWhileAnimating: true,
+    loadTilesWhileInteracting: true
+});
+
+(function initView() {
+    const size = map.getSize() || [window.innerWidth, window.innerHeight];
+    const res = fitResolution(size);
+    // 全球を画面に収める（極まで見える）。上部の余白分だけ中心を北へずらす。
+    const cy = (PAD_TOP - PAD) / 2 * res;
+    map.setView(createView(projection, [0, cy], res, size));
+})();
+
+/* ---------- 中央経線の切替 ---------- */
+let markerLonLat = null;
+
+function placeMarker() {
+    const src = searchLayer.getSource();
+    src.clear();
+    if (!markerLonLat) return;
+    src.addFeature(new ol.Feature(new ol.geom.Point(
+        ol.proj.transform(markerLonLat, 'EPSG:4326', projection)
+    )));
+}
+
+function applyCenterLon(lon, force) {
+    const v = map.getView();
+    const c = v.getCenter();
+    const res = v.getResolution();
+    if (!c || !res) return;
+    const size = map.getSize() || [window.innerWidth, window.innerHeight];
+
+    const np = getProjection(lon);
+    if (!force && np === projection) return;
+
+    projection = np;
+    currentLon = lon;
+    // 中央経線が画面中央になるので x は 0、y（緯度方向）は中央経線に依存しない
+    map.setView(createView(np, [0, c[1]], res, size));
+    placeMarker();   // 検索マーカーも新しい投影で置き直す
+}
+
+let recenterTimer = null;
+function scheduleRecenter() {
+    clearTimeout(recenterTimer);
+    recenterTimer = setTimeout(recenter, 150);
+}
+function recenter() {
+    const v = map.getView();
+    if (v.getAnimating() || v.getInteracting()) { scheduleRecenter(); return; }
+
+    const c = v.getCenter();
+    if (!c) return;
+    const ll = ol.proj.transform(c, v.getProjection(), 'EPSG:4326');
+    if (!isFinite(ll[0])) return;
+
+    const lon = ((ll[0] + 180) % 360 + 360) % 360 - 180;
+    let diff = Math.abs(lon - currentLon);
+    diff = Math.min(diff, 360 - diff);
+    if (diff < 0.5) return;       // わずかなズレでは切り替えない
+
+    applyCenterLon(lon, false);
+}
+map.on('moveend', scheduleRecenter);
+
+window.addEventListener('resize', function() {
+    clearTimeout(window.__rz);
+    window.__rz = setTimeout(function() {
+        map.updateSize();
+        applyCenterLon(currentLon, true);   // 全球が収まる縮小限界を更新
+    }, 200);
+});
+
+/* ---------- 検索 ---------- */
+function showStatus(text) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.style.display = 'block';
+}
+
+async function searchPlace() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    showStatus('検索中…');
+
+    try {
+        const url = 'https://nominatim.openstreetmap.org/search' +
+            '?format=jsonv2&limit=1&accept-language=ja&q=' + encodeURIComponent(q);
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error('検索に失敗しました');
+
+        const results = await response.json();
+        if (!results.length) {
+            showStatus('該当する場所が見つかりませんでした。');
+            return;
+        }
+
+        const r = results[0];
+        markerLonLat = [Number(r.lon), Number(r.lat)];
+        placeMarker();
+
+        const coordinate = ol.proj.transform(markerLonLat, 'EPSG:4326', projection);
+        map.getView().animate({
+            center: coordinate,
+            resolution: Math.min(map.getView().getResolution(), fitResolution(map.getSize()) / 64),
+            duration: 800
+        });
+
+        showStatus(r.display_name);
+    } catch (e) {
+        showStatus('検索エラー：' + e.message);
+    }
+}
+
+document.getElementById('searchButton').addEventListener('click', searchPlace);
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchPlace();
+});
+
+/* ---------- クリックで座標表示 ---------- */
+map.on('singleclick', function(evt) {
+    const ll = ol.proj.transform(evt.coordinate, projection, 'EPSG:4326');
+    if (!isFinite(ll[0]) || !isFinite(ll[1])) return;   // 球体の外側
+    showStatus('経度 ' + ll[0].toFixed(5) + '° / 緯度 ' + ll[1].toFixed(5) + '°');
+});
+</script>
+</body>
+</html>

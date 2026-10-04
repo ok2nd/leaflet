@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equal Earth × OpenStreetMap 世界地図</title>
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, "Noto Sans JP", sans-serif;
+    background: #e9edf0;
+}
+#map {
+    position: absolute;
+    left: 0; top: 0;
+    display: block;
+    cursor: grab;
+    touch-action: none;
+}
+#map.dragging { cursor: grabbing; }
+#title {
+    position: absolute; z-index: 1000; top: 12px; left: 50px;
+    padding: 8px 13px; background: rgba(255,255,255,.92);
+    border-radius: 5px; box-shadow: 0 1px 5px rgba(0,0,0,.25);
+    font-size: 16px; font-weight: bold;
+}
+#info {
+    position: absolute; z-index: 1000; left: 10px; bottom: 10px; max-width: 420px;
+    padding: 7px 10px; background: rgba(255,255,255,.9);
+    border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    font-size: 12px; line-height: 1.45;
+}
+#searchBox {
+    position: absolute; z-index: 1000; top: 12px; right: 12px; width: 300px;
+    display: flex; gap: 5px;
+}
+#searchInput {
+    flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid #aaa;
+    border-radius: 4px; font-size: 14px; background: rgba(255,255,255,.96);
+}
+#searchButton {
+    padding: 8px 12px; border: 1px solid #777; border-radius: 4px;
+    background: white; cursor: pointer;
+}
+#searchButton:hover { background: #eee; }
+#status {
+    position: absolute; z-index: 1000; right: 12px; top: 53px; width: 300px;
+    box-sizing: border-box; padding: 7px 9px; background: rgba(255,255,255,.92);
+    border-radius: 4px; display: none; font-size: 12px;
+}
+#zoom {
+    position: absolute; z-index: 1000; left: 10px; top: 60px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 5px rgba(0,0,0,.3); border-radius: 4px; overflow: hidden;
+}
+#zoom button {
+    width: 30px; height: 30px; border: none; background: rgba(255,255,255,.95);
+    font-size: 18px; font-weight: bold; cursor: pointer;
+}
+#zoom button:first-child { border-bottom: 1px solid #ccc; }
+#zoom button:hover { background: #eee; }
+#attr {
+    position: absolute; z-index: 1000; right: 0; bottom: 0;
+    padding: 2px 6px; background: rgba(255,255,255,.8); font-size: 11px;
+}
+#attr a { color: #0078a8; text-decoration: none; }
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+<div id="title">Equal Earth × OpenStreetMap</div>
+
+<div id="searchBox">
+    <input id="searchInput" type="text" placeholder="都市・国・地域を検索">
+    <button id="searchButton">検索</button>
+</div>
+<div id="status"></div>
+
+<div id="zoom">
+    <button id="zoomIn" title="拡大">+</button>
+    <button id="zoomOut" title="縮小">−</button>
+</div>
+
+<div id="info">
+    Equal Earth図法で表示。OpenStreetMapのタイルを、画面の1行ごとに最適なズームで再投影して描画している。
+    ドラッグで中央経線が連続的に動くため、南北方向は常にまっすぐ表示される。
+    OSMタイルは緯度±85.05°までのため、極域は単色で補っている。
+</div>
+<div id="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></div>
+
+<script>
+'use strict';
+
+/* =========================================================
+ * Equal Earth 投影（単位球 R=1）
+ * ========================================================= */
+const A1 = 1.340264, A2 = -0.081106, A3 = 0.000893, A4 = 0.003796;
+const PI = Math.PI, D2R = PI / 180, SQRT3 = Math.sqrt(3);
+
+function yFromTheta(t) {
+    const t2 = t * t, t6 = t2 * t2 * t2;
+    return t * (A1 + A2 * t2 + t6 * (A3 + A4 * t2));
+}
+function dFromTheta(t) {          // 微分項（xの分母・逆変換で共用）
+    const t2 = t * t, t6 = t2 * t2 * t2;
+    return A1 + 3 * A2 * t2 + t6 * (7 * A3 + 9 * A4 * t2);
+}
+const YMAX = yFromTheta(PI / 3);                    // 極の y（約1.3174）
+const XMAX = 2 * SQRT3 * PI / (3 * A1);             // 赤道端の x（約2.7066）
+const TILE_LAT = 85.0511287798 * D2R;               // タイルの緯度限界
+
+/** 行（y）ごとの定数。λ = x * k, φ = phi */
+function rowInfo(y) {
+    let t = y / YMAX * (PI / 3);
+    for (let i = 0; i < 10; i++) {
+        const dt = (yFromTheta(t) - y) / dFromTheta(t);
+        t -= dt;
+        if (Math.abs(dt) < 1e-10) break;
+    }
+    return {
+        phi: Math.asin(2 * Math.sin(t) / SQRT3),
+        k: 3 * dFromTheta(t) / (2 * SQRT3 * Math.cos(t))
+    };
+}
+
+function yFromLat(latDeg) {
+    return yFromTheta(Math.asin(SQRT3 / 2 * Math.sin(latDeg * D2R)));
+}
+
+/* =========================================================
+ * 状態
+ * ========================================================= */
+const PAD_TOP = 60, PAD = 10;
+const SCALE_MAX = 2.0e7;
+
+const state = { lon0: 135, y0: 0, scale: 1 };   // 中央経線(度) / 画面中心のy / px per unit
+let W = 0, H = 0, scaleMin = 1;
+let marker = null;                               // {lon, lat}
+
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+let img = null, buf = null;
+
+function normLon(l) { return ((l + 180) % 360 + 360) % 360 - 180; }
+function clamp(v, a, b) { return Math.min(Math.max(v, a), b); }
+
+function clampY() {
+    const lo = -YMAX + (H / 2 - PAD) / state.scale;
+    const hi = YMAX - (H / 2 - PAD_TOP) / state.scale;
+    state.y0 = lo < hi ? clamp(state.y0, lo, hi) : (lo + hi) / 2;
+}
+function clampState() {
+    state.scale = clamp(state.scale, scaleMin, SCALE_MAX);
+    clampY();
+    state.lon0 = normLon(state.lon0);
+}
+
+/* 画面(css px) → 経緯度。球体の外ならnull */
+function unproject(px, py) {
+    const y = (H / 2 - py) / state.scale + state.y0;
+    if (Math.abs(y) > YMAX) return null;
+    const r = rowInfo(y);
+    const lam = (px - W / 2) / state.scale * r.k;
+    if (Math.abs(lam) > PI) return null;
+    return { lon: normLon(state.lon0 + lam / D2R), lat: r.phi / D2R };
+}
+
+/* 経緯度 → 画面(css px) */
+function project(lon, lat) {
+    const lam = (((lon - state.lon0) % 360 + 540) % 360 - 180) * D2R;
+    const th = Math.asin(SQRT3 / 2 * Math.sin(lat * D2R));
+    const x = 2 * SQRT3 * lam * Math.cos(th) / (3 * dFromTheta(th));
+    const y = yFromTheta(th);
+    return { x: W / 2 + x * state.scale, y: H / 2 - (y - state.y0) * state.scale };
+}
+
+/* 指定した経緯度が画面(px,py)に来るように中央経線とy0を決める */
+function setAnchor(px, py, lon, lat) {
+    state.y0 = yFromLat(lat) - (H / 2 - py) / state.scale;
+    clampY();
+    const y = clamp((H / 2 - py) / state.scale + state.y0, -YMAX, YMAX);
+    const r = rowInfo(y);
+    state.lon0 = normLon(lon - (px - W / 2) / state.scale * r.k / D2R);
+}
+
+/* =========================================================
+ * タイル管理
+ * ========================================================= */
+const tileCache = new Map();
+let inflight = 0;
+const MAX_INFLIGHT = 32, MAX_TILES = 450;
+let frame = 0;
+const tmpCanvas = document.createElement('canvas');
+tmpCanvas.width = tmpCanvas.height = 256;
+const tmpCtx = tmpCanvas.getContext('2d', { willReadFrequently: true });
+
+function tileKey(z, x, y) { return z * 1099511627776 + x * 1048576 + y; }
+
+function getTile(z, x, y) {
+    const key = tileKey(z, x, y);
+    let t = tileCache.get(key);
+    if (t) return t;
+    if (inflight >= MAX_INFLIGHT) return null;   // 次の描画で再試行
+    t = { d32: null, used: frame, failed: false };
+    tileCache.set(key, t);
+    inflight++;
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = function() {
+        inflight--;
+        tmpCtx.drawImage(im, 0, 0);
+        t.d32 = new Uint32Array(tmpCtx.getImageData(0, 0, 256, 256).data.buffer);
+        evictTiles();
+        requestRender();
+    };
+    im.onerror = function() {
+        inflight--;
+        tileCache.delete(key);   // 後で再試行できるように
+        setTimeout(requestRender, 2000);
+    };
+    im.src = 'https://tile.openstreetmap.org/' + z + '/' + x + '/' + y + '.png';
+    return t;
+}
+
+function evictTiles() {
+    if (tileCache.size <= MAX_TILES) return;
+    const entries = [...tileCache.entries()].filter(e => e[1].d32);
+    entries.sort((a, b) => a[1].used - b[1].used);
+    for (let i = 0; i < Math.min(120, entries.length); i++) {
+        if (entries[i][1].used >= frame - 1) break;
+        tileCache.delete(entries[i][0]);
+    }
+}
+
+/* =========================================================
+ * 描画
+ * ========================================================= */
+function pack(r, g, b) { return ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0; }
+const C_BG = pack(233, 237, 240);     // 球体の外
+const C_NORTH = pack(170, 211, 223);  // 北極海
+const C_SOUTH = pack(242, 239, 233);  // 南極大陸
+const C_MISSING = pack(224, 228, 230);// 読み込み中
+
+let interacting = false, interactTimer = null;
+let rafPending = false;
+
+function requestRender() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(render);
+}
+function markInteract() {
+    interacting = true;
+    clearTimeout(interactTimer);
+    interactTimer = setTimeout(function() { interacting = false; requestRender(); }, 180);
+}
+
+function render() {
+    rafPending = false;
+    frame++;
+    const q = interacting ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(W * q), h = Math.round(H * q);
+    if (canvas.width !== w || canvas.height !== h || !img) {
+        canvas.width = w; canvas.height = h;
+        img = ctx.createImageData(w, h);
+        buf = new Uint32Array(img.data.buffer);
+    }
+    const s = state.scale * q;
+    const lonBase = state.lon0 / 360 + 0.5;
+
+    for (let py = 0; py < h; py++) {
+        const row = py * w;
+        const y = (h / 2 - (py + 0.5)) / s + state.y0;
+        if (y > YMAX || y < -YMAX) { buf.fill(C_BG, row, row + w); continue; }
+
+        const r = rowInfo(y), k = r.k, phi = r.phi;
+        const halfW = PI / k * s;
+        const xs = Math.max(0, Math.ceil(w / 2 - halfW - 0.5));
+        const xe = Math.min(w - 1, Math.floor(w / 2 + halfW - 0.5));
+        if (xs > xe) { buf.fill(C_BG, row, row + w); continue; }
+        if (xs > 0) buf.fill(C_BG, row, row + xs);
+        if (xe < w - 1) buf.fill(C_BG, row + xe + 1, row + w);
+
+        if (Math.abs(phi) >= TILE_LAT) {     // 極域：タイルが存在しない
+            buf.fill(phi > 0 ? C_NORTH : C_SOUTH, row + xs, row + xe + 1);
+            continue;
+        }
+
+        // この行に最適なタイルズーム（水平方向 1タイルpx ≒ 1画面px）
+        const dl = k / state.scale;                       // 1 css px あたりのラジアン
+        let z = Math.round(Math.log2(2 * PI / (256 * dl)));
+        z = clamp(z, 0, 19);
+        const n = Math.pow(2, z);
+        const v = 0.5 - Math.log(Math.tan(PI / 4 + phi / 2)) / (2 * PI);
+        const fy = v * n;
+        const ty = clamp(Math.floor(fy), 0, n - 1);
+        const turnPerX = k / (2 * PI);
+
+        let lastTx = -1, sd = null, sr = 1, satx = 0, spy = 0;
+
+        for (let px = xs; px <= xe; px++) {
+            const x = (px + 0.5 - w / 2) / s;
+            let u = lonBase + x * turnPerX;
+            u -= Math.floor(u);
+            const fx = u * n;
+            const tx = Math.floor(fx);
+
+            if (tx !== lastTx) {          // タイルが変わった区間の解決
+                lastTx = tx;
+                const t = getTile(z, tx, ty);
+                if (t && t.d32) {
+                    t.used = frame;
+                    sd = t.d32; sr = 1; satx = tx;
+                    spy = clamp(Math.floor((fy - ty) * 256), 0, 255);
+                } else {
+                    sd = null;
+                    if (z > 0) {          // 下位ズームのフォールバック用タイルも確保
+                        const dd = Math.min(3, z);
+                        getTile(z - dd, tx >> dd, ty >> dd);
+                    }
+                    for (let d = 1; d <= z; d++) {
+                        const a = tileCache.get(tileKey(z - d, tx >> d, ty >> d));
+                        if (a && a.d32) {
+                            a.used = frame;
+                            sd = a.d32; sr = Math.pow(2, d); satx = tx >> d;
+                            spy = clamp(Math.floor((fy / sr - (ty >> d)) * 256), 0, 255);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (sd === null) {
+                buf[row + px] = C_MISSING;
+            } else {
+                const sx = clamp(Math.floor((fx / sr - satx) * 256), 0, 255);
+                buf[row + px] = sd[spy * 256 + sx];
+            }
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    if (marker) {
+        const p = project(marker.lon, marker.lat);
+        ctx.beginPath();
+        ctx.arc(p.x * q, p.y * q, 8 * q, 0, 2 * PI);
+        ctx.fillStyle = '#d7191c';
+        ctx.fill();
+        ctx.lineWidth = 2 * q;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+    }
+}
+
+/* =========================================================
+ * サイズ
+ * ========================================================= */
+function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    scaleMin = Math.min((W - 2 * PAD) / (2 * XMAX), (H - PAD_TOP - PAD) / (2 * YMAX));
+    img = null;
+    clampState();
+    requestRender();
+}
+window.addEventListener('resize', resize);
+
+/* =========================================================
+ * 操作（ドラッグ / ピンチ / ホイール / ダブルクリック）
+ * ========================================================= */
+const pointers = new Map();
+let anchor = null, startPos = null, moved = false;
+let pinch = null;
+
+function zoomAt(px, py, factor) {
+    const a = unproject(px, py);
+    state.scale = clamp(state.scale * factor, scaleMin, SCALE_MAX);
+    if (a) setAnchor(px, py, a.lon, a.lat); else clampY();
+    markInteract();
+    requestRender();
+}
+
+canvas.addEventListener('pointerdown', function(e) {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    cancelAnimation();
+    if (pointers.size === 1) {
+        anchor = unproject(e.clientX, e.clientY);
+        startPos = { x: e.clientX, y: e.clientY };
+        moved = false;
+    } else if (pointers.size === 2) {
+        const [p1, p2] = [...pointers.values()];
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        pinch = { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), scale: state.scale };
+        anchor = unproject(mx, my);
+        moved = true;
+    }
+    canvas.classList.add('dragging');
+});
+
+canvas.addEventListener('pointermove', function(e) {
+    if (!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 1) {
+        if (!moved && Math.hypot(e.clientX - startPos.x, e.clientY - startPos.y) > 5) moved = true;
+        if (!moved) return;
+        if (anchor) {
+            setAnchor(e.clientX, e.clientY, anchor.lon, anchor.lat);
+        } else {   // 球体の外から掴んだ場合の単純な平行移動
+            const y = clamp((H / 2 - e.clientY) / state.scale + state.y0, -YMAX, YMAX);
+            const k = rowInfo(y).k;
+            state.lon0 = normLon(state.lon0 - (e.clientX - prev.x) / state.scale * k / D2R);
+            state.y0 += (e.clientY - prev.y) / state.scale;
+            clampY();
+        }
+    } else if (pointers.size === 2 && pinch) {
+        const [p1, p2] = [...pointers.values()];
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        state.scale = clamp(pinch.scale * dist / pinch.dist, scaleMin, SCALE_MAX);
+        if (anchor) setAnchor(mx, my, anchor.lon, anchor.lat); else clampY();
+    }
+    markInteract();
+    requestRender();
+});
+
+function endPointer(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) {
+        canvas.classList.remove('dragging');
+        if (!moved && e.type === 'pointerup') {
+            const ll = unproject(e.clientX, e.clientY);
+            if (ll) showStatus('経度 ' + ll.lon.toFixed(5) + '° / 緯度 ' + ll.lat.toFixed(5) + '°');
+        }
+        anchor = null; pinch = null;
+    } else if (pointers.size === 1) {
+        const p = [...pointers.values()][0];
+        anchor = unproject(p.x, p.y);
+        startPos = { x: p.x, y: p.y };
+        pinch = null;
+    }
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+canvas.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    cancelAnimation();
+    const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    zoomAt(e.clientX, e.clientY, Math.exp(-d * 0.0015));
+}, { passive: false });
+
+canvas.addEventListener('dblclick', function(e) {
+    cancelAnimation();
+    zoomAt(e.clientX, e.clientY, 2);
+});
+
+document.getElementById('zoomIn').addEventListener('click', function() { cancelAnimation(); zoomAt(W / 2, H / 2, 2); });
+document.getElementById('zoomOut').addEventListener('click', function() { cancelAnimation(); zoomAt(W / 2, H / 2, 0.5); });
+
+/* =========================================================
+ * アニメーション（検索結果へ移動）
+ * ========================================================= */
+let animId = 0;
+function cancelAnimation() { animId++; }
+
+function flyTo(lon, lat, targetScale) {
+    const id = ++animId;
+    const from = { lon0: state.lon0, y0: state.y0, ls: Math.log(state.scale) };
+    const dLon = ((lon - from.lon0 + 540) % 360) - 180;          // 最短経路
+    const toY = yFromLat(lat);
+    const toLs = Math.log(clamp(targetScale, scaleMin, SCALE_MAX));
+    const t0 = performance.now(), dur = 900;
+
+    (function step(now) {
+        if (id !== animId) return;
+        let t = Math.min(1, (now - t0) / dur);
+        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        state.lon0 = normLon(from.lon0 + dLon * e);
+        state.scale = Math.exp(from.ls + (toLs - from.ls) * e);
+        state.y0 = from.y0 + (toY - from.y0) * e;
+        clampY();
+        markInteract();
+        render();
+        if (t < 1) requestAnimationFrame(step);
+    })(t0);
+}
+
+/* =========================================================
+ * 検索 / ステータス
+ * ========================================================= */
+function showStatus(text) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.style.display = 'block';
+}
+
+async function searchPlace() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    showStatus('検索中…');
+    try {
+        const url = 'https://nominatim.openstreetmap.org/search' +
+            '?format=jsonv2&limit=1&accept-language=ja&q=' + encodeURIComponent(q);
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error('検索に失敗しました');
+        const results = await response.json();
+        if (!results.length) { showStatus('該当する場所が見つかりませんでした。'); return; }
+
+        const r = results[0];
+        marker = { lon: Number(r.lon), lat: Number(r.lat) };
+        flyTo(marker.lon, marker.lat, Math.max(state.scale, 40000));
+        showStatus(r.display_name);
+    } catch (e) {
+        showStatus('検索エラー：' + e.message);
+    }
+}
+document.getElementById('searchButton').addEventListener('click', searchPlace);
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchPlace();
+});
+
+/* =========================================================
+ * 初期化：日本（経度135°）を中央経線に、全球表示
+ * ========================================================= */
+resize();
+state.scale = scaleMin;
+state.lon0 = 135;
+state.y0 = 0;
+clampState();
+requestRender();
+</script>
+</body>
+</html>
